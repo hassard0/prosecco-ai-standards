@@ -7,16 +7,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
-// Zalando-style: 4 quadrants, 4 concentric rings
+// Quadrants designed around the actual standards in the directory
 const QUADRANT_DEFS = [
-  { name: "Protocols", tags: ["protocol", "protocols", "agents", "messaging"] },
-  { name: "Governance", tags: ["governance", "safety", "ethics", "regulation", "policy", "risk"] },
-  { name: "Data & Models", tags: ["data", "models", "training", "ml", "format", "interoperability"] },
-  { name: "Infrastructure", tags: ["infrastructure", "deployment", "runtime", "cloud", "compute", "security", "identity"] },
+  { name: "Agent Communication" },
+  { name: "Commerce & Payments" },
+  { name: "Discovery & Config" },
+  { name: "Security & Identity" },
 ];
 
 // Zalando rings: Adopt (center) → Trial → Assess → Hold (outer)
-// Map our statuses to these rings
 const RINGS = [
   { label: "Adopt", status: "Approved" as const, color: "hsl(152 60% 42%)", desc: "We strongly recommend adoption" },
   { label: "Trial", status: "Draft" as const, color: "hsl(220 60% 55%)", desc: "Worth trying in projects" },
@@ -33,11 +32,35 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
+// Smart quadrant assignment: uses tag priority + title heuristics to spread standards
 function assignQuadrant(standard: Standard): number {
   const tags = (standard.tags || []).map((t) => t.toLowerCase());
-  for (let qi = 0; qi < QUADRANT_DEFS.length; qi++) {
-    if (QUADRANT_DEFS[qi].tags.some((qt) => tags.includes(qt))) return qi;
+  const title = standard.title.toLowerCase();
+  const acronym = (standard.acronym || "").toLowerCase();
+
+  // Q1: Commerce & Payments — anything payment/commerce related
+  if (tags.includes("payments") || tags.includes("commerce") || title.includes("payment") || title.includes("commerce") || title.includes("x402")) {
+    return 1;
   }
+
+  // Q3: Security & Identity — security, identity, auth, access
+  if (tags.includes("security") || tags.includes("identity") || title.includes("identity") || title.includes("access") || title.includes("auth")) {
+    return 3;
+  }
+
+  // Q2: Discovery & Config — discovery, config, metadata, format files
+  if (tags.includes("api") || tags.includes("standard") || tags.includes("format") ||
+      title.includes("llms.txt") || title.includes("agents.json") || title.includes("agents.md") ||
+      acronym === "mcp" || title.includes("context protocol") || title.includes("discovery")) {
+    return 2;
+  }
+
+  // Q0: Agent Communication — agent protocols, messaging, interaction
+  if (tags.includes("agents") || tags.includes("protocol") || title.includes("agent")) {
+    return 0;
+  }
+
+  // Fallback: hash-based
   return hashString(standard.id) % 4;
 }
 
