@@ -33,6 +33,7 @@ export default function Admin() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [discoverOpen, setDiscoverOpen] = useState(false);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
