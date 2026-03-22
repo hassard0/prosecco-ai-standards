@@ -1,16 +1,31 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { Footer } from "@/components/Footer";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="flex flex-col min-h-screen">
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-1" style={{ lineHeight: "1.1" }}>
+            AI Standards Directory
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-xl">
+            Track the protocols, specifications, and standards shaping the AI ecosystem — from emerging proposals to approved specifications.
+          </p>
+        </div>
+
+        <KanbanBoard searchQuery={searchQuery} />
+      </main>
+
+      <Footer />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
