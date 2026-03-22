@@ -56,6 +56,7 @@ export default function StandardDetail() {
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
   const resources = ((standard as any)?.resources as { type: string; label: string; url: string }[]) || [];
+  const authors = ((standard as any)?.authors as { name: string; company: string; role?: string; url?: string }[]) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
