@@ -9,6 +9,7 @@ import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Admin from "./pages/Admin.tsx";
 import AdminEdit from "./pages/AdminEdit.tsx";
+import AdminUsers from "./pages/AdminUsers.tsx";
 import StandardDetail from "./pages/StandardDetail.tsx";
 import Radar from "./pages/Radar.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/edit/:id" element={<AdminEdit />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
