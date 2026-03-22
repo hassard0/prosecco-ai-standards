@@ -1,40 +1,19 @@
-import { useState, useRef, useCallback } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useStandards } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { AdminInvite } from "@/components/AdminInvite";
 import { AiIngestion } from "@/components/AiIngestion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
-
-type StandardForm = {
-  title: string;
-  acronym: string;
-  description: string;
-  status: StatusType;
-  link: string;
-  organization: string;
-  tags: string;
-};
-
-const empty: StandardForm = {
-  title: "", acronym: "", description: "", status: "Backlog",
-  link: "", organization: "", tags: "",
-};
 
 const COLUMNS: { status: StatusType; label: string; color: string; description: string }[] = [
   { status: "Backlog", label: "Backlog", color: "hsl(270 40% 55%)", description: "Unpublished — drafts, AI-discovered, and work-in-progress" },
@@ -48,12 +27,8 @@ export default function Admin() {
   const { data: standards, isLoading, error } = useStandards();
   const { toast } = useToast();
   const qc = useQueryClient();
-
   const navigate = useNavigate();
 
-  // Drag state
-
-  // Drag state
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
 
@@ -65,42 +40,6 @@ export default function Admin() {
       <Button variant="outline" onClick={signOut}>Sign Out</Button>
     </div>
   );
-
-  const openCreate = (status: StatusType = "Backlog") => {
-    setEditingId(null);
-    setForm({ ...empty, status });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (s: Standard) => {
-    navigate(`/admin/edit/${s.id}`);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    const payload = {
-      title: form.title,
-      acronym: form.acronym || null,
-      description: form.description,
-      status: form.status,
-      link: form.link || null,
-      organization: form.organization || null,
-      tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-    };
-
-    const { error } = editingId
-      ? await supabase.from("standards").update(payload).eq("id", editingId)
-      : await supabase.from("standards").insert(payload);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: editingId ? "Updated" : "Created" });
-      qc.invalidateQueries({ queryKey: ["standards"] });
-      setDialogOpen(false);
-    }
-    setSaving(false);
-  };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("standards").delete().eq("id", id);
@@ -134,7 +73,6 @@ export default function Admin() {
       return;
     }
 
-    // Optimistic: update cache
     qc.setQueryData(["standards"], (old: Standard[] | undefined) =>
       old?.map((s) => (s.id === draggedId ? { ...s, status: newStatus } : s))
     );
@@ -149,8 +87,6 @@ export default function Admin() {
     }
     setDraggedId(null);
   };
-
-  const set = (key: keyof StandardForm, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const columnStandards = (status: StatusType) =>
     (standards || []).filter((s) => s.status === status);
@@ -175,7 +111,6 @@ export default function Admin() {
       </header>
 
       <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Tools row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <section className="space-y-2 rounded-lg border bg-card p-4">
             <h2 className="text-sm font-semibold">AI Ingestion</h2>
@@ -189,7 +124,6 @@ export default function Admin() {
           </section>
         </div>
 
-        {/* Kanban Board */}
         {error ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
             Failed to load standards.
@@ -218,7 +152,6 @@ export default function Admin() {
                   onDragLeave={() => setDragOverCol(null)}
                   onDrop={(e) => handleDrop(e, col.status)}
                 >
-                  {/* Column header */}
                   <div className="flex items-center gap-2 mb-3 px-1">
                     <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
                     <h3 className="text-sm font-semibold text-foreground">{col.label}</h3>
@@ -229,7 +162,7 @@ export default function Admin() {
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 shrink-0"
-                      onClick={() => openCreate(col.status)}
+                      onClick={() => navigate(`/admin/edit/new?status=${col.status}`)}
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
@@ -237,7 +170,6 @@ export default function Admin() {
 
                   <p className="text-[10px] text-muted-foreground mb-3 px-1">{col.description}</p>
 
-                  {/* Cards */}
                   <div className="space-y-2 flex-1">
                     {items.length === 0 ? (
                       <div className="rounded-lg border border-dashed bg-background/50 p-6 text-center">
@@ -285,7 +217,7 @@ export default function Admin() {
                             </div>
                             <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
-                                onClick={() => openEdit(s)}
+                                onClick={() => navigate(`/admin/edit/${s.id}`)}
                                 className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted transition-colors"
                               >
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
@@ -308,60 +240,6 @@ export default function Admin() {
           </div>
         )}
       </main>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Standard" : "Add Standard"}</DialogTitle>
-            <DialogDescription className="sr-only">{editingId ? "Edit" : "Create"} a standard</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Title *</Label>
-                <Input value={form.title} onChange={(e) => set("title", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Acronym</Label>
-                <Input value={form.acronym} onChange={(e) => set("acronym", e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description *</Label>
-              <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => set("status", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Backlog">Backlog</SelectItem>
-                    <SelectItem value="Emerging">Emerging</SelectItem>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Organization</Label>
-                <Input value={form.organization} onChange={(e) => set("organization", e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Link</Label>
-              <Input type="url" value={form.link} onChange={(e) => set("link", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Tags (comma-separated)</Label>
-              <Input value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="ai, protocol, agents" />
-            </div>
-            <Button onClick={handleSave} className="w-full" disabled={saving || !form.title || !form.description}>
-              {saving ? "Saving…" : editingId ? "Update" : "Create"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
