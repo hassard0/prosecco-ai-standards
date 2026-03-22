@@ -28,6 +28,7 @@ export function AdminInvite({ onInvited }: { onInvited?: () => void } = {}) {
           description: data.message,
         });
         setEmail("");
+        onInvited?.();
       } else {
         toast({
           title: "Could not add admin",
