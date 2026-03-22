@@ -5,7 +5,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Flag, Sparkles, Loader2, Check, X, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Flag, Sparkles, Loader2, Check, X, AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StandardFlag {
@@ -147,7 +147,15 @@ export default function AdminFeedback() {
   const handleDismiss = async (flagId: string) => {
     await supabase.from("standard_flags").update({ status: "dismissed" } as any).eq("id", flagId);
     qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
     toast({ title: "Flag dismissed" });
+  };
+
+  const handleDelete = async (flagId: string) => {
+    await supabase.from("standard_flags").delete().eq("id", flagId);
+    qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
+    toast({ title: "Feedback deleted" });
   };
 
   const pendingCount = flags?.filter((f) => f.status === "pending").length ?? 0;
@@ -289,6 +297,11 @@ export default function AdminFeedback() {
                       {flag.status !== "dismissed" && flag.status !== "applied" && (
                         <Button size="sm" variant="ghost" onClick={() => handleDismiss(flag.id)} className="gap-1.5 text-muted-foreground">
                           <X className="h-3.5 w-3.5" /> Dismiss
+                        </Button>
+                      )}
+                      {flag.status === "dismissed" && (
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(flag.id)} className="gap-1.5 text-destructive hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
                         </Button>
                       )}
                     </div>
