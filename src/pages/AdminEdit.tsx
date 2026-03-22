@@ -16,6 +16,7 @@ import { EnrichmentReviewDialog } from "@/components/EnrichmentReviewDialog";
 import { Navigate } from "react-router-dom";
 import { TagInput } from "@/components/TagInput";
 import { ResourceLinksEditor, type ResourceLink } from "@/components/ResourceLinksEditor";
+import { AuthorsEditor, type Author } from "@/components/AuthorsEditor";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
 
@@ -37,6 +38,7 @@ export default function AdminEdit() {
   const [organization, setOrganization] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [resources, setResources] = useState<ResourceLink[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichData, setEnrichData] = useState<any>(null);
@@ -54,6 +56,7 @@ export default function AdminEdit() {
     setOrganization(s.organization ?? "");
     setTags(s.tags ?? []);
     setResources(((s as any).resources as ResourceLink[]) ?? []);
+    setAuthors(((s as any).authors as Author[]) ?? []);
   }, [id, isNew, standards]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
@@ -72,6 +75,7 @@ export default function AdminEdit() {
       organization: organization.trim() || null,
       tags,
       resources: resources.filter((r) => r.url.trim()) as any,
+      authors: authors.filter((a) => a.name.trim()) as any,
     };
 
     const { error } = isNew
@@ -122,6 +126,9 @@ export default function AdminEdit() {
     }
     if (accepted.resources && d.resources?.length) {
       setResources((prev) => [...prev, ...d.resources]);
+    }
+    if (accepted.authors && d.authors?.length) {
+      setAuthors((prev) => [...prev, ...d.authors]);
     }
     setEnrichReviewOpen(false);
     setEnrichData(null);
@@ -221,6 +228,9 @@ export default function AdminEdit() {
               </p>
             </section>
 
+            {/* Authors */}
+            <AuthorsEditor authors={authors} onChange={setAuthors} />
+
             {/* Additional Resources */}
             <ResourceLinksEditor resources={resources} onChange={setResources} />
           </>
@@ -231,7 +241,7 @@ export default function AdminEdit() {
         <EnrichmentReviewDialog
           open={enrichReviewOpen}
           onOpenChange={setEnrichReviewOpen}
-          current={{ title, acronym, description, organization, status, tags, link, resources }}
+          current={{ title, acronym, description, organization, status, tags, link, resources, authors }}
           proposed={enrichData}
           onAccept={handleAcceptEnrichment}
         />

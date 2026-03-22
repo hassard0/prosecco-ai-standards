@@ -3,7 +3,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users } from "lucide-react";
 import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
@@ -56,6 +56,7 @@ export default function StandardDetail() {
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
   const resources = ((standard as any)?.resources as { type: string; label: string; url: string }[]) || [];
+  const authors = ((standard as any)?.authors as { name: string; company: string; role?: string; url?: string }[]) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -138,8 +139,53 @@ export default function StandardDetail() {
                   </a>
                 </Button>
               )}
-              <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
+            <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
             </div>
+
+            {/* Authors & Affiliations */}
+            {authors.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-sm font-semibold text-foreground">Authors & Affiliations</h2>
+                </div>
+                {(() => {
+                  const byCompany = authors.reduce<Record<string, typeof authors>>((acc, a) => {
+                    const key = a.company || "Independent";
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(a);
+                    return acc;
+                  }, {});
+                  return (
+                    <div className="space-y-3">
+                      {Object.entries(byCompany).map(([company, people]) => (
+                        <div key={company}>
+                          <span className="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold rounded bg-muted text-muted-foreground mb-1.5">
+                            {company}
+                          </span>
+                          <div className="space-y-1 ml-1">
+                            {people.map((a, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                {a.url ? (
+                                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:text-primary transition-colors">
+                                    {a.name}
+                                  </a>
+                                ) : (
+                                  <span className="font-medium text-foreground">{a.name}</span>
+                                )}
+                                {a.role && (
+                                  <span className="text-xs text-muted-foreground">· {a.role}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Additional Resources */}
             {resources.length > 0 && (

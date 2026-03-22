@@ -93,6 +93,7 @@ export type Database = {
       standards: {
         Row: {
           acronym: string | null
+          authors: Json | null
           created_at: string
           description: string
           id: string
@@ -107,6 +108,7 @@ export type Database = {
         }
         Insert: {
           acronym?: string | null
+          authors?: Json | null
           created_at?: string
           description: string
           id?: string
@@ -121,6 +123,7 @@ export type Database = {
         }
         Update: {
           acronym?: string | null
+          authors?: Json | null
           created_at?: string
           description?: string
           id?: string

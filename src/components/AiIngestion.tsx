@@ -18,6 +18,7 @@ interface ExtractedStandard {
   status: "Backlog" | "Emerging" | "Draft" | "Approved";
   tags: string[];
   link: string;
+  authors?: { name: string; company: string; role?: string; url?: string }[];
 }
 
 export function AiIngestion() {
@@ -80,6 +81,7 @@ export function AiIngestion() {
       link: form.link || null,
       organization: form.organization || null,
       tags: form.tagsStr ? form.tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      authors: (extracted?.authors || []).filter((a) => a.name?.trim()),
     };
 
     const { error } = await supabase.from("standards").insert(payload);

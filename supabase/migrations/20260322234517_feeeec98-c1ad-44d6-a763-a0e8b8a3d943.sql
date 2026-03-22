@@ -1,0 +1,1 @@
+ALTER TABLE public.standards ADD COLUMN authors jsonb DEFAULT '[]'::jsonb;
