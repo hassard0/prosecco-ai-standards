@@ -1,15 +1,24 @@
-import { useState, useMemo } from "react";
-import { useStandards, useTags } from "@/hooks/useStandards";
+import { useState, useMemo, useCallback } from "react";
+import { useStandards } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 
+// Zalando-style: 4 quadrants, 3 concentric rings
+// Quadrants are tag-based categories
+const QUADRANT_DEFS = [
+  { name: "Protocols", tags: ["protocol", "protocols", "agents", "messaging"], angle: 0 },
+  { name: "Governance", tags: ["governance", "safety", "ethics", "regulation", "policy", "risk"], angle: 1 },
+  { name: "Data & Models", tags: ["data", "models", "training", "ml", "format", "interoperability"], angle: 2 },
+  { name: "Infrastructure", tags: ["infrastructure", "deployment", "runtime", "cloud", "compute", "security", "identity"], angle: 3 },
+];
+
 const RINGS = [
-  { status: "Emerging" as const, label: "Emerging", radius: 0.95, color: "hsl(38 80% 55%)" },
-  { status: "Draft" as const, label: "Draft", radius: 0.62, color: "hsl(220 60% 55%)" },
-  { status: "Approved" as const, label: "Approved", radius: 0.3, color: "hsl(152 60% 42%)" },
+  { status: "Approved" as const, label: "Approved", color: "hsl(152 60% 42%)" },
+  { status: "Draft" as const, label: "Draft", color: "hsl(220 60% 55%)" },
+  { status: "Emerging" as const, label: "Emerging", color: "hsl(38 80% 55%)" },
 ];
 
 function hashString(str: string): number {
@@ -21,27 +30,39 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-function getBlipPosition(standard: Standard, index: number, total: number, ringRadius: number, prevRadius: number) {
-  const h = hashString(standard.id);
-  const angleSector = (2 * Math.PI) / Math.max(total, 1);
-  const angle = angleSector * index + (h % 100) / 100 * angleSector * 0.6;
-  const minR = prevRadius + 0.04;
-  const maxR = ringRadius - 0.02;
-  const r = minR + ((h % 73) / 73) * (maxR - minR);
-  return { x: 50 + r * 50 * Math.cos(angle), y: 50 + r * 50 * Math.sin(angle) };
+function assignQuadrant(standard: Standard): number {
+  const tags = (standard.tags || []).map((t) => t.toLowerCase());
+  for (let qi = 0; qi < QUADRANT_DEFS.length; qi++) {
+    if (QUADRANT_DEFS[qi].tags.some((qt) => tags.includes(qt))) return qi;
+  }
+  // Fallback: hash-based
+  return hashString(standard.id) % 4;
+}
+
+interface Blip {
+  standard: Standard;
+  x: number;
+  y: number;
+  color: string;
+  quadrant: number;
+  ring: number;
+  index: number;
 }
 
 export default function Radar() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: standards, isLoading } = useStandards();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [activeQuadrant, setActiveQuadrant] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     if (!standards) return [];
+    // Exclude Backlog from public radar
+    const pub = standards.filter((s) => s.status !== "Backlog");
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return standards;
-    return standards.filter(
+    if (!q) return pub;
+    return pub.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
@@ -50,128 +71,268 @@ export default function Radar() {
   }, [standards, searchQuery]);
 
   const blips = useMemo(() => {
-    const result: Array<{ standard: Standard; x: number; y: number; color: string }> = [];
-    for (const ring of RINGS) {
-      const ringStandards = filtered.filter((s) => s.status === ring.status);
-      const prevRing = RINGS.find((r) => {
-        const idx = RINGS.indexOf(r);
-        return idx === RINGS.indexOf(ring) - 1;
-      });
-      const prevRadius = prevRing ? prevRing.radius - (prevRing.radius - (RINGS[RINGS.indexOf(ring) - 2]?.radius || 0)) : 0;
-      const innerRadius = ring === RINGS[0] ? RINGS[1].radius : ring === RINGS[1] ? RINGS[2].radius : 0;
-      ringStandards.forEach((s, i) => {
-        const pos = getBlipPosition(s, i, ringStandards.length, ring.radius, innerRadius);
-        result.push({ standard: s, ...pos, color: ring.color });
+    const result: Blip[] = [];
+    let globalIndex = 0;
+
+    // Group by quadrant and ring
+    const grouped: Record<string, Standard[]> = {};
+    for (const s of filtered) {
+      const qi = assignQuadrant(s);
+      const ri = RINGS.findIndex((r) => r.status === s.status);
+      if (ri === -1) continue;
+      const key = `${qi}-${ri}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(s);
+    }
+
+    const cx = 500, cy = 500;
+    const maxR = 420;
+    const ringWidths = [140, 140, 140]; // inner to outer
+
+    for (const s of filtered) {
+      const qi = assignQuadrant(s);
+      const ri = RINGS.findIndex((r) => r.status === s.status);
+      if (ri === -1) continue;
+
+      const key = `${qi}-${ri}`;
+      const siblings = grouped[key];
+      const sibIdx = siblings.indexOf(s);
+
+      // Quadrant angle range (each 90°)
+      // Q0=bottom-right, Q1=bottom-left, Q2=top-left, Q3=top-right (Zalando convention)
+      const quadrantStartAngle = qi * (Math.PI / 2);
+      const padding = 0.08;
+      const sectorAngle = (Math.PI / 2) - padding * 2;
+      const angleStep = sectorAngle / Math.max(siblings.length + 1, 2);
+      const angle = quadrantStartAngle + padding + angleStep * (sibIdx + 1);
+
+      // Ring radius band
+      let innerR = 0;
+      for (let r = 0; r < ri; r++) innerR += ringWidths[r];
+      const outerR = innerR + ringWidths[ri];
+      const h = hashString(s.id);
+      const rPos = innerR + 20 + ((h % 71) / 71) * (outerR - innerR - 40);
+
+      const x = cx + rPos * Math.sin(angle);
+      const y = cy - rPos * Math.cos(angle);
+
+      result.push({
+        standard: s,
+        x,
+        y,
+        color: RINGS[ri].color,
+        quadrant: qi,
+        ring: ri,
+        index: ++globalIndex,
       });
     }
     return result;
   }, [filtered]);
 
+  const ringRadii = [140, 280, 420];
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      <main className="flex-1 mx-auto max-w-5xl w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-1" style={{ lineHeight: "1.1" }}>
             Tech Radar
           </h2>
           <p className="text-sm text-muted-foreground max-w-xl">
-            A radar view of AI standards by maturity — from emerging proposals at the edge to approved specs at the center.
+            AI standards plotted by category and maturity — approved at center, emerging at edge.
           </p>
         </div>
 
         {isLoading ? (
-          <Skeleton className="w-full aspect-square max-w-2xl mx-auto rounded-full" />
+          <Skeleton className="w-full aspect-square max-w-3xl mx-auto rounded-full" />
         ) : (
-          <div className="relative w-full max-w-2xl mx-auto">
-            <svg viewBox="0 0 100 100" className="w-full h-auto">
-              {/* Rings */}
-              {RINGS.map((ring) => (
-                <circle
-                  key={ring.status}
-                  cx="50"
-                  cy="50"
-                  r={ring.radius * 50}
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-border"
-                  strokeWidth="0.2"
-                />
-              ))}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Radar SVG */}
+            <div className="flex-1 min-w-0">
+              <svg viewBox="0 0 1000 1000" className="w-full h-auto max-w-3xl mx-auto">
+                {/* Background quadrant fills */}
+                {[0, 1, 2, 3].map((qi) => {
+                  const startAngle = qi * 90 - 90;
+                  const isActive = activeQuadrant === null || activeQuadrant === qi;
+                  return (
+                    <path
+                      key={`quad-${qi}`}
+                      d={describeArc(500, 500, 420, startAngle, startAngle + 90)}
+                      className={isActive ? "fill-muted/30" : "fill-muted/10"}
+                      stroke="none"
+                      style={{ transition: "fill 200ms ease-out" }}
+                      onMouseEnter={() => setActiveQuadrant(qi)}
+                      onMouseLeave={() => setActiveQuadrant(null)}
+                    />
+                  );
+                })}
 
-              {/* Cross hairs */}
-              <line x1="50" y1={50 - RINGS[0].radius * 50} x2="50" y2={50 + RINGS[0].radius * 50} stroke="currentColor" className="text-border" strokeWidth="0.1" />
-              <line x1={50 - RINGS[0].radius * 50} y1="50" x2={50 + RINGS[0].radius * 50} y2="50" stroke="currentColor" className="text-border" strokeWidth="0.1" />
-
-              {/* Ring labels */}
-              {RINGS.map((ring) => (
-                <text
-                  key={`label-${ring.status}`}
-                  x="50"
-                  y={50 - ring.radius * 50 + 2.5}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize="1.6"
-                  fontWeight="600"
-                >
-                  {ring.label}
-                </text>
-              ))}
-
-              {/* Blips */}
-              {blips.map(({ standard, x, y, color }) => (
-                <g
-                  key={standard.id}
-                  className="cursor-pointer"
-                  onMouseEnter={() => setHoveredId(standard.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  onClick={() => navigate(`/standard/${standard.id}`)}
-                >
+                {/* Rings */}
+                {ringRadii.map((r, i) => (
                   <circle
-                    cx={x}
-                    cy={y}
-                    r={hoveredId === standard.id ? 1.8 : 1.2}
-                    fill={color}
-                    opacity={hoveredId === standard.id ? 1 : 0.85}
-                    className="transition-all duration-200"
+                    key={`ring-${i}`}
+                    cx={500}
+                    cy={500}
+                    r={r}
+                    fill="none"
+                    stroke="currentColor"
+                    className="text-border"
+                    strokeWidth="1"
                   />
-                  {hoveredId === standard.id && (
-                    <>
-                      <rect
-                        x={x + 2}
-                        y={y - 2.5}
-                        width={Math.max((standard.acronym || standard.title).length * 0.85, 6)}
-                        height="4"
-                        rx="0.8"
-                        className="fill-card stroke-border"
-                        strokeWidth="0.15"
+                ))}
+
+                {/* Axes */}
+                <line x1={500} y1={80} x2={500} y2={920} stroke="currentColor" className="text-border" strokeWidth="1" />
+                <line x1={80} y1={500} x2={920} y2={500} stroke="currentColor" className="text-border" strokeWidth="1" />
+
+                {/* Ring labels */}
+                {RINGS.map((ring, i) => (
+                  <text
+                    key={`rlabel-${ring.status}`}
+                    x={505}
+                    y={500 - ringRadii[i] + 18}
+                    className="fill-muted-foreground"
+                    fontSize="12"
+                    fontWeight="600"
+                    opacity={0.7}
+                  >
+                    {ring.label}
+                  </text>
+                ))}
+
+                {/* Quadrant labels */}
+                {QUADRANT_DEFS.map((q, qi) => {
+                  const positions = [
+                    { x: 760, y: 960 },  // Q0 bottom-right
+                    { x: 30, y: 960 },   // Q1 bottom-left
+                    { x: 30, y: 50 },    // Q2 top-left
+                    { x: 760, y: 50 },   // Q3 top-right
+                  ];
+                  return (
+                    <text
+                      key={`qlabel-${qi}`}
+                      x={positions[qi].x}
+                      y={positions[qi].y}
+                      className="fill-foreground"
+                      fontSize="16"
+                      fontWeight="700"
+                      opacity={activeQuadrant === null || activeQuadrant === qi ? 1 : 0.3}
+                      style={{ transition: "opacity 200ms ease-out" }}
+                    >
+                      {q.name}
+                    </text>
+                  );
+                })}
+
+                {/* Blips */}
+                {blips.map((blip) => {
+                  const isActive = activeQuadrant === null || activeQuadrant === blip.quadrant;
+                  const isHovered = hoveredId === blip.standard.id;
+                  return (
+                    <g
+                      key={blip.standard.id}
+                      className="cursor-pointer"
+                      onMouseEnter={() => setHoveredId(blip.standard.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      onClick={() => navigate(`/standard/${blip.standard.id}`)}
+                      opacity={isActive ? 1 : 0.15}
+                      style={{ transition: "opacity 200ms ease-out" }}
+                    >
+                      <circle
+                        cx={blip.x}
+                        cy={blip.y}
+                        r={isHovered ? 14 : 10}
+                        fill={blip.color}
+                        className="transition-all duration-150"
                       />
                       <text
-                        x={x + 2.8}
-                        y={y + 0.5}
-                        fontSize="2"
-                        className="fill-card-foreground font-medium"
+                        x={blip.x}
+                        y={blip.y + 4}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fontWeight="700"
+                        fill="white"
                       >
-                        {standard.acronym || standard.title.slice(0, 20)}
+                        {blip.index}
                       </text>
-                    </>
-                  )}
-                </g>
-              ))}
-            </svg>
+                      {isHovered && (
+                        <>
+                          <rect
+                            x={blip.x + 16}
+                            y={blip.y - 14}
+                            width={Math.max((blip.standard.acronym || blip.standard.title.slice(0, 25)).length * 7.5 + 16, 60)}
+                            height={26}
+                            rx={6}
+                            className="fill-card stroke-border"
+                            strokeWidth="1"
+                          />
+                          <text
+                            x={blip.x + 24}
+                            y={blip.y + 1}
+                            fontSize="12"
+                            className="fill-card-foreground font-medium"
+                          >
+                            {blip.standard.acronym || blip.standard.title.slice(0, 25)}
+                          </text>
+                        </>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-6 mt-4">
-              {RINGS.slice().reverse().map((ring) => (
-                <div key={ring.status} className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ring.color }} />
-                  <span className="text-xs text-muted-foreground font-medium">{ring.label}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground/60">
-                    {filtered.filter((s) => s.status === ring.status).length}
-                  </span>
-                </div>
-              ))}
+            {/* Legend table */}
+            <div className="lg:w-80 shrink-0 space-y-6">
+              {/* Ring legend */}
+              <div className="flex items-center gap-4">
+                {RINGS.map((ring) => (
+                  <div key={ring.status} className="flex items-center gap-1.5">
+                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: ring.color }} />
+                    <span className="text-xs font-medium text-muted-foreground">{ring.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Blip index by quadrant */}
+              {QUADRANT_DEFS.map((q, qi) => {
+                const quadBlips = blips.filter((b) => b.quadrant === qi);
+                if (quadBlips.length === 0) return null;
+                return (
+                  <div
+                    key={qi}
+                    className="space-y-2"
+                    onMouseEnter={() => setActiveQuadrant(qi)}
+                    onMouseLeave={() => setActiveQuadrant(null)}
+                  >
+                    <h3 className="text-sm font-semibold text-foreground">{q.name}</h3>
+                    <div className="space-y-0.5">
+                      {quadBlips.map((b) => (
+                        <button
+                          key={b.standard.id}
+                          className="flex items-center gap-2 w-full text-left px-2 py-1 rounded hover:bg-muted/50 transition-colors text-xs group active:scale-[0.98]"
+                          onMouseEnter={() => setHoveredId(b.standard.id)}
+                          onMouseLeave={() => setHoveredId(null)}
+                          onClick={() => navigate(`/standard/${b.standard.id}`)}
+                        >
+                          <span
+                            className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+                            style={{ backgroundColor: b.color }}
+                          >
+                            {b.index}
+                          </span>
+                          <span className="text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                            {b.standard.acronym ? `${b.standard.acronym} — ` : ""}
+                            {b.standard.title}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -180,4 +341,16 @@ export default function Radar() {
       <Footer />
     </div>
   );
+}
+
+// SVG arc path helper
+function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
+  const startRad = (startAngle * Math.PI) / 180;
+  const endRad = (endAngle * Math.PI) / 180;
+  const x1 = cx + r * Math.cos(startRad);
+  const y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad);
+  const y2 = cy + r * Math.sin(endRad);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 }
