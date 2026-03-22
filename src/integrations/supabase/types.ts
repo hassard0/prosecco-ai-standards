@@ -22,6 +22,7 @@ export type Database = {
           id: string
           link: string | null
           logo_url: string | null
+          organization: string | null
           status: Database["public"]["Enums"]["standard_status"]
           tags: string[] | null
           title: string
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           link?: string | null
           logo_url?: string | null
+          organization?: string | null
           status?: Database["public"]["Enums"]["standard_status"]
           tags?: string[] | null
           title: string
@@ -46,6 +48,7 @@ export type Database = {
           id?: string
           link?: string | null
           logo_url?: string | null
+          organization?: string | null
           status?: Database["public"]["Enums"]["standard_status"]
           tags?: string[] | null
           title?: string
