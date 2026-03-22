@@ -75,8 +75,11 @@ export default function AdminFeedback() {
         toast({ title: "Fact-check failed", description: error?.message ?? data?.error, variant: "destructive" });
       } else {
         setFactCheckResults((prev) => ({ ...prev, [flag.id]: data.data }));
-        // Mark as reviewed
-        await supabase.from("standard_flags").update({ status: "reviewed" } as any).eq("id", flag.id);
+        // Persist result and mark as reviewed
+        await supabase.from("standard_flags").update({
+          status: "reviewed",
+          admin_notes: JSON.stringify(data.data),
+        } as any).eq("id", flag.id);
         qc.invalidateQueries({ queryKey: ["standard-flags"] });
       }
     } catch {
