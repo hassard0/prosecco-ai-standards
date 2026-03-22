@@ -250,6 +250,8 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
     </div>
   );
 }
