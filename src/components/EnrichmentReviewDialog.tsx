@@ -124,11 +124,13 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
                 onClick={() => toggle(field)}
               >
                 <div className="flex items-start gap-3">
-                  <Checkbox
-                    checked={accepted[field]}
-                    onCheckedChange={() => toggle(field)}
-                    className="mt-0.5"
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={accepted[field]}
+                      onCheckedChange={(checked) => setAccepted((prev) => ({ ...prev, [field]: checked === true }))}
+                      className="mt-0.5"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0 space-y-2">
                     <Label className="text-sm font-semibold">{FIELD_LABELS[field]}</Label>
 
