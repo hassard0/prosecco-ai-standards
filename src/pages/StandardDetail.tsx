@@ -129,7 +129,7 @@ export default function StandardDetail() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               {standard.link && (
                 <Button asChild size="lg" className="active:scale-[0.97] transition-all">
                   <a href={standard.link} target="_blank" rel="noopener noreferrer">
@@ -138,6 +138,7 @@ export default function StandardDetail() {
                   </a>
                 </Button>
               )}
+              <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
             </div>
 
             {/* Additional Resources */}
