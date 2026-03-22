@@ -150,6 +150,7 @@ export function AiIngestion() {
                 <Select value={form.status} onValueChange={(v) => set("status", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Backlog">Backlog</SelectItem>
                     <SelectItem value="Emerging">Emerging</SelectItem>
                     <SelectItem value="Draft">Draft</SelectItem>
                     <SelectItem value="Approved">Approved</SelectItem>
