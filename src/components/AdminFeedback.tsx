@@ -147,7 +147,15 @@ export default function AdminFeedback() {
   const handleDismiss = async (flagId: string) => {
     await supabase.from("standard_flags").update({ status: "dismissed" } as any).eq("id", flagId);
     qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
     toast({ title: "Flag dismissed" });
+  };
+
+  const handleDelete = async (flagId: string) => {
+    await supabase.from("standard_flags").delete().eq("id", flagId);
+    qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
+    toast({ title: "Feedback deleted" });
   };
 
   const pendingCount = flags?.filter((f) => f.status === "pending").length ?? 0;
