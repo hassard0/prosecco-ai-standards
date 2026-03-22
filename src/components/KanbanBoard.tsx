@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { KanbanColumn } from "./KanbanColumn";
-import { StandardDetailDialog } from "./StandardDetailDialog";
 import { TagFilter } from "./TagFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
