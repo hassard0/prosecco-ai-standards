@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      standards: {
+        Row: {
+          acronym: string | null
+          created_at: string
+          description: string
+          id: string
+          link: string | null
+          logo_url: string | null
+          status: Database["public"]["Enums"]["standard_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acronym?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          link?: string | null
+          logo_url?: string | null
+          status?: Database["public"]["Enums"]["standard_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acronym?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          link?: string | null
+          logo_url?: string | null
+          status?: Database["public"]["Enums"]["standard_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +79,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      standard_status: "Emerging" | "Draft" | "Approved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +206,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      standard_status: ["Emerging", "Draft", "Approved"],
+    },
   },
 } as const
