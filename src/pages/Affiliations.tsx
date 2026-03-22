@@ -106,6 +106,14 @@ export default function Affiliations() {
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
       <main className="flex-1 mx-auto max-w-6xl w-full px-4 sm:px-6 lg:px-8 py-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to directory
+        </Link>
+
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
             Company Affiliations
