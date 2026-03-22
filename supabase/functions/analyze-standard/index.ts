@@ -66,17 +66,17 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are an AI standards analyst. Given the content of a webpage about an AI standard, protocol, or specification, extract structured metadata. Return a JSON object with these fields:
+              content: `You are an AI standards analyst. Given the content of a webpage about an AI standard, protocol, or specification, extract structured metadata including any related resources you can find (GitHub repos, mailing lists, working groups, documentation pages, etc).
+
+Return a JSON object with these fields:
 - title: The full name of the standard/protocol
 - acronym: Short acronym if any (e.g., "MCP", "A2A"), or empty string
 - description: A clear 2-3 sentence description of what it does
-- organization: The organization behind it (e.g., "Google", "Linux Foundation", "Community")
-- status: One of "Emerging", "Draft", or "Approved" based on maturity:
-  - "Emerging" = early stage, proposal, or very new with limited adoption
-  - "Draft" = active development, some adoption, not yet a formal standard
-  - "Approved" = production-ready, widely adopted, or formally approved by a standards body
-- tags: Array of relevant tags from this list: ["Protocol", "Agents", "API", "Security", "Payments", "Transport", "Standard", "Governance"]
+- organization: The organization behind it
+- status: One of "Emerging", "Draft", or "Approved" based on maturity
+- tags: Array of relevant tags
 - link: The canonical URL for the specification
+- resources: Array of related resources found on the page, each with { type, label, url } where type is one of: "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "other"
 
 Only return valid JSON, no markdown fences or extra text.`,
             },
@@ -107,6 +107,18 @@ Only return valid JSON, no markdown fences or extra text.`,
                       items: { type: "string" },
                     },
                     link: { type: "string" },
+                    resources: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          type: { type: "string", enum: ["mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "other"] },
+                          label: { type: "string" },
+                          url: { type: "string" },
+                        },
+                        required: ["type", "label", "url"],
+                      },
+                    },
                   },
                   required: [
                     "title",
@@ -116,6 +128,7 @@ Only return valid JSON, no markdown fences or extra text.`,
                     "status",
                     "tags",
                     "link",
+                    "resources",
                   ],
                   additionalProperties: false,
                 },
