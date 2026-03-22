@@ -15,20 +15,28 @@ export function AdminInvite() {
     if (!email.trim()) return;
     setLoading(true);
 
-    const { data, error } = await supabase.rpc("grant_admin_by_email", {
-      _email: email.trim(),
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-admin", {
+        body: { email: email.trim() },
+      });
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else if (data && typeof data === "object" && "success" in data) {
-      const result = data as { success: boolean; error?: string };
-      if (result.success) {
-        toast({ title: "Admin added", description: `${email} is now an admin.` });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else if (data?.success) {
+        toast({
+          title: data.invited ? "Invitation sent" : "Admin added",
+          description: data.message,
+        });
         setEmail("");
       } else {
-        toast({ title: "Could not add admin", description: result.error ?? "Unknown error", variant: "destructive" });
+        toast({
+          title: "Could not add admin",
+          description: data?.error ?? "Unknown error",
+          variant: "destructive",
+        });
       }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
 
     setLoading(false);
