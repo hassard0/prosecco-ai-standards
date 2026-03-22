@@ -150,6 +150,11 @@ export default function StandardDetail() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <h2 className="text-sm font-semibold text-foreground">Authors & Affiliations</h2>
                 </div>
+
+                {/* Mini Sankey */}
+                <MiniAuthorSankey standardTitle={standard.acronym || standard.title} authors={authors} />
+
+                {/* Author list */}
                 {(() => {
                   const byCompany = authors.reduce<Record<string, typeof authors>>((acc, a) => {
                     const key = a.company || "Independent";
@@ -158,7 +163,7 @@ export default function StandardDetail() {
                     return acc;
                   }, {});
                   return (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4 pt-4 border-t">
                       {Object.entries(byCompany).map(([company, people]) => (
                         <div key={company}>
                           <span className="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold rounded bg-muted text-muted-foreground mb-1.5">
