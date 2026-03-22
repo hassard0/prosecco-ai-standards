@@ -13,10 +13,6 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   Emerging: { bg: "hsl(38 80% 55% / 0.1)", text: "hsl(38 80% 40%)" },
   Backlog: { bg: "hsl(270 40% 55% / 0.1)", text: "hsl(270 40% 40%)" },
 };
-  Approved: { bg: "hsl(152 60% 42% / 0.1)", text: "hsl(152 60% 32%)" },
-  Draft: { bg: "hsl(220 60% 55% / 0.1)", text: "hsl(220 60% 45%)" },
-  Emerging: { bg: "hsl(38 80% 55% / 0.1)", text: "hsl(38 80% 40%)" },
-};
 
 export default function StandardDetail() {
   const { id } = useParams<{ id: string }>();
