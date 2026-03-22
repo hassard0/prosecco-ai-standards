@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EnrichmentReviewDialog } from "@/components/EnrichmentReviewDialog";
 import { Navigate } from "react-router-dom";
 import { TagInput } from "@/components/TagInput";
 import { ResourceLinksEditor, type ResourceLink } from "@/components/ResourceLinksEditor";
