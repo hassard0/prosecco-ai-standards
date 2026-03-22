@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import type { ResourceLink } from "@/components/ResourceLinksEditor";
 import { RESOURCE_TYPES } from "@/components/ResourceLinksEditor";
 
