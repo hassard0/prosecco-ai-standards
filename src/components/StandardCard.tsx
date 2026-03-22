@@ -25,9 +25,16 @@ export function StandardCard({ standard, onClick, index }: StandardCardProps) {
         <h3 className="font-medium text-sm leading-snug text-card-foreground line-clamp-2 text-wrap-balance">
           {standard.title}
         </h3>
-        {standard.link && (
-          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {standard.organization && (
+            <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+              {standard.organization}
+            </span>
+          )}
+          {standard.link && (
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+        </div>
       </div>
 
       {standard.acronym && (
