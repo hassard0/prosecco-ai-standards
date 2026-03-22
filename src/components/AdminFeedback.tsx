@@ -135,7 +135,7 @@ export default function AdminFeedback() {
     } else {
       await supabase.from("standard_flags").update({
         status: "applied",
-        admin_notes: `AI fact-check applied: ${result.reasoning}`,
+        admin_notes: JSON.stringify(result),
       } as any).eq("id", flag.id);
       toast({ title: "Updates applied" });
       qc.invalidateQueries({ queryKey: ["standards"] });
