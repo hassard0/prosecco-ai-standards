@@ -226,6 +226,16 @@ export default function AdminEdit() {
           </>
         )}
       </main>
+
+      {enrichData && (
+        <EnrichmentReviewDialog
+          open={enrichReviewOpen}
+          onOpenChange={setEnrichReviewOpen}
+          current={{ title, acronym, description, organization, status, tags, link, resources }}
+          proposed={enrichData}
+          onAccept={handleAcceptEnrichment}
+        />
+      )}
     </div>
   );
 }
