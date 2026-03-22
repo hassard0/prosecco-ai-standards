@@ -73,17 +73,7 @@ export default function Admin() {
   };
 
   const openEdit = (s: Standard) => {
-    setEditingId(s.id);
-    setForm({
-      title: s.title,
-      acronym: s.acronym ?? "",
-      description: s.description,
-      status: s.status as StatusType,
-      link: s.link ?? "",
-      organization: s.organization ?? "",
-      tags: s.tags?.join(", ") ?? "",
-    });
-    setDialogOpen(true);
+    navigate(`/admin/edit/${s.id}`);
   };
 
   const handleSave = async () => {
