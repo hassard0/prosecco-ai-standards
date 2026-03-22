@@ -60,7 +60,28 @@ export default function AdminFeedback() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [factChecking, setFactChecking] = useState<string | null>(null);
-  const [factCheckResults, setFactCheckResults] = useState<Record<string, FactCheckResult>>({});
+  const [factCheckResults, setFactCheckResults] = useState<Record<string, FactCheckResult>>(() => {
+    // Will be hydrated after flags load
+    return {};
+  });
+
+  // Hydrate persisted fact-check results from admin_notes
+  const hydratedRef = useState<Set<string>>(() => new Set())[0];
+  if (flags) {
+    for (const flag of flags) {
+      if (flag.admin_notes && !hydratedRef.has(flag.id)) {
+        try {
+          const parsed = JSON.parse(flag.admin_notes);
+          if (parsed.reasoning && !factCheckResults[flag.id]) {
+            factCheckResults[flag.id] = parsed;
+          }
+        } catch {
+          // not JSON, ignore
+        }
+        hydratedRef.add(flag.id);
+      }
+    }
+  }
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const getStandard = (id: string) => standards?.find((s) => s.id === id);
@@ -75,8 +96,11 @@ export default function AdminFeedback() {
         toast({ title: "Fact-check failed", description: error?.message ?? data?.error, variant: "destructive" });
       } else {
         setFactCheckResults((prev) => ({ ...prev, [flag.id]: data.data }));
-        // Mark as reviewed
-        await supabase.from("standard_flags").update({ status: "reviewed" } as any).eq("id", flag.id);
+        // Persist result and mark as reviewed
+        await supabase.from("standard_flags").update({
+          status: "reviewed",
+          admin_notes: JSON.stringify(data.data),
+        } as any).eq("id", flag.id);
         qc.invalidateQueries({ queryKey: ["standard-flags"] });
       }
     } catch {
@@ -111,7 +135,7 @@ export default function AdminFeedback() {
     } else {
       await supabase.from("standard_flags").update({
         status: "applied",
-        admin_notes: `AI fact-check applied: ${result.reasoning}`,
+        admin_notes: JSON.stringify(result),
       } as any).eq("id", flag.id);
       toast({ title: "Updates applied" });
       qc.invalidateQueries({ queryKey: ["standards"] });
