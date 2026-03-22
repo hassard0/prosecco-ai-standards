@@ -30,7 +30,7 @@ const empty: StandardForm = { title: "", acronym: "", description: "", status: "
 
 export default function Admin() {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const { data: standards, isLoading } = useStandards();
+  const { data: standards, isLoading, error } = useStandards();
   const { toast } = useToast();
   const qc = useQueryClient();
 
