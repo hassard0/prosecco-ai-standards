@@ -31,8 +31,10 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
   const filtered = useMemo(() => {
     if (!standards) return [];
+    // Exclude Backlog from public view
+    const published = standards.filter((s) => s.status !== "Backlog");
     const query = searchQuery.toLowerCase().trim();
-    return standards.filter((s) => {
+    return published.filter((s) => {
       const matchesSearch =
         !query ||
         s.title.toLowerCase().includes(query) ||

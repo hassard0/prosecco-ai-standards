@@ -15,7 +15,7 @@ interface ExtractedStandard {
   acronym: string;
   description: string;
   organization: string;
-  status: "Emerging" | "Draft" | "Approved";
+  status: "Backlog" | "Emerging" | "Draft" | "Approved";
   tags: string[];
   link: string;
 }
@@ -32,7 +32,7 @@ export function AiIngestion() {
   // Editable form state derived from AI extraction
   const [form, setForm] = useState<ExtractedStandard & { tagsStr: string }>({
     title: "", acronym: "", description: "", organization: "",
-    status: "Emerging", tags: [], link: "", tagsStr: "",
+    status: "Backlog", tags: [], link: "", tagsStr: "",
   });
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -150,6 +150,7 @@ export function AiIngestion() {
                 <Select value={form.status} onValueChange={(v) => set("status", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Backlog">Backlog</SelectItem>
                     <SelectItem value="Emerging">Emerging</SelectItem>
                     <SelectItem value="Draft">Draft</SelectItem>
                     <SelectItem value="Approved">Approved</SelectItem>
