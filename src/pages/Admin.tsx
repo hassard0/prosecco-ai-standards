@@ -31,6 +31,18 @@ export default function Admin() {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
+  const { data: pendingFlagCount } = useQuery({
+    queryKey: ["standard-flags-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("standard_flags")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
