@@ -124,18 +124,12 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 title={col.label}
                 accentColor={col.color}
                 standards={col.standards}
-                onSelectStandard={setSelectedStandard}
+                onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
               />
             ))}
           </div>
         </>
       )}
-
-      <StandardDetailDialog
-        standard={selectedStandard}
-        open={!!selectedStandard}
-        onOpenChange={(open) => !open && setSelectedStandard(null)}
-      />
     </div>
   );
 }
