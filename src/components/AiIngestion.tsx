@@ -15,7 +15,7 @@ interface ExtractedStandard {
   acronym: string;
   description: string;
   organization: string;
-  status: "Emerging" | "Draft" | "Approved";
+  status: "Backlog" | "Emerging" | "Draft" | "Approved";
   tags: string[];
   link: string;
 }
