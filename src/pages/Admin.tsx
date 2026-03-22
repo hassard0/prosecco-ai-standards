@@ -122,13 +122,29 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold">Standards ({standards?.length ?? 0})</h2>
-          <Button onClick={openCreate} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Add Standard
-          </Button>
-        </div>
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* AI Ingestion */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">AI Ingestion</h2>
+          <p className="text-xs text-muted-foreground">Paste a URL to an AI standard and let AI extract the metadata for you.</p>
+          <AiIngestion />
+        </section>
+
+        {/* Admin Invite */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Invite Admins</h2>
+          <p className="text-xs text-muted-foreground">Grant admin access to users who have already signed up.</p>
+          <AdminInvite />
+        </section>
+
+        {/* Standards List */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Standards ({standards?.length ?? 0})</h2>
+            <Button onClick={openCreate} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Add Standard
+            </Button>
+          </div>
 
         {error ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
