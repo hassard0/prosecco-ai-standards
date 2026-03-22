@@ -60,7 +60,28 @@ export default function AdminFeedback() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [factChecking, setFactChecking] = useState<string | null>(null);
-  const [factCheckResults, setFactCheckResults] = useState<Record<string, FactCheckResult>>({});
+  const [factCheckResults, setFactCheckResults] = useState<Record<string, FactCheckResult>>(() => {
+    // Will be hydrated after flags load
+    return {};
+  });
+
+  // Hydrate persisted fact-check results from admin_notes
+  const hydratedRef = useState<Set<string>>(() => new Set())[0];
+  if (flags) {
+    for (const flag of flags) {
+      if (flag.admin_notes && !hydratedRef.has(flag.id)) {
+        try {
+          const parsed = JSON.parse(flag.admin_notes);
+          if (parsed.reasoning && !factCheckResults[flag.id]) {
+            factCheckResults[flag.id] = parsed;
+          }
+        } catch {
+          // not JSON, ignore
+        }
+        hydratedRef.add(flag.id);
+      }
+    }
+  }
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const getStandard = (id: string) => standards?.find((s) => s.id === id);
