@@ -117,8 +117,13 @@ export default function Admin() {
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Team
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5 relative">
               <Flag className="h-3.5 w-3.5" /> Feedback
+              {!!pendingFlagCount && pendingFlagCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground tabular-nums">
+                  {pendingFlagCount}
+                </span>
+              )}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
               <Search className="h-3.5 w-3.5" /> Discover
