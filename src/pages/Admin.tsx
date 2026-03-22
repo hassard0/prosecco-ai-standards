@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
+import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ export default function Admin() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [discoverOpen, setDiscoverOpen] = useState(false);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -101,6 +103,9 @@ export default function Admin() {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Team
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
+              <Search className="h-3.5 w-3.5" /> Discover
             </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> New Standard
@@ -245,6 +250,8 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
     </div>
   );
 }
