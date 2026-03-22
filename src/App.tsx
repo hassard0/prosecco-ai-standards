@@ -8,6 +8,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Admin from "./pages/Admin.tsx";
+import StandardDetail from "./pages/StandardDetail.tsx";
+import Radar from "./pages/Radar.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/standard/:id" element={<StandardDetail />} />
+              <Route path="/radar" element={<Radar />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

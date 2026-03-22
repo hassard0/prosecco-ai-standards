@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { KanbanColumn } from "./KanbanColumn";
-import { StandardDetailDialog } from "./StandardDetailDialog";
 import { TagFilter } from "./TagFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -21,8 +21,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: standards, isLoading, error } = useStandards();
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedStandard, setSelectedStandard] = useState<Standard | null>(null);
   const [mobileTab, setMobileTab] = useState(0);
+  const navigate = useNavigate();
 
   const allTags = useMemo(() => {
     if (!tags) return [];
@@ -111,7 +111,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 title={columnData[mobileTab].label}
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
-                onSelectStandard={setSelectedStandard}
+                onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
               />
             </div>
           </div>
@@ -124,18 +124,12 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 title={col.label}
                 accentColor={col.color}
                 standards={col.standards}
-                onSelectStandard={setSelectedStandard}
+                onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
               />
             ))}
           </div>
         </>
       )}
-
-      <StandardDetailDialog
-        standard={selectedStandard}
-        open={!!selectedStandard}
-        onOpenChange={(open) => !open && setSelectedStandard(null)}
-      />
     </div>
   );
 }
