@@ -23,6 +23,7 @@ interface ResourceLink {
 
 export default function AdminEdit() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isNew = !id || id === "new";
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
