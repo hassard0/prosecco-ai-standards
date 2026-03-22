@@ -101,20 +101,31 @@ export default function AdminEdit() {
       if (error || !data?.success) {
         toast({ title: "Enrichment failed", description: error?.message ?? data?.error ?? "Unknown error", variant: "destructive" });
       } else {
-        const d = data.data;
-        if (d.title && !title) setTitle(d.title);
-        if (d.acronym && !acronym) setAcronym(d.acronym);
-        if (d.description) setDescription(d.description);
-        if (d.organization && !organization) setOrganization(d.organization);
-        if (d.tags?.length) {
-          setTags((prev) => [...new Set([...prev, ...d.tags])]);
-        }
-        toast({ title: "Enriched with AI", description: "Fields updated from page content." });
+        setEnrichData(data.data);
+        setEnrichReviewOpen(true);
       }
     } catch {
       toast({ title: "Error", description: "Failed to enrich", variant: "destructive" });
     }
     setEnriching(false);
+  };
+
+  const handleAcceptEnrichment = (accepted: Record<string, boolean>) => {
+    if (!enrichData) return;
+    const d = enrichData;
+    if (accepted.title && d.title) setTitle(d.title);
+    if (accepted.acronym && d.acronym) setAcronym(d.acronym);
+    if (accepted.description && d.description) setDescription(d.description);
+    if (accepted.organization && d.organization) setOrganization(d.organization);
+    if (accepted.tags && d.tags?.length) {
+      setTags((prev) => [...new Set([...prev, ...d.tags])]);
+    }
+    if (accepted.resources && d.resources?.length) {
+      setResources((prev) => [...prev, ...d.resources]);
+    }
+    setEnrichReviewOpen(false);
+    setEnrichData(null);
+    toast({ title: "Enrichment applied", description: "Selected fields have been updated." });
   };
 
   return (
