@@ -299,6 +299,11 @@ export default function AdminFeedback() {
                           <X className="h-3.5 w-3.5" /> Dismiss
                         </Button>
                       )}
+                      {flag.status === "dismissed" && (
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(flag.id)} className="gap-1.5 text-destructive hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
