@@ -4,7 +4,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, Radar } from "lucide-react";
+import { NavLink } from "./NavLink";
 
 interface HeaderProps {
   searchQuery: string;
