@@ -32,7 +32,7 @@ export function AiIngestion() {
   // Editable form state derived from AI extraction
   const [form, setForm] = useState<ExtractedStandard & { tagsStr: string }>({
     title: "", acronym: "", description: "", organization: "",
-    status: "Emerging", tags: [], link: "", tagsStr: "",
+    status: "Backlog", tags: [], link: "", tagsStr: "",
   });
 
   const handleAnalyze = async (e: React.FormEvent) => {
