@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      standard_flags: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          feedback: string
+          id: string
+          standard_id: string
+          status: string
+          updated_at: string
+          user_email: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          feedback: string
+          id?: string
+          standard_id: string
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          feedback?: string
+          id?: string
+          standard_id?: string
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_flags_standard_id_fkey"
+            columns: ["standard_id"]
+            isOneToOne: false
+            referencedRelation: "standards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standard_summaries: {
         Row: {
           created_at: string

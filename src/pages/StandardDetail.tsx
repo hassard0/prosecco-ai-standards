@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash } from "lucide-react";
+import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -128,7 +129,7 @@ export default function StandardDetail() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               {standard.link && (
                 <Button asChild size="lg" className="active:scale-[0.97] transition-all">
                   <a href={standard.link} target="_blank" rel="noopener noreferrer">
@@ -137,6 +138,7 @@ export default function StandardDetail() {
                   </a>
                 </Button>
               )}
+              <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
             </div>
 
             {/* Additional Resources */}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -103,6 +103,9 @@ export default function Admin() {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Team
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5">
+              <Flag className="h-3.5 w-3.5" /> Feedback
             </Button>
             <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
               <Search className="h-3.5 w-3.5" /> Discover

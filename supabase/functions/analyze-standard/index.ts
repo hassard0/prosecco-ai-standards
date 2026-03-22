@@ -72,7 +72,7 @@ Return a JSON object with these fields:
 - title: The full name of the standard/protocol
 - acronym: Short acronym if any (e.g., "MCP", "A2A"), or empty string
 - description: A clear 2-3 sentence description of what it does
-- organization: The organization behind it
+- organization: The company or organization behind it. Use just the company name (e.g. "Google", "Anthropic", "IETF", "Linux Foundation") — not a description or full legal name.
 - status: One of "Emerging", "Draft", or "Approved" based on maturity
 - tags: Array of relevant tags
 - link: The canonical URL for the specification
