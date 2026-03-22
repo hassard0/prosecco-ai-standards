@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      standard_summaries: {
+        Row: {
+          created_at: string
+          generated_at: string
+          id: string
+          source_url: string
+          standard_id: string
+          summary: string
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          source_url: string
+          standard_id: string
+          summary: string
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          source_url?: string
+          standard_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_summaries_standard_id_fkey"
+            columns: ["standard_id"]
+            isOneToOne: false
+            referencedRelation: "standards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standards: {
         Row: {
           acronym: string | null
@@ -23,6 +58,7 @@ export type Database = {
           link: string | null
           logo_url: string | null
           organization: string | null
+          resources: Json | null
           status: Database["public"]["Enums"]["standard_status"]
           tags: string[] | null
           title: string
@@ -36,6 +72,7 @@ export type Database = {
           link?: string | null
           logo_url?: string | null
           organization?: string | null
+          resources?: Json | null
           status?: Database["public"]["Enums"]["standard_status"]
           tags?: string[] | null
           title: string
@@ -49,6 +86,7 @@ export type Database = {
           link?: string | null
           logo_url?: string | null
           organization?: string | null
+          resources?: Json | null
           status?: Database["public"]["Enums"]["standard_status"]
           tags?: string[] | null
           title?: string
