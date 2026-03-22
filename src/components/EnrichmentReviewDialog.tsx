@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
 import type { ResourceLink } from "@/components/ResourceLinksEditor";
 import { RESOURCE_TYPES } from "@/components/ResourceLinksEditor";
+import type { Author } from "@/components/AuthorsEditor";
 
 interface EnrichmentData {
   title?: string;
@@ -16,6 +17,7 @@ interface EnrichmentData {
   tags?: string[];
   link?: string;
   resources?: ResourceLink[];
+  authors?: Author[];
 }
 
 interface CurrentData {
@@ -27,6 +29,7 @@ interface CurrentData {
   tags: string[];
   link: string;
   resources: ResourceLink[];
+  authors: Author[];
 }
 
 interface Props {
@@ -37,7 +40,7 @@ interface Props {
   onAccept: (accepted: Record<string, boolean>) => void;
 }
 
-type FieldKey = "title" | "acronym" | "description" | "organization" | "tags" | "resources";
+type FieldKey = "title" | "acronym" | "description" | "organization" | "tags" | "resources" | "authors";
 
 const FIELD_LABELS: Record<FieldKey, string> = {
   title: "Title",
@@ -46,10 +49,10 @@ const FIELD_LABELS: Record<FieldKey, string> = {
   organization: "Organization",
   tags: "Tags",
   resources: "Resources",
+  authors: "Authors & Affiliations",
 };
 
 export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, onAccept }: Props) {
-  // Determine which fields have changes
   const changedFields: FieldKey[] = [];
   if (proposed.title && proposed.title !== current.title) changedFields.push("title");
   if (proposed.acronym && proposed.acronym !== current.acronym) changedFields.push("acronym");
@@ -57,10 +60,10 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
   if (proposed.organization && proposed.organization !== current.organization) changedFields.push("organization");
   if (proposed.tags && proposed.tags.length > 0) changedFields.push("tags");
   if (proposed.resources && proposed.resources.length > 0) changedFields.push("resources");
+  if (proposed.authors && proposed.authors.length > 0) changedFields.push("authors");
 
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
 
-  // Reset accepted state when dialog opens with new data
   useEffect(() => {
     if (open) {
       setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
@@ -70,21 +73,13 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
   const toggle = (field: string) => setAccepted((prev) => ({ ...prev, [field]: !prev[field] }));
   const acceptAll = () => setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
 
-  const formatValue = (field: FieldKey, value: any): string => {
-    if (field === "tags" && Array.isArray(value)) return value.join(", ");
-    if (field === "resources" && Array.isArray(value)) {
-      return value.map((r: ResourceLink) => {
-        const typeLabel = RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type;
-        return `${typeLabel}: ${r.label || r.url}`;
-      }).join("\n");
-    }
-    return String(value || "—");
-  };
-
   const getCurrentValue = (field: FieldKey): string => {
     if (field === "tags") return current.tags.length > 0 ? current.tags.join(", ") : "—";
     if (field === "resources") return current.resources.length > 0
       ? current.resources.map((r) => `${r.label || r.url}`).join(", ")
+      : "—";
+    if (field === "authors") return current.authors.length > 0
+      ? current.authors.map((a) => `${a.name} (${a.company})`).join(", ")
       : "—";
     return (current as any)[field] || "—";
   };
@@ -94,8 +89,12 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
       const merged = [...new Set([...current.tags, ...(proposed.tags || [])])];
       return merged.join(", ");
     }
-    return formatValue(field, (proposed as any)[field]);
+    if (field === "resources") return (proposed.resources || []).map((r) => r.label || r.url).join(", ");
+    if (field === "authors") return (proposed.authors || []).map((a) => `${a.name} (${a.company})`).join(", ");
+    return String((proposed as any)[field] || "—");
   };
+
+  const isListField = (field: FieldKey) => field === "resources" || field === "authors";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -134,7 +133,32 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
                   <div className="flex-1 min-w-0 space-y-2">
                     <Label className="text-sm font-semibold">{FIELD_LABELS[field]}</Label>
 
-                    {field !== "resources" ? (
+                    {isListField(field) ? (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase tracking-wider font-medium text-primary">
+                          {field === "authors" ? "Authors to add" : "New resources to add"}
+                        </p>
+                        <div className="space-y-1">
+                          {field === "authors" && (proposed.authors || []).map((a, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm bg-primary/5 rounded p-2">
+                              <span className="font-medium text-foreground">{a.name}</span>
+                              <span className="text-muted-foreground">—</span>
+                              <span className="text-foreground">{a.company}</span>
+                              {a.role && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">({a.role})</span>}
+                            </div>
+                          ))}
+                          {field === "resources" && (proposed.resources || []).map((r, i) => {
+                            const typeLabel = RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type;
+                            return (
+                              <div key={i} className="flex items-center gap-2 text-sm bg-primary/5 rounded p-2">
+                                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground shrink-0">{typeLabel}</span>
+                                <span className="text-foreground truncate">{r.label || r.url}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Current</p>
@@ -147,21 +171,6 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
                           <p className="text-sm text-foreground bg-primary/5 rounded p-2 break-words whitespace-pre-wrap">
                             {getProposedValue(field)}
                           </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] uppercase tracking-wider font-medium text-primary">New resources to add</p>
-                        <div className="space-y-1">
-                          {(proposed.resources || []).map((r, i) => {
-                            const typeLabel = RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type;
-                            return (
-                              <div key={i} className="flex items-center gap-2 text-sm bg-primary/5 rounded p-2">
-                                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground shrink-0">{typeLabel}</span>
-                                <span className="text-foreground truncate">{r.label || r.url}</span>
-                              </div>
-                            );
-                          })}
                         </div>
                       </div>
                     )}
