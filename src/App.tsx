@@ -24,6 +24,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/standard/:id" element={<StandardDetail />} />
+              <Route path="/radar" element={<Radar />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
