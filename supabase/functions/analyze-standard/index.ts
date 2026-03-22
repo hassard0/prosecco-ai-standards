@@ -1,0 +1,177 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { url } = await req.json();
+    if (!url || typeof url !== "string") {
+      return new Response(
+        JSON.stringify({ success: false, error: "URL is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(
+        JSON.stringify({ success: false, error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch the page content
+    let pageContent: string;
+    try {
+      const pageResp = await fetch(url, {
+        headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0" },
+      });
+      if (!pageResp.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Failed to fetch URL: ${pageResp.status}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      pageContent = await pageResp.text();
+      // Truncate to avoid token limits
+      if (pageContent.length > 30000) {
+        pageContent = pageContent.substring(0, 30000);
+      }
+    } catch (fetchErr) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Could not reach URL: ${fetchErr}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use Lovable AI to extract standard metadata
+    const aiResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `You are an AI standards analyst. Given the content of a webpage about an AI standard, protocol, or specification, extract structured metadata. Return a JSON object with these fields:
+- title: The full name of the standard/protocol
+- acronym: Short acronym if any (e.g., "MCP", "A2A"), or empty string
+- description: A clear 2-3 sentence description of what it does
+- organization: The organization behind it (e.g., "Google", "Linux Foundation", "Community")
+- status: One of "Emerging", "Draft", or "Approved" based on maturity:
+  - "Emerging" = early stage, proposal, or very new with limited adoption
+  - "Draft" = active development, some adoption, not yet a formal standard
+  - "Approved" = production-ready, widely adopted, or formally approved by a standards body
+- tags: Array of relevant tags from this list: ["Protocol", "Agents", "API", "Security", "Payments", "Transport", "Standard", "Governance"]
+- link: The canonical URL for the specification
+
+Only return valid JSON, no markdown fences or extra text.`,
+            },
+            {
+              role: "user",
+              content: `Analyze this webpage and extract AI standard metadata:\n\nURL: ${url}\n\nContent:\n${pageContent}`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_standard",
+                description: "Extract AI standard metadata from a webpage",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    acronym: { type: "string" },
+                    description: { type: "string" },
+                    organization: { type: "string" },
+                    status: {
+                      type: "string",
+                      enum: ["Emerging", "Draft", "Approved"],
+                    },
+                    tags: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    link: { type: "string" },
+                  },
+                  required: [
+                    "title",
+                    "acronym",
+                    "description",
+                    "organization",
+                    "status",
+                    "tags",
+                    "link",
+                  ],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "extract_standard" },
+          },
+        }),
+      }
+    );
+
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("AI gateway error:", aiResponse.status, errText);
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: "AI rate limit reached. Please try again shortly." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: "AI credits exhausted." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: "AI analysis failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const aiData = await aiResponse.json();
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+
+    if (!toolCall?.function?.arguments) {
+      return new Response(
+        JSON.stringify({ success: false, error: "AI could not extract standard metadata from this page" }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const extracted = JSON.parse(toolCall.function.arguments);
+
+    return new Response(
+      JSON.stringify({ success: true, data: extracted }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    console.error("analyze-standard error:", err);
+    return new Response(
+      JSON.stringify({ success: false, error: err instanceof Error ? err.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
