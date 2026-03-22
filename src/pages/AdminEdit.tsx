@@ -34,7 +34,7 @@ export default function AdminEdit() {
   const [title, setTitle] = useState("");
   const [acronym, setAcronym] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<StatusType>("Backlog");
+  const [status, setStatus] = useState<StatusType>((searchParams.get("status") as StatusType) || "Backlog");
   const [link, setLink] = useState("");
   const [organization, setOrganization] = useState("");
   const [tagsStr, setTagsStr] = useState("");
