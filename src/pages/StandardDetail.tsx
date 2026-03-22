@@ -3,9 +3,11 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   Approved: { bg: "hsl(152 60% 42% / 0.1)", text: "hsl(152 60% 32%)" },
@@ -14,13 +16,43 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   Backlog: { bg: "hsl(270 40% 55% / 0.1)", text: "hsl(270 40% 40%)" },
 };
 
+const RESOURCE_ICONS: Record<string, typeof Mail> = {
+  mailing_list: Mail,
+  github: Github,
+  working_group: BookOpen,
+  documentation: FileText,
+  blog: FileText,
+  video: Video,
+  reference_impl: BookOpen,
+  other: Link2,
+};
+
+function useSummaries(standardId: string | undefined) {
+  return useQuery({
+    queryKey: ["standard-summaries", standardId],
+    queryFn: async () => {
+      if (!standardId) return [];
+      const { data, error } = await supabase
+        .from("standard_summaries")
+        .select("*")
+        .eq("standard_id", standardId)
+        .order("generated_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!standardId,
+  });
+}
+
 export default function StandardDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: standards, isLoading } = useStandards();
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: summaries } = useSummaries(id);
 
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
+  const resources = ((standard as any)?.resources as { type: string; label: string; url: string }[]) || [];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -94,13 +126,61 @@ export default function StandardDetail() {
               </div>
             )}
 
-            {standard.link && (
-              <Button asChild size="lg" className="active:scale-[0.97] transition-all">
-                <a href={standard.link} target="_blank" rel="noopener noreferrer">
-                  View Specification
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
+            <div className="flex flex-wrap gap-3 mb-6">
+              {standard.link && (
+                <Button asChild size="lg" className="active:scale-[0.97] transition-all">
+                  <a href={standard.link} target="_blank" rel="noopener noreferrer">
+                    View Specification
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+            </div>
+
+            {/* Additional Resources */}
+            {resources.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <h2 className="text-sm font-semibold text-foreground mb-3">Resources</h2>
+                <div className="space-y-2">
+                  {resources.map((res, i) => {
+                    const Icon = RESOURCE_ICONS[res.type] || Link2;
+                    return (
+                      <a
+                        key={i}
+                        href={res.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/60 transition-colors group"
+                      >
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                          {res.label || res.url}
+                        </span>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Mailing List Summaries */}
+            {summaries && summaries.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <h2 className="text-sm font-semibold text-foreground mb-1">Mailing List Summary</h2>
+                <p className="text-[11px] text-muted-foreground mb-4">
+                  AI-generated summary of recent discussions · Updated {new Date(summaries[0].generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
+                  {summaries[0].summary.split("\n").map((line, i) => {
+                    if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
+                    if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
+                    if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
+                    if (line.trim()) return <p key={i} className="text-sm">{line}</p>;
+                    return null;
+                  })}
+                </div>
+              </div>
             )}
 
             <p className="text-xs text-muted-foreground mt-8">

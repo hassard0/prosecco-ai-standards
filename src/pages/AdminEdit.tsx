@@ -10,16 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Sparkles, Loader2, Plus, X, ExternalLink } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navigate } from "react-router-dom";
+import { TagInput } from "@/components/TagInput";
+import { ResourceLinksEditor, type ResourceLink } from "@/components/ResourceLinksEditor";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
-
-interface ResourceLink {
-  label: string;
-  url: string;
-}
 
 export default function AdminEdit() {
   const { id } = useParams<{ id: string }>();
@@ -37,12 +34,11 @@ export default function AdminEdit() {
   const [status, setStatus] = useState<StatusType>((searchParams.get("status") as StatusType) || "Backlog");
   const [link, setLink] = useState("");
   const [organization, setOrganization] = useState("");
-  const [tagsStr, setTagsStr] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [resources, setResources] = useState<ResourceLink[]>([]);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
 
-  // Load existing standard
   useEffect(() => {
     if (isNew || !standards) return;
     const s = standards.find((st) => st.id === id);
@@ -53,7 +49,8 @@ export default function AdminEdit() {
     setStatus(s.status as StatusType);
     setLink(s.link ?? "");
     setOrganization(s.organization ?? "");
-    setTagsStr(s.tags?.join(", ") ?? "");
+    setTags(s.tags ?? []);
+    setResources(((s as any).resources as ResourceLink[]) ?? []);
   }, [id, isNew, standards]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
@@ -70,7 +67,8 @@ export default function AdminEdit() {
       status,
       link: link.trim() || null,
       organization: organization.trim() || null,
-      tags: tagsStr ? tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      tags,
+      resources: resources.filter((r) => r.url.trim()) as any,
     };
 
     const { error } = isNew
@@ -105,11 +103,9 @@ export default function AdminEdit() {
         if (d.acronym && !acronym) setAcronym(d.acronym);
         if (d.description) setDescription(d.description);
         if (d.organization && !organization) setOrganization(d.organization);
-        if (d.tags?.length) setTagsStr((prev) => {
-          const existing = prev ? prev.split(",").map((t) => t.trim()).filter(Boolean) : [];
-          const merged = [...new Set([...existing, ...d.tags])];
-          return merged.join(", ");
-        });
+        if (d.tags?.length) {
+          setTags((prev) => [...new Set([...prev, ...d.tags])]);
+        }
         toast({ title: "Enriched with AI", description: "Fields updated from page content." });
       }
     } catch {
@@ -117,11 +113,6 @@ export default function AdminEdit() {
     }
     setEnriching(false);
   };
-
-  const addResource = () => setResources((r) => [...r, { label: "", url: "" }]);
-  const removeResource = (i: number) => setResources((r) => r.filter((_, idx) => idx !== i));
-  const updateResource = (i: number, key: keyof ResourceLink, val: string) =>
-    setResources((r) => r.map((item, idx) => (idx === i ? { ...item, [key]: val } : item)));
 
   return (
     <div className="min-h-screen bg-background">
@@ -170,7 +161,7 @@ export default function AdminEdit() {
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="Describe this standard, its purpose, and key details…" className="leading-relaxed" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Status</Label>
                   <Select value={status} onValueChange={(v) => setStatus(v as StatusType)}>
@@ -187,10 +178,11 @@ export default function AdminEdit() {
                   <Label>Organization</Label>
                   <Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="e.g. Anthropic" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Tags</Label>
-                  <Input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} placeholder="ai, protocol, agents" />
-                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Tags</Label>
+                <TagInput tags={tags} onChange={setTags} placeholder="Type a tag and press Enter…" />
               </div>
             </section>
 
@@ -216,45 +208,7 @@ export default function AdminEdit() {
             </section>
 
             {/* Additional Resources */}
-            <section className="rounded-lg border bg-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Additional Resources</h2>
-                <Button variant="ghost" size="sm" onClick={addResource}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Link
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Link to mailing lists, GitHub repos, working groups, reference implementations, etc.
-              </p>
-              {resources.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6 text-center">
-                  <p className="text-xs text-muted-foreground">No additional resources yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {resources.map((res, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Input
-                        value={res.label}
-                        onChange={(e) => updateResource(i, "label", e.target.value)}
-                        placeholder="Label (e.g. Mailing List)"
-                        className="flex-[1]"
-                      />
-                      <Input
-                        type="url"
-                        value={res.url}
-                        onChange={(e) => updateResource(i, "url", e.target.value)}
-                        placeholder="https://…"
-                        className="flex-[2]"
-                      />
-                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => removeResource(i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            <ResourceLinksEditor resources={resources} onChange={setResources} />
           </>
         )}
       </main>
