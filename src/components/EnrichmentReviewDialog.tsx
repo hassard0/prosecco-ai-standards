@@ -65,7 +65,7 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
     if (open) {
       setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
     }
-  }, [open]);
+  }, [open, proposed, current]);
 
   const toggle = (field: string) => setAccepted((prev) => ({ ...prev, [field]: !prev[field] }));
   const acceptAll = () => setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
