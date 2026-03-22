@@ -21,8 +21,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: standards, isLoading, error } = useStandards();
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedStandard, setSelectedStandard] = useState<Standard | null>(null);
   const [mobileTab, setMobileTab] = useState(0);
+  const navigate = useNavigate();
 
   const allTags = useMemo(() => {
     if (!tags) return [];
