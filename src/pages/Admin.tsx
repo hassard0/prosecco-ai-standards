@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AdminInvite } from "@/components/AdminInvite";
 import { AiIngestion } from "@/components/AiIngestion";
 import { Skeleton } from "@/components/ui/skeleton";
