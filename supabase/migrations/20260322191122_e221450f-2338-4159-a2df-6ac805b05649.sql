@@ -1,0 +1,1 @@
+ALTER TYPE public.standard_status ADD VALUE IF NOT EXISTS 'Backlog' BEFORE 'Emerging';
