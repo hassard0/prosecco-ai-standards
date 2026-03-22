@@ -68,6 +68,8 @@ serve(async (req) => {
               role: "system",
               content: `You are an AI standards analyst. Given the content of a webpage about an AI standard, protocol, or specification, extract structured metadata including any related resources you can find (GitHub repos, mailing lists, working groups, documentation pages, etc).
 
+Also identify the specification's authors, editors, and key contributors. For each person, determine their company/organizational affiliation.
+
 Return a JSON object with these fields:
 - title: The full name of the standard/protocol
 - acronym: Short acronym if any (e.g., "MCP", "A2A"), or empty string
@@ -76,7 +78,8 @@ Return a JSON object with these fields:
 - status: One of "Emerging", "Draft", or "Approved" based on maturity
 - tags: Array of relevant tags
 - link: The canonical URL for the specification
-- resources: Array of related resources found on the page, each with { type, label, url } where type is one of: "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "other"
+- resources: Array of related resources found on the page, each with { type, label, url } where type is one of: "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "discord", "slack", "other"
+- authors: Array of specification authors/editors/contributors, each with { name, company, role, url } where role is e.g. "Editor", "Chair", "Contributor", "Author". company should be just the company name. url is optional profile link.
 
 Only return valid JSON, no markdown fences or extra text.`,
             },
