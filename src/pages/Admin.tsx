@@ -49,10 +49,9 @@ export default function Admin() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<StandardForm>(empty);
-  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
+
+  // Drag state
 
   // Drag state
   const [draggedId, setDraggedId] = useState<string | null>(null);
