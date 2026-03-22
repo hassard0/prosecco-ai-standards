@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import type { ResourceLink } from "@/components/ResourceLinksEditor";
 import { RESOURCE_TYPES } from "@/components/ResourceLinksEditor";
 
@@ -65,7 +65,7 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
     if (open) {
       setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
     }
-  }, [open]);
+  }, [open, proposed, current]);
 
   const toggle = (field: string) => setAccepted((prev) => ({ ...prev, [field]: !prev[field] }));
   const acceptAll = () => setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
@@ -124,11 +124,13 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
                 onClick={() => toggle(field)}
               >
                 <div className="flex items-start gap-3">
-                  <Checkbox
-                    checked={accepted[field]}
-                    onCheckedChange={() => toggle(field)}
-                    className="mt-0.5"
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={accepted[field]}
+                      onCheckedChange={(checked) => setAccepted((prev) => ({ ...prev, [field]: checked === true }))}
+                      className="mt-0.5"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0 space-y-2">
                     <Label className="text-sm font-semibold">{FIELD_LABELS[field]}</Label>
 
