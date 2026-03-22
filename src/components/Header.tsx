@@ -49,6 +49,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 <span className="hidden sm:inline text-xs">Radar</span>
               </Link>
             </Button>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/affiliations">
+                <Network className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Affiliations</span>
+              </Link>
+            </Button>
             {isAdmin && (
               <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
                 <Link to="/admin" aria-label="Admin dashboard">
