@@ -104,6 +104,9 @@ export default function Admin() {
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Team
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
+              <Search className="h-3.5 w-3.5" /> Discover
+            </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> New Standard
             </Button>
