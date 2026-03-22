@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export const RESOURCE_TYPES = [
   { value: "mailing_list", label: "Mailing List" },
   { value: "github", label: "GitHub Repo" },
+  { value: "discord", label: "Discord" },
+  { value: "slack", label: "Slack" },
   { value: "working_group", label: "Working Group" },
   { value: "reference_impl", label: "Reference Implementation" },
   { value: "documentation", label: "Documentation" },
