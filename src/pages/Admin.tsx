@@ -182,6 +182,7 @@ export default function Admin() {
             ))}
           </div>
         )}
+        </section>
       </main>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
