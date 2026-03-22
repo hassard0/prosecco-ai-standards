@@ -19,6 +19,8 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
 const RESOURCE_ICONS: Record<string, typeof Mail> = {
   mailing_list: Mail,
   github: Github,
+  discord: MessageCircle,
+  slack: Hash,
   working_group: BookOpen,
   documentation: FileText,
   blog: FileText,
