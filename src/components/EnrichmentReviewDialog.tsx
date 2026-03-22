@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,9 +58,14 @@ export function EnrichmentReviewDialog({ open, onOpenChange, current, proposed, 
   if (proposed.tags && proposed.tags.length > 0) changedFields.push("tags");
   if (proposed.resources && proposed.resources.length > 0) changedFields.push("resources");
 
-  const [accepted, setAccepted] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(changedFields.map((f) => [f, true]))
-  );
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+
+  // Reset accepted state when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
+    }
+  }, [open]);
 
   const toggle = (field: string) => setAccepted((prev) => ({ ...prev, [field]: !prev[field] }));
   const acceptAll = () => setAccepted(Object.fromEntries(changedFields.map((f) => [f, true])));
