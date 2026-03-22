@@ -3,7 +3,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users } from "lucide-react";
 import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
