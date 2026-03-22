@@ -5,7 +5,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Flag, Sparkles, Loader2, Check, X, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Flag, Sparkles, Loader2, Check, X, AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StandardFlag {
