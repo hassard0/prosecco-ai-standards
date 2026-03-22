@@ -39,6 +39,8 @@ export default function AdminEdit() {
   const [resources, setResources] = useState<ResourceLink[]>([]);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [enrichData, setEnrichData] = useState<any>(null);
+  const [enrichReviewOpen, setEnrichReviewOpen] = useState(false);
 
   useEffect(() => {
     if (isNew || !standards) return;
