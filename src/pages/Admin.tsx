@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useStandards } from "@/hooks/useStandards";
@@ -29,6 +30,18 @@ export default function Admin() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+
+  const { data: pendingFlagCount } = useQuery({
+    queryKey: ["standard-flags-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("standard_flags")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
@@ -104,8 +117,13 @@ export default function Admin() {
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Team
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5 relative">
               <Flag className="h-3.5 w-3.5" /> Feedback
+              {!!pendingFlagCount && pendingFlagCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground tabular-nums">
+                  {pendingFlagCount}
+                </span>
+              )}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
               <Search className="h-3.5 w-3.5" /> Discover
