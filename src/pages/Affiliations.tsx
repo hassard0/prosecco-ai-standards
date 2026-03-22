@@ -4,8 +4,9 @@ import { Footer } from "@/components/Footer";
 import { useStandards } from "@/hooks/useStandards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
 interface Author {
   name: string;
@@ -14,18 +15,7 @@ interface Author {
   url?: string;
 }
 
-interface SankeyNode {
-  name: string;
-}
-
-interface SankeyLink {
-  source: number;
-  target: number;
-  value: number;
-}
-
-// Custom node renderer for the Sankey diagram
-function SankeyNode(props: any) {
+function SankeyNodeRenderer(props: any) {
   const { x, y, width, height, index, payload } = props;
   const isCompany = payload.depth === 0;
 
@@ -57,6 +47,50 @@ function SankeyNode(props: any) {
 export default function Affiliations() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: standards, isLoading } = useStandards();
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
+
+  // Extract all companies and standards that have author data
+  const { allCompanies, allStandardNames } = useMemo(() => {
+    if (!standards) return { allCompanies: [], allStandardNames: [] };
+    const companies = new Set<string>();
+    const stdNames = new Set<string>();
+    for (const s of standards) {
+      const authors = (s as any).authors as Author[] | undefined;
+      if (!authors?.length) continue;
+      stdNames.add(s.title);
+      for (const a of authors) {
+        if (a.company?.trim()) companies.add(a.company.trim());
+      }
+    }
+    return {
+      allCompanies: [...companies].sort(),
+      allStandardNames: [...stdNames].sort(),
+    };
+  }, [standards]);
+
+  const toggleCompany = (c: string) => {
+    setSelectedCompanies((prev) => {
+      const next = new Set(prev);
+      next.has(c) ? next.delete(c) : next.add(c);
+      return next;
+    });
+  };
+
+  const toggleStandard = (s: string) => {
+    setSelectedStandards((prev) => {
+      const next = new Set(prev);
+      next.has(s) ? next.delete(s) : next.add(s);
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedCompanies(new Set());
+    setSelectedStandards(new Set());
+  };
+
+  const hasFilters = selectedCompanies.size > 0 || selectedStandards.size > 0;
 
   const sankeyData = useMemo(() => {
     if (!standards) return null;
@@ -66,32 +100,37 @@ export default function Affiliations() {
     for (const s of standards) {
       const authors = (s as any).authors as Author[] | undefined;
       if (!authors?.length) continue;
+
+      // If filtering by standard, skip non-matching
+      if (selectedStandards.size > 0 && !selectedStandards.has(s.title)) continue;
+
       for (const a of authors) {
         const company = a.company?.trim();
         if (!company) continue;
+
+        // If filtering by company, skip non-matching
+        if (selectedCompanies.size > 0 && !selectedCompanies.has(company)) continue;
+
         if (!companyStandardMap[company]) companyStandardMap[company] = new Set();
         companyStandardMap[company].add(s.title);
       }
     }
 
-    // Filter out companies with no connections
     const companies = Object.keys(companyStandardMap).sort();
     if (companies.length === 0) return null;
 
-    // Get unique standards that have at least one author with a company
     const standardNames = [...new Set(companies.flatMap((c) => [...companyStandardMap[c]]))].sort();
 
-    const nodes: SankeyNode[] = [
+    const nodes = [
       ...companies.map((c) => ({ name: c })),
       ...standardNames.map((s) => ({ name: s })),
     ];
 
-    const links: SankeyLink[] = [];
+    const links: { source: number; target: number; value: number }[] = [];
     for (const company of companies) {
       const companyIdx = companies.indexOf(company);
       for (const stdName of companyStandardMap[company]) {
         const stdIdx = companies.length + standardNames.indexOf(stdName);
-        // Value = number of authors from this company on this standard
         const standard = standards.find((s) => s.title === stdName);
         const count = ((standard as any)?.authors as Author[] || []).filter(
           (a) => a.company?.trim() === company
@@ -101,7 +140,7 @@ export default function Affiliations() {
     }
 
     return { nodes, links };
-  }, [standards]);
+  }, [standards, selectedCompanies, selectedStandards]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -116,7 +155,7 @@ export default function Affiliations() {
           Back to directory
         </Link>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
             Company Affiliations
           </h1>
@@ -125,16 +164,71 @@ export default function Affiliations() {
           </p>
         </div>
 
+        {/* Filters */}
+        {allCompanies.length > 0 && (
+          <div className="space-y-3 mb-6">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Companies</span>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="text-[10px] text-primary hover:underline">
+                    Clear all
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {allCompanies.map((c) => (
+                  <Badge
+                    key={c}
+                    variant={selectedCompanies.has(c) ? "default" : "outline"}
+                    className="cursor-pointer text-xs transition-all hover:shadow-sm active:scale-[0.97]"
+                    onClick={() => toggleCompany(c)}
+                  >
+                    {c}
+                    {selectedCompanies.has(c) && <X className="h-3 w-3 ml-1" />}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Standards</span>
+              <div className="flex flex-wrap gap-1.5">
+                {allStandardNames.map((s) => (
+                  <Badge
+                    key={s}
+                    variant={selectedStandards.has(s) ? "default" : "outline"}
+                    className="cursor-pointer text-xs transition-all hover:shadow-sm active:scale-[0.97]"
+                    onClick={() => toggleStandard(s)}
+                  >
+                    {s}
+                    {selectedStandards.has(s) && <X className="h-3 w-3 ml-1" />}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-96 w-full" />
           </div>
         ) : !sankeyData ? (
           <div className="rounded-lg border border-dashed p-12 text-center">
-            <p className="text-muted-foreground">No author affiliation data available yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Use "Enrich with AI" on standards to populate author data.
+            <p className="text-muted-foreground">
+              {hasFilters ? "No results match the current filters." : "No author affiliation data available yet."}
             </p>
+            {!hasFilters && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Use "Enrich with AI" on standards to populate author data.
+              </p>
+            )}
+            {hasFilters && (
+              <button onClick={clearFilters} className="text-sm text-primary hover:underline mt-2">
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border bg-card p-6 overflow-x-auto">
@@ -142,7 +236,7 @@ export default function Affiliations() {
               width={900}
               height={Math.max(400, sankeyData.nodes.length * 28)}
               data={sankeyData}
-              node={<SankeyNode />}
+              node={<SankeyNodeRenderer />}
               nodePadding={14}
               nodeWidth={8}
               linkCurvature={0.5}
