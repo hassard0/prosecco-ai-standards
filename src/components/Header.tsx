@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Settings, Radar } from "lucide-react";
+import { Settings, Radar, Network } from "lucide-react";
 import { NavLink } from "./NavLink";
 
 interface HeaderProps {
@@ -47,6 +47,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <Link to="/radar">
                 <Radar className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">Radar</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/affiliations">
+                <Network className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Affiliations</span>
               </Link>
             </Button>
             {isAdmin && (

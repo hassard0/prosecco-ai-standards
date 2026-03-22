@@ -13,6 +13,7 @@ import AdminUsers from "./pages/AdminUsers.tsx";
 import AdminFeedbackPage from "./pages/AdminFeedbackPage.tsx";
 import StandardDetail from "./pages/StandardDetail.tsx";
 import Radar from "./pages/Radar.tsx";
+import Affiliations from "./pages/Affiliations.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/standard/:id" element={<StandardDetail />} />
               <Route path="/radar" element={<Radar />} />
+              <Route path="/affiliations" element={<Affiliations />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/edit/:id" element={<AdminEdit />} />
