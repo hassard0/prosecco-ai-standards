@@ -106,12 +106,14 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
           {/* Mobile: single column */}
           <div className="md:hidden">
-            <KanbanColumn
-              title={columnData[mobileTab].label}
-              accentColor={columnData[mobileTab].color}
-              standards={columnData[mobileTab].standards}
-              onSelectStandard={setSelectedStandard}
-            />
+            <div key={columnData[mobileTab].status}>
+              <KanbanColumn
+                title={columnData[mobileTab].label}
+                accentColor={columnData[mobileTab].color}
+                standards={columnData[mobileTab].standards}
+                onSelectStandard={setSelectedStandard}
+              />
+            </div>
           </div>
 
           {/* Desktop: three columns */}
