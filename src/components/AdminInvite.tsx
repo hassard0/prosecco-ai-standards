@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
 
-export function AdminInvite() {
+export function AdminInvite({ onInvited }: { onInvited?: () => void } = {}) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -28,6 +28,7 @@ export function AdminInvite() {
           description: data.message,
         });
         setEmail("");
+        onInvited?.();
       } else {
         toast({
           title: "Could not add admin",
