@@ -30,7 +30,7 @@ const empty: StandardForm = { title: "", acronym: "", description: "", status: "
 
 export default function Admin() {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const { data: standards, isLoading } = useStandards();
+  const { data: standards, isLoading, error } = useStandards();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -128,7 +128,11 @@ export default function Admin() {
           </Button>
         </div>
 
-        {isLoading ? (
+        {error ? (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+            Failed to load standards for the admin dashboard.
+          </div>
+        ) : isLoading ? (
           <div className="space-y-3">{[0,1,2].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div>
         ) : (
           <div className="space-y-2">
