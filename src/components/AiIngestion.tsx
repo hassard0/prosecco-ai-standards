@@ -18,6 +18,7 @@ interface ExtractedStandard {
   status: "Backlog" | "Emerging" | "Draft" | "Approved";
   tags: string[];
   link: string;
+  authors?: { name: string; company: string; role?: string; url?: string }[];
 }
 
 export function AiIngestion() {
