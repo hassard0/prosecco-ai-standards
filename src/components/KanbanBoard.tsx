@@ -111,7 +111,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 title={columnData[mobileTab].label}
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
-                onSelectStandard={setSelectedStandard}
+                onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
               />
             </div>
           </div>
