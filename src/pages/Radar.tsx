@@ -1,24 +1,27 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useStandards } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
-// Zalando-style: 4 quadrants, 3 concentric rings
-// Quadrants are tag-based categories
+// Zalando-style: 4 quadrants, 4 concentric rings
 const QUADRANT_DEFS = [
-  { name: "Protocols", tags: ["protocol", "protocols", "agents", "messaging"], angle: 0 },
-  { name: "Governance", tags: ["governance", "safety", "ethics", "regulation", "policy", "risk"], angle: 1 },
-  { name: "Data & Models", tags: ["data", "models", "training", "ml", "format", "interoperability"], angle: 2 },
-  { name: "Infrastructure", tags: ["infrastructure", "deployment", "runtime", "cloud", "compute", "security", "identity"], angle: 3 },
+  { name: "Protocols", tags: ["protocol", "protocols", "agents", "messaging"] },
+  { name: "Governance", tags: ["governance", "safety", "ethics", "regulation", "policy", "risk"] },
+  { name: "Data & Models", tags: ["data", "models", "training", "ml", "format", "interoperability"] },
+  { name: "Infrastructure", tags: ["infrastructure", "deployment", "runtime", "cloud", "compute", "security", "identity"] },
 ];
 
+// Zalando rings: Adopt (center) → Trial → Assess → Hold (outer)
+// Map our statuses to these rings
 const RINGS = [
-  { status: "Approved" as const, label: "Approved", color: "hsl(152 60% 42%)" },
-  { status: "Draft" as const, label: "Draft", color: "hsl(220 60% 55%)" },
-  { status: "Emerging" as const, label: "Emerging", color: "hsl(38 80% 55%)" },
+  { label: "Adopt", status: "Approved" as const, color: "hsl(152 60% 42%)", desc: "We strongly recommend adoption" },
+  { label: "Trial", status: "Draft" as const, color: "hsl(220 60% 55%)", desc: "Worth trying in projects" },
+  { label: "Assess", status: "Emerging" as const, color: "hsl(38 80% 55%)", desc: "Worth exploring with the goal of understanding" },
+  { label: "Hold", status: "Backlog" as const, color: "hsl(0 50% 50%)", desc: "Proceed with caution" },
 ];
 
 function hashString(str: string): number {
@@ -35,7 +38,6 @@ function assignQuadrant(standard: Standard): number {
   for (let qi = 0; qi < QUADRANT_DEFS.length; qi++) {
     if (QUADRANT_DEFS[qi].tags.some((qt) => tags.includes(qt))) return qi;
   }
-  // Fallback: hash-based
   return hashString(standard.id) % 4;
 }
 
@@ -49,6 +51,12 @@ interface Blip {
   index: number;
 }
 
+const SIZE = 1000;
+const CX = SIZE / 2;
+const CY = SIZE / 2;
+const MAX_R = 420;
+const RING_RADII = [105, 210, 315, 420]; // 4 rings
+
 export default function Radar() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: standards, isLoading } = useStandards();
@@ -58,11 +66,9 @@ export default function Radar() {
 
   const filtered = useMemo(() => {
     if (!standards) return [];
-    // Exclude Backlog from public radar
-    const pub = standards.filter((s) => s.status !== "Backlog");
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return pub;
-    return pub.filter(
+    if (!q) return standards;
+    return standards.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
@@ -74,7 +80,7 @@ export default function Radar() {
     const result: Blip[] = [];
     let globalIndex = 0;
 
-    // Group by quadrant and ring
+    // Group by quadrant+ring for spacing
     const grouped: Record<string, Standard[]> = {};
     for (const s of filtered) {
       const qi = assignQuadrant(s);
@@ -85,10 +91,6 @@ export default function Radar() {
       grouped[key].push(s);
     }
 
-    const cx = 500, cy = 500;
-    const maxR = 420;
-    const ringWidths = [140, 140, 140]; // inner to outer
-
     for (const s of filtered) {
       const qi = assignQuadrant(s);
       const ri = RINGS.findIndex((r) => r.status === s.status);
@@ -98,23 +100,21 @@ export default function Radar() {
       const siblings = grouped[key];
       const sibIdx = siblings.indexOf(s);
 
-      // Quadrant angle range (each 90°)
-      // Q0=bottom-right, Q1=bottom-left, Q2=top-left, Q3=top-right (Zalando convention)
-      const quadrantStartAngle = qi * (Math.PI / 2);
-      const padding = 0.08;
-      const sectorAngle = (Math.PI / 2) - padding * 2;
+      // Quadrant: Q0=bottom-right (0-90°), Q1=bottom-left (90-180°), Q2=top-left (180-270°), Q3=top-right (270-360°)
+      const quadStartAngle = qi * (Math.PI / 2);
+      const padding = 0.12;
+      const sectorAngle = Math.PI / 2 - padding * 2;
       const angleStep = sectorAngle / Math.max(siblings.length + 1, 2);
-      const angle = quadrantStartAngle + padding + angleStep * (sibIdx + 1);
+      const angle = quadStartAngle + padding + angleStep * (sibIdx + 1);
 
       // Ring radius band
-      let innerR = 0;
-      for (let r = 0; r < ri; r++) innerR += ringWidths[r];
-      const outerR = innerR + ringWidths[ri];
+      const innerR = ri === 0 ? 30 : RING_RADII[ri - 1] + 8;
+      const outerR = RING_RADII[ri] - 8;
       const h = hashString(s.id);
-      const rPos = innerR + 20 + ((h % 71) / 71) * (outerR - innerR - 40);
+      const rPos = innerR + ((h % 100) / 100) * (outerR - innerR);
 
-      const x = cx + rPos * Math.sin(angle);
-      const y = cy - rPos * Math.cos(angle);
+      const x = CX + rPos * Math.sin(angle);
+      const y = CY - rPos * Math.cos(angle);
 
       result.push({
         standard: s,
@@ -129,19 +129,25 @@ export default function Radar() {
     return result;
   }, [filtered]);
 
-  const ringRadii = [140, 280, 420];
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to directory
+        </Link>
+
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-1" style={{ lineHeight: "1.1" }}>
-            Tech Radar
-          </h2>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1" style={{ lineHeight: "1.1" }}>
+            AI Standards Radar
+          </h1>
           <p className="text-sm text-muted-foreground max-w-xl">
-            AI standards plotted by category and maturity — approved at center, emerging at edge.
+            Standards plotted by category and recommendation — adopt at center, hold at edge.
           </p>
         </div>
 
@@ -152,51 +158,52 @@ export default function Radar() {
             {/* Radar SVG */}
             <div className="flex-1 min-w-0">
               <svg viewBox="0 0 1000 1000" className="w-full h-auto max-w-3xl mx-auto">
-                {/* Background quadrant fills */}
+                {/* Quadrant background fills */}
                 {[0, 1, 2, 3].map((qi) => {
                   const startAngle = qi * 90 - 90;
                   const isActive = activeQuadrant === null || activeQuadrant === qi;
                   return (
                     <path
                       key={`quad-${qi}`}
-                      d={describeArc(500, 500, 420, startAngle, startAngle + 90)}
+                      d={describeArc(CX, CY, MAX_R, startAngle, startAngle + 90)}
                       className={isActive ? "fill-muted/30" : "fill-muted/10"}
                       stroke="none"
-                      style={{ transition: "fill 200ms ease-out" }}
+                      style={{ transition: "fill 200ms ease-out", cursor: "pointer" }}
                       onMouseEnter={() => setActiveQuadrant(qi)}
                       onMouseLeave={() => setActiveQuadrant(null)}
                     />
                   );
                 })}
 
-                {/* Rings */}
-                {ringRadii.map((r, i) => (
+                {/* Ring circles */}
+                {RING_RADII.map((r, i) => (
                   <circle
                     key={`ring-${i}`}
-                    cx={500}
-                    cy={500}
+                    cx={CX}
+                    cy={CY}
                     r={r}
                     fill="none"
                     stroke="currentColor"
                     className="text-border"
                     strokeWidth="1"
+                    strokeDasharray={i === RING_RADII.length - 1 ? "none" : "none"}
                   />
                 ))}
 
-                {/* Axes */}
-                <line x1={500} y1={80} x2={500} y2={920} stroke="currentColor" className="text-border" strokeWidth="1" />
-                <line x1={80} y1={500} x2={920} y2={500} stroke="currentColor" className="text-border" strokeWidth="1" />
+                {/* Cross axes */}
+                <line x1={CX} y1={CY - MAX_R} x2={CX} y2={CY + MAX_R} stroke="currentColor" className="text-border" strokeWidth="1" />
+                <line x1={CX - MAX_R} y1={CY} x2={CX + MAX_R} y2={CY} stroke="currentColor" className="text-border" strokeWidth="1" />
 
-                {/* Ring labels */}
+                {/* Ring labels — placed at top of each ring */}
                 {RINGS.map((ring, i) => (
                   <text
-                    key={`rlabel-${ring.status}`}
-                    x={505}
-                    y={500 - ringRadii[i] + 18}
+                    key={`rlabel-${ring.label}`}
+                    x={CX + 6}
+                    y={CY - RING_RADII[i] + 16}
                     className="fill-muted-foreground"
-                    fontSize="12"
+                    fontSize="11"
                     fontWeight="600"
-                    opacity={0.7}
+                    opacity={0.6}
                   >
                     {ring.label}
                   </text>
@@ -205,10 +212,10 @@ export default function Radar() {
                 {/* Quadrant labels */}
                 {QUADRANT_DEFS.map((q, qi) => {
                   const positions = [
-                    { x: 760, y: 960 },  // Q0 bottom-right
-                    { x: 30, y: 960 },   // Q1 bottom-left
-                    { x: 30, y: 50 },    // Q2 top-left
-                    { x: 760, y: 50 },   // Q3 top-right
+                    { x: 740, y: 960 },
+                    { x: 30, y: 960 },
+                    { x: 30, y: 50 },
+                    { x: 740, y: 50 },
                   ];
                   return (
                     <text
@@ -216,9 +223,9 @@ export default function Radar() {
                       x={positions[qi].x}
                       y={positions[qi].y}
                       className="fill-foreground"
-                      fontSize="16"
+                      fontSize="15"
                       fontWeight="700"
-                      opacity={activeQuadrant === null || activeQuadrant === qi ? 1 : 0.3}
+                      opacity={activeQuadrant === null || activeQuadrant === qi ? 1 : 0.25}
                       style={{ transition: "opacity 200ms ease-out" }}
                     >
                       {q.name}
@@ -237,7 +244,7 @@ export default function Radar() {
                       onMouseEnter={() => setHoveredId(blip.standard.id)}
                       onMouseLeave={() => setHoveredId(null)}
                       onClick={() => navigate(`/standard/${blip.standard.id}`)}
-                      opacity={isActive ? 1 : 0.15}
+                      opacity={isActive ? 1 : 0.12}
                       style={{ transition: "opacity 200ms ease-out" }}
                     >
                       <circle
@@ -251,7 +258,7 @@ export default function Radar() {
                         x={blip.x}
                         y={blip.y + 4}
                         textAnchor="middle"
-                        fontSize="10"
+                        fontSize="9"
                         fontWeight="700"
                         fill="white"
                       >
@@ -262,19 +269,19 @@ export default function Radar() {
                           <rect
                             x={blip.x + 16}
                             y={blip.y - 14}
-                            width={Math.max((blip.standard.acronym || blip.standard.title.slice(0, 25)).length * 7.5 + 16, 60)}
+                            width={Math.max((blip.standard.acronym || blip.standard.title.slice(0, 30)).length * 7 + 20, 70)}
                             height={26}
                             rx={6}
                             className="fill-card stroke-border"
                             strokeWidth="1"
                           />
                           <text
-                            x={blip.x + 24}
+                            x={blip.x + 26}
                             y={blip.y + 1}
-                            fontSize="12"
+                            fontSize="11"
                             className="fill-card-foreground font-medium"
                           >
-                            {blip.standard.acronym || blip.standard.title.slice(0, 25)}
+                            {blip.standard.acronym || blip.standard.title.slice(0, 30)}
                           </text>
                         </>
                       )}
@@ -284,14 +291,17 @@ export default function Radar() {
               </svg>
             </div>
 
-            {/* Legend table */}
+            {/* Legend */}
             <div className="lg:w-80 shrink-0 space-y-6">
               {/* Ring legend */}
-              <div className="flex items-center gap-4">
+              <div className="space-y-2">
                 {RINGS.map((ring) => (
-                  <div key={ring.status} className="flex items-center gap-1.5">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: ring.color }} />
-                    <span className="text-xs font-medium text-muted-foreground">{ring.label}</span>
+                  <div key={ring.label} className="flex items-start gap-2">
+                    <div className="h-3 w-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: ring.color }} />
+                    <div>
+                      <span className="text-xs font-semibold text-foreground">{ring.label}</span>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{ring.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -343,7 +353,6 @@ export default function Radar() {
   );
 }
 
-// SVG arc path helper
 function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
   const startRad = (startAngle * Math.PI) / 180;
   const endRad = (endAngle * Math.PI) / 180;
