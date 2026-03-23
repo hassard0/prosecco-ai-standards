@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { normalizeCompany } from "@/lib/normalizeCompany";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStandards } from "@/hooks/useStandards";
