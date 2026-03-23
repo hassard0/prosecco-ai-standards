@@ -413,9 +413,9 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
             <Button
               variant="outline"
               size="sm"
-              className={cn("h-8 gap-1.5 text-xs", !dateFrom && "text-muted-foreground")}
+              className={cn("h-8 w-[160px] justify-start gap-1.5 text-xs", !dateFrom && "text-muted-foreground")}
             >
-              <CalendarIcon className="h-3.5 w-3.5" />
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
               {dateFrom ? format(dateFrom, "MMM d, yyyy") : "From"}
             </Button>
           </PopoverTrigger>
@@ -435,13 +435,22 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
             <Button
               variant="outline"
               size="sm"
-              className={cn("h-8 gap-1.5 text-xs", !dateTo && "text-muted-foreground")}
+              className={cn("h-8 w-[160px] justify-start gap-1.5 text-xs", !dateTo && "text-muted-foreground")}
             >
-              <CalendarIcon className="h-3.5 w-3.5" />
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
               {dateTo ? format(dateTo, "MMM d, yyyy") : "To"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
+            <div className="border-b px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setDateTo(new Date())}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Today
+              </button>
+            </div>
             <CalendarPicker
               mode="single"
               selected={dateTo}
