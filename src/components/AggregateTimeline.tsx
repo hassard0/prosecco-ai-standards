@@ -342,9 +342,8 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
 
     // Auto-size: at least 60px per month visible, minimum container width
     const spanMonths = Math.max(1, Math.ceil(spanDays / 30));
-    const trackWidth = Math.max(containerWidth - LABEL_WIDTH, spanMonths * 60);
-
-    const positionFor = (time: number) => ((time - minTime) / span) * trackWidth;
+    const usableTrackWidth = Math.max(0, trackWidth - TRACK_EDGE_PADDING * 2);
+    const positionFor = (time: number) => TRACK_EDGE_PADDING + ((time - minTime) / span) * usableTrackWidth;
 
     // Generate month ticks
     const monthTicks: { label: string; x: number; isYear: boolean }[] = [];
