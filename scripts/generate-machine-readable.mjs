@@ -4,8 +4,12 @@ async function getProjectId() {
   if (process.env.VITE_SUPABASE_PROJECT_ID) return process.env.VITE_SUPABASE_PROJECT_ID;
 
   const envFile = await readFile(new URL("../.env", import.meta.url), "utf8");
-  const match = envFile.match(/^VITE_SUPABASE_PROJECT_ID=["']?([^"'\n]+)["']?$/m);
-  return match?.[1];
+  for (const line of envFile.split(/\r?\n/)) {
+    if (!line.startsWith("VITE_SUPABASE_PROJECT_ID=")) continue;
+    return line.split("=").slice(1).join("=").trim().replace(/^['\"]|['\"]$/g, "");
+  }
+
+  return undefined;
 }
 
 const projectId = await getProjectId();
