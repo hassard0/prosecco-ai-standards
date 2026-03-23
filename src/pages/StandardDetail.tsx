@@ -3,13 +3,17 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users, RefreshCw } from "lucide-react";
 import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAuthorSankey } from "@/components/MiniAuthorSankey";
+import { StandardTimeline } from "@/components/StandardTimeline";
+import { WhatsNew } from "@/components/WhatsNew";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   Approved: { bg: "hsl(152 60% 42% / 0.1)", text: "hsl(152 60% 32%)" },
@@ -52,12 +56,36 @@ export default function StandardDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: standards, isLoading } = useStandards();
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: summaries } = useSummaries(id);
+  const { data: summaries, refetch: refetchSummaries } = useSummaries(id);
+  const { isAdmin } = useAuth();
+  const [generating, setGenerating] = useState(false);
+  const queryClient = useQueryClient();
 
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
   const resources = ((standard as any)?.resources as { type: string; label: string; url: string }[]) || [];
   const authors = ((standard as any)?.authors as { name: string; company: string; role?: string; url?: string }[]) || [];
+
+  const handleGenerateSummary = async () => {
+    if (!id) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-mailing-list", {
+        body: { standard_id: id },
+      });
+      if (error) throw error;
+      toast.success("Summary generated successfully");
+      refetchSummaries();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate summary");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const latestSummary = summaries?.[0];
+  const timelineEvents = (latestSummary as any)?.timeline_events || [];
+  const whatsNew = (latestSummary as any)?.whats_new;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -220,15 +248,39 @@ export default function StandardDetail() {
               </div>
             )}
 
+            {/* Generate Summary Button (admins) */}
+            {resources.length > 0 && isAdmin && (
+              <div className="mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateSummary}
+                  disabled={generating}
+                  className="active:scale-[0.97] transition-all"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${generating ? "animate-spin" : ""}`} />
+                  {generating ? "Generating…" : latestSummary ? "Refresh Summary" : "Generate Summary"}
+                </Button>
+              </div>
+            )}
+
+            {/* What's New */}
+            {whatsNew && latestSummary && (
+              <WhatsNew content={whatsNew} generatedAt={latestSummary.generated_at} />
+            )}
+
+            {/* Timeline */}
+            <StandardTimeline events={timelineEvents} />
+
             {/* Mailing List Summaries */}
-            {summaries && summaries.length > 0 && (
+            {latestSummary && (
               <div className="rounded-lg border bg-card p-5 mb-6">
-                <h2 className="text-sm font-semibold text-foreground mb-1">Mailing List Summary</h2>
+                <h2 className="text-sm font-semibold text-foreground mb-1">Discussion Summary</h2>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  AI-generated summary of recent discussions · Updated {new Date(summaries[0].generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  AI-generated summary · Updated {new Date(latestSummary.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
-                  {summaries[0].summary.split("\n").map((line, i) => {
+                  {latestSummary.summary.split("\n").map((line, i) => {
                     if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
                     if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
                     if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
