@@ -49,6 +49,30 @@ function normalizeUrl(url: string) {
   return url.replace(/\/$/, "");
 }
 
+function resolveSearchResultUrl(rawHref: string) {
+  const decodedHref = decodeHtmlEntities(rawHref.trim());
+
+  try {
+    const parsed = new URL(decodedHref.startsWith("//") ? `https:${decodedHref}` : decodedHref);
+
+    if (parsed.hostname.includes("duckduckgo.com")) {
+      const redirectTarget = parsed.searchParams.get("uddg");
+      if (redirectTarget) {
+        return normalizeUrl(decodeURIComponent(redirectTarget));
+      }
+      return null;
+    }
+
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return normalizeUrl(parsed.toString());
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function getDomainsForOrganization(organization: string) {
   const direct = ORGANIZATION_DOMAINS[organization];
   if (direct) return direct;
@@ -91,49 +115,55 @@ async function verifyUrl(url: string) {
 }
 
 function extractDuckDuckGoLinks(html: string) {
-  const matches = [...html.matchAll(/<a[^>]+href="(https?:\/\/[^"#]+)"[^>]*>/gi)];
+  const matches = [...html.matchAll(/<a[^>]+href="([^"#]+)"[^>]*>/gi)];
   const urls = matches
-    .map((match) => decodeHtmlEntities(match[1]))
-    .filter((url) => !url.includes("duckduckgo.com"));
+    .map((match) => resolveSearchResultUrl(match[1]))
+    .filter((url): url is string => Boolean(url));
 
   return Array.from(new Set(urls.map(normalizeUrl)));
 }
 
 async function searchForOfficialSpecLink(standard: DiscoveredStandard) {
   const domains = getDomainsForOrganization(standard.organization);
-  const domainHints = domains.length > 0 ? domains.map((domain) => `site:${domain}`).join(" OR ") : "";
-  const query = `${standard.title} ${standard.acronym ?? ""} ${standard.organization} specification standard ${domainHints}`.trim();
-  const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const queries = [
+    `${standard.title} ${standard.acronym ?? ""} ${standard.organization} specification standard ${domains.map((domain) => `site:${domain}`).join(" OR ")}`.trim(),
+    `${standard.title} ${standard.organization} draft ${domains.map((domain) => `site:${domain}`).join(" OR ")}`.trim(),
+    `${standard.title} ${standard.organization}`.trim(),
+  ].filter(Boolean);
 
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": SEARCH_UA,
-        Accept: "text/html,application/xhtml+xml",
-      },
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
+  for (const query of queries) {
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
-    if (!response.ok) {
-      return null;
-    }
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const response = await fetch(searchUrl, {
+        headers: {
+          "User-Agent": SEARCH_UA,
+          Accept: "text/html,application/xhtml+xml",
+        },
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
 
-    const html = await response.text();
-    const candidates = extractDuckDuckGoLinks(html).filter((url) => {
-      if (domains.length === 0) return true;
-      return domains.some((domain) => new RegExp(`(^https?:\\/\\/)?([^/]+\\.)?${escapeRegExp(domain)}(/|$)`, "i").test(url));
-    });
-
-    for (const candidate of candidates.slice(0, 5)) {
-      if (await verifyUrl(candidate)) {
-        return candidate;
+      if (!response.ok) {
+        continue;
       }
+
+      const html = await response.text();
+      const candidates = extractDuckDuckGoLinks(html).filter((url) => {
+        if (domains.length === 0) return true;
+        return domains.some((domain) => new RegExp(`(^https?:\\/\\/)?([^/]+\\.)?${escapeRegExp(domain)}(/|$)`, "i").test(url));
+      });
+
+      for (const candidate of candidates.slice(0, 10)) {
+        if (await verifyUrl(candidate)) {
+          return candidate;
+        }
+      }
+    } catch (error) {
+      console.log(`Search fallback failed for ${standard.title}:`, error instanceof Error ? error.message : error);
     }
-  } catch (error) {
-    console.log(`Search fallback failed for ${standard.title}:`, error instanceof Error ? error.message : error);
   }
 
   return null;
