@@ -6,6 +6,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { TagFilter } from "./TagFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { LayoutList, Rows3 } from "lucide-react";
 
 interface KanbanBoardProps {
   searchQuery: string;
@@ -21,6 +22,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: standards, isLoading, error } = useStandards();
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
   const [mobileTab, setMobileTab] = useState(0);
   const navigate = useNavigate();
 
@@ -70,7 +72,31 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
   return (
     <div className="space-y-6">
-      <TagFilter tags={allTags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+      <div className="flex items-center justify-between gap-4">
+        <TagFilter tags={allTags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+        <div className="flex items-center gap-1 p-1 rounded-md bg-muted shrink-0">
+          <button
+            onClick={() => setViewMode("compact")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "compact" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Compact view"
+          >
+            <Rows3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("detailed")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "detailed" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Detailed view"
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -114,6 +140,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
+                viewMode={viewMode}
               />
             </div>
           </div>
@@ -127,6 +154,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={col.color}
                 standards={col.standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
+                viewMode={viewMode}
               />
             ))}
           </div>
