@@ -46,14 +46,21 @@ function formatDate(dateStr: string) {
   }
 }
 
-function groupByYear(events: EnrichedEvent[]): Record<string, EnrichedEvent[]> {
-  const groups: Record<string, EnrichedEvent[]> = {};
+function groupByStandard(events: EnrichedEvent[]): { id: string; label: string; title: string; events: EnrichedEvent[] }[] {
+  const map = new Map<string, EnrichedEvent[]>();
+  const meta = new Map<string, { label: string; title: string }>();
   for (const e of events) {
-    const year = parseDate(e.date).getFullYear().toString();
-    if (!groups[year]) groups[year] = [];
-    groups[year].push(e);
+    if (!map.has(e.standardId)) {
+      map.set(e.standardId, []);
+      meta.set(e.standardId, { label: e.standardAcronym || e.standardTitle.slice(0, 20), title: e.standardTitle });
+    }
+    map.get(e.standardId)!.push(e);
   }
-  return groups;
+  return Array.from(map.entries()).map(([id, evts]) => ({
+    id,
+    ...meta.get(id)!,
+    events: evts.sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime()),
+  }));
 }
 
 export function AggregateTimeline({ standards }: { standards: Standard[] | undefined }) {
