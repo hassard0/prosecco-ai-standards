@@ -565,33 +565,21 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                         key={`${row.id}-${index}`}
                         className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
                         style={{ left: x }}
+                        onMouseEnter={(e) => {
+                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          setActiveTooltip({ event, rect });
+                        }}
+                        onMouseLeave={() => setActiveTooltip(null)}
                       >
-                        <Tooltip delayDuration={100}>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={cn(
-                                "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
-                                config.bgClass,
-                                config.colorClass
-                              )}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="w-60 p-3" sideOffset={8}>
-                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-                              {formatDateLabel(event.date)}
-                            </p>
-                            <p className="mt-1 text-sm font-medium leading-tight text-foreground">
-                              {event.title}
-                            </p>
-                            {event.description && (
-                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                {event.description}
-                              </p>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
+                            config.bgClass,
+                            config.colorClass
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
                       </div>
                     );
                   })}
