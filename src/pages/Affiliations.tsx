@@ -15,9 +15,25 @@ interface Author {
   url?: string;
 }
 
+const COMPANY_COLORS = [
+  "hsl(220 70% 50%)",
+  "hsl(340 65% 47%)",
+  "hsl(160 55% 40%)",
+  "hsl(30 80% 50%)",
+  "hsl(270 55% 50%)",
+  "hsl(190 60% 42%)",
+  "hsl(10 70% 48%)",
+  "hsl(90 50% 40%)",
+  "hsl(300 45% 45%)",
+  "hsl(50 75% 45%)",
+];
+
 function SankeyNodeRenderer(props: any) {
   const { x, y, width, height, index, payload } = props;
   const isCompany = payload.depth === 0;
+  const color = isCompany
+    ? COMPANY_COLORS[index % COMPANY_COLORS.length]
+    : "hsl(var(--muted-foreground) / 0.5)";
 
   return (
     <Layer key={`sankey-node-${index}`}>
@@ -26,7 +42,7 @@ function SankeyNodeRenderer(props: any) {
         y={y}
         width={width}
         height={height}
-        fill={isCompany ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.5)"}
+        fill={color}
         fillOpacity={0.9}
         rx={3}
       />
@@ -35,8 +51,8 @@ function SankeyNodeRenderer(props: any) {
         y={y + height / 2}
         textAnchor={isCompany ? "end" : "start"}
         dominantBaseline="central"
-        className="fill-foreground text-xs"
-        style={{ fontSize: 11 }}
+        className="fill-foreground"
+        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400 }}
       >
         {payload.name}
       </text>
