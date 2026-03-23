@@ -16,6 +16,7 @@ import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { StandardsFilterBar } from "@/components/StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DeduplicateDialog } from "@/components/DeduplicateDialog";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
 
