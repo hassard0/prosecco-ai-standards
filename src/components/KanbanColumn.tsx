@@ -24,7 +24,7 @@ export function KanbanColumn({ title, standards, accentColor, onSelectStandard, 
         </span>
       </div>
 
-      <div className="space-y-3 flex-1">
+      <div className={cn("flex-1", viewMode === "compact" ? "space-y-1.5" : "space-y-3")}>
         {standards.length === 0 ? (
           <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
             <p className="text-xs text-muted-foreground">No standards yet</p>
@@ -36,6 +36,7 @@ export function KanbanColumn({ title, standards, accentColor, onSelectStandard, 
               standard={standard}
               onClick={() => onSelectStandard(standard)}
               index={index}
+              viewMode={viewMode}
             />
           ))
         )}
