@@ -23,6 +23,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
+  const [localSearch, setLocalSearch] = useState("");
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
   const [mobileTab, setMobileTab] = useState(0);
   const navigate = useNavigate();
@@ -41,13 +42,18 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const filtered = useMemo(() => {
     if (!standards) return [];
     const published = standards.filter((s) => s.status !== "Backlog");
-    const query = searchQuery.toLowerCase().trim();
+    const query = (searchQuery || localSearch).toLowerCase().trim();
+    let regex: RegExp | null = null;
+    if (localSearch.trim()) {
+      try { regex = new RegExp(localSearch.trim(), "i"); } catch { /* invalid regex, fall back */ }
+    }
     return published.filter((s) => {
-      const matchesSearch =
-        !query ||
-        s.title.toLowerCase().includes(query) ||
-        s.description.toLowerCase().includes(query) ||
-        (s.acronym && s.acronym.toLowerCase().includes(query));
+      const matchesSearch = regex
+        ? regex.test(s.title) || (s.acronym ? regex.test(s.acronym) : false)
+        : !query ||
+          s.title.toLowerCase().includes(query) ||
+          s.description.toLowerCase().includes(query) ||
+          (s.acronym && s.acronym.toLowerCase().includes(query));
 
       const matchesTags =
         selectedTags.length === 0 ||
@@ -59,7 +65,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
       return matchesSearch && matchesTags && matchesOrgs;
     });
-  }, [standards, searchQuery, selectedTags, selectedOrgs]);
+  }, [standards, searchQuery, localSearch, selectedTags, selectedOrgs]);
 
 
   const columnData = COLUMNS.map((col) => ({
@@ -85,6 +91,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
           allOrganizations={allOrganizations}
           selectedOrganizations={selectedOrgs}
           onOrganizationsChange={setSelectedOrgs}
+          searchQuery={localSearch}
+          onSearchChange={setLocalSearch}
         />
         <div className="flex items-center gap-1 p-1 rounded-md bg-muted shrink-0">
           <button

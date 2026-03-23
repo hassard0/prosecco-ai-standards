@@ -52,6 +52,7 @@ export default function Admin() {
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
+  const [adminSearch, setAdminSearch] = useState("");
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
 
@@ -197,13 +198,23 @@ export default function Admin() {
     setDraggedId(null);
   };
 
-  const columnStandards = (status: StatusType) =>
-    (standards || []).filter((s) => {
+  const columnStandards = (status: StatusType) => {
+    let regex: RegExp | null = null;
+    if (adminSearch.trim()) {
+      try { regex = new RegExp(adminSearch.trim(), "i"); } catch { /* invalid regex */ }
+    }
+    return (standards || []).filter((s) => {
       if (s.status !== status) return false;
+      if (regex && !regex.test(s.title) && !(s.acronym && regex.test(s.acronym))) return false;
+      if (!regex && adminSearch.trim()) {
+        const q = adminSearch.toLowerCase();
+        if (!s.title.toLowerCase().includes(q) && !(s.acronym && s.acronym.toLowerCase().includes(q))) return false;
+      }
       if (selectedTags.length > 0 && !selectedTags.some((tag) => s.tags?.includes(tag))) return false;
       if (selectedOrgs.length > 0 && (!s.organization || !selectedOrgs.includes(s.organization))) return false;
       return true;
     });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -271,6 +282,8 @@ export default function Admin() {
             allOrganizations={allOrganizations}
             selectedOrganizations={selectedOrgs}
             onOrganizationsChange={setSelectedOrgs}
+            searchQuery={adminSearch}
+            onSearchChange={setAdminSearch}
           />
         </div>
         {error ? (

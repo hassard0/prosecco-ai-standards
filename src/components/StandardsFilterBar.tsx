@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -15,6 +15,8 @@ interface StandardsFilterBarProps {
   allOrganizations: string[];
   selectedOrganizations: string[];
   onOrganizationsChange: (orgs: string[]) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }
 
 function MultiSelectFilter({
@@ -103,11 +105,22 @@ export function StandardsFilterBar({
   allOrganizations,
   selectedOrganizations,
   onOrganizationsChange,
+  searchQuery,
+  onSearchChange,
 }: StandardsFilterBarProps) {
-  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0;
+  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Search standards…"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-8 w-48 pl-8 text-xs"
+        />
+      </div>
       <MultiSelectFilter label="Tags" options={allTags} selected={selectedTags} onChange={onTagsChange} />
       <MultiSelectFilter label="Organization" options={allOrganizations} selected={selectedOrganizations} onChange={onOrganizationsChange} />
       {hasFilters && (
@@ -115,7 +128,7 @@ export function StandardsFilterBar({
           variant="ghost"
           size="sm"
           className="h-8 text-xs gap-1 text-muted-foreground"
-          onClick={() => { onTagsChange([]); onOrganizationsChange([]); }}
+          onClick={() => { onTagsChange([]); onOrganizationsChange([]); onSearchChange(""); }}
         >
           <X className="h-3 w-3" /> Clear
         </Button>
