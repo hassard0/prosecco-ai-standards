@@ -115,15 +115,28 @@ export default function StandardDetail() {
           </div>
         ) : (
           <article className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <div className="flex items-start gap-3 flex-wrap mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
-                {standard.title}
-              </h1>
-              {standard.acronym && (
-                <span className="mt-1 px-2.5 py-1 text-xs font-semibold tracking-wider uppercase rounded-full bg-primary/10 text-primary shrink-0">
-                  {standard.acronym}
-                </span>
-              )}
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-3 flex-wrap min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
+                  {standard.title}
+                </h1>
+                {standard.acronym && (
+                  <span className="mt-1 px-2.5 py-1 text-xs font-semibold tracking-wider uppercase rounded-full bg-primary/10 text-primary shrink-0">
+                    {standard.acronym}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {standard.link && (
+                  <Button asChild size="sm" className="active:scale-[0.97] transition-all">
+                    <a href={standard.link} target="_blank" rel="noopener noreferrer">
+                      View Spec
+                      <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                )}
+                <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 mb-6 flex-wrap">
