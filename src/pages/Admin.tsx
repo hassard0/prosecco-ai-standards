@@ -231,16 +231,25 @@ export default function Admin() {
             <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
               <Search className="h-3.5 w-3.5" /> Discover
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkEnrichResources}
-              disabled={bulkEnriching}
-              className="gap-1.5"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
-              {bulkEnriching ? "Enriching…" : "Enrich Resources"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={bulkEnriching} className="gap-1.5">
+                  <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
+                  {bulkEnriching
+                    ? bulkAction === "summaries" ? "Generating…" : "Enriching…"
+                    : "Bulk Actions"}
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleBulkEnrichResources} disabled={bulkEnriching} className="gap-2">
+                  <Link2 className="h-3.5 w-3.5" /> Enrich Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBulkGenerateSummaries} disabled={bulkEnriching} className="gap-2">
+                  <FileText className="h-3.5 w-3.5" /> Generate Summaries
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> New Standard
             </Button>
