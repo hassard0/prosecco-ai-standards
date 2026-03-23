@@ -275,6 +275,9 @@ export default function Admin() {
                 <DropdownMenuItem onClick={handleBulkGenerateSummaries} disabled={bulkEnriching} className="gap-2">
                   <FileText className="h-3.5 w-3.5" /> Generate Summaries
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDeduplicateOpen(true)} className="gap-2">
+                  <Merge className="h-3.5 w-3.5" /> De-duplicate
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
