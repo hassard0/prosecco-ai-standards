@@ -33,9 +33,16 @@ const COMPANY_COLORS = [
 function SankeyNodeRenderer(props: any) {
   const { x, y, width, height, index, payload } = props;
   const isCompany = payload.depth === 0;
+  const isStandard = !isCompany;
   const color = isCompany
     ? COMPANY_COLORS[index % COMPANY_COLORS.length]
     : "hsl(var(--muted-foreground) / 0.5)";
+
+  const handleClick = () => {
+    if (isStandard && payload.standardId && props.onStandardClick) {
+      props.onStandardClick(payload.standardId);
+    }
+  };
 
   return (
     <Layer key={`sankey-node-${index}`}>
@@ -47,6 +54,8 @@ function SankeyNodeRenderer(props: any) {
         fill={color}
         fillOpacity={0.9}
         rx={3}
+        style={isStandard ? { cursor: "pointer" } : undefined}
+        onClick={handleClick}
       />
       <text
         x={isCompany ? x - 6 : x + width + 6}
@@ -54,9 +63,16 @@ function SankeyNodeRenderer(props: any) {
         textAnchor={isCompany ? "end" : "start"}
         dominantBaseline="central"
         className="fill-foreground"
-        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400 }}
+        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400, cursor: isStandard ? "pointer" : undefined }}
+        onClick={handleClick}
       >
-        {payload.name}
+        {isStandard ? (
+          <tspan style={{ textDecoration: "underline", textDecorationColor: "hsl(var(--muted-foreground) / 0.3)" }}>
+            {payload.name}
+          </tspan>
+        ) : (
+          payload.name
+        )}
       </text>
     </Layer>
   );
