@@ -39,6 +39,7 @@ export default function AdminEdit() {
   const [tags, setTags] = useState<string[]>([]);
   const [resources, setResources] = useState<ResourceLink[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
+  const [isExpired, setIsExpired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichData, setEnrichData] = useState<any>(null);
