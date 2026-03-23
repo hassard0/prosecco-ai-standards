@@ -61,11 +61,6 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
     });
   }, [standards, searchQuery, selectedTags, selectedOrgs]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
 
   const columnData = COLUMNS.map((col) => ({
     ...col,
