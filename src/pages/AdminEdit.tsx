@@ -78,6 +78,7 @@ export default function AdminEdit() {
       tags,
       resources: resources.filter((r) => r.url.trim()) as any,
       authors: authors.filter((a) => a.name.trim()) as any,
+      is_expired: isExpired,
     };
 
     const { error } = isNew
