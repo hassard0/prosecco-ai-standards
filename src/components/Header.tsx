@@ -82,17 +82,17 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a href={`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/llms-txt`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <a href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                     llms.txt
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/llms-txt?full=true`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <a href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt?full=true`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                     llms-full.txt
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/llms-txt?format=json`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <a href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt?format=json`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                     directory.json
                   </a>
                 </DropdownMenuItem>

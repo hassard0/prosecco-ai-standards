@@ -1,3 +1,0 @@
-/llms.txt https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/llms-txt 200
-/llms-full.txt https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/llms-txt?full=true 200
-/directory.json https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/llms-txt?format=json 200
