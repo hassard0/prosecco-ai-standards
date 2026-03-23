@@ -62,6 +62,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
       try { regex = new RegExp(localSearch.trim(), "i"); } catch { /* invalid regex, fall back */ }
     }
     return published.filter((s) => {
+      if (!showExpired && (s as any).is_expired) return false;
+
       const matchesSearch = regex
         ? regex.test(s.title) || (s.acronym ? regex.test(s.acronym) : false)
         : !query ||
@@ -79,7 +81,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
       return matchesSearch && matchesTags && matchesOrgs;
     });
-  }, [standards, searchQuery, localSearch, selectedTags, selectedOrgs]);
+  }, [standards, searchQuery, localSearch, selectedTags, selectedOrgs, showExpired]);
 
 
   const columnData = COLUMNS.map((col) => ({
