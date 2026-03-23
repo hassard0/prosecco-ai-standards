@@ -144,7 +144,7 @@ export default function Affiliations() {
 
       for (const a of authors) {
         const company = normalizeCompany(a.company);
-        if (company === "Unknown") continue;
+        if (company === "Unknown" && !showUnknown) continue;
 
         // If filtering by company, skip non-matching
         if (selectedCompanies.size > 0 && !selectedCompanies.has(company)) continue;
