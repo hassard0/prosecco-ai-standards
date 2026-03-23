@@ -41,6 +41,7 @@ const App = () => (
               <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
               <Route path="/llms.txt" element={<LlmsTxt />} />
               <Route path="/llms-full.txt" element={<LlmsTxt />} />
+              <Route path="/directory.json" element={<LlmsTxt />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -187,6 +187,48 @@ serve(async (req) => {
       }
     }
 
+    // JSON format
+    if (format === "json") {
+      const jsonOutput = {
+        name: "Prosecco.dev — AI Standards Directory",
+        description: "A curated directory of AI agent interoperability standards, protocols, and specifications.",
+        url: SITE,
+        generated_at: new Date().toISOString(),
+        total: standards?.length ?? 0,
+        standards: (standards || []).map((s: any) => {
+          const entry: any = {
+            id: s.id,
+            title: s.title,
+            acronym: s.acronym || null,
+            description: s.description,
+            organization: s.organization || null,
+            status: s.status,
+            tags: s.tags || [],
+            link: s.link || null,
+            prosecco_url: `${SITE}/standard/${s.id}`,
+            updated_at: s.updated_at,
+            authors: Array.isArray(s.authors) ? s.authors : [],
+            resources: Array.isArray(s.resources) ? s.resources : [],
+          };
+          const sumData = summariesByStandard[s.id];
+          if (sumData) {
+            entry.whats_new = sumData.whats_new || null;
+            entry.summary = sumData.summary;
+            entry.summary_generated_at = sumData.generated_at;
+          }
+          return entry;
+        }),
+      };
+
+      return new Response(JSON.stringify(jsonOutput, null, 2), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+
     const text = lines.join("\n");
 
     return new Response(text, {
