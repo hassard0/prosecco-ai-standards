@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStandards } from "@/hooks/useStandards";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Search, ChevronDown } from "lucide-react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
 import { Badge } from "@/components/ui/badge";
