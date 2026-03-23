@@ -225,19 +225,19 @@ Only return valid JSON, no markdown fences or extra text.`,
     const existingNames = new Set((extracted.authors || []).map((a: any) => a.name?.toLowerCase()));
     const ghContributors: any[] = [];
 
-    for (const repo of githubRepos.slice(0, 3)) {
+    for (const repo of githubRepos.slice(0, 2)) {
       try {
         const contribResp = await fetch(
-          `https://api.github.com/repos/${repo}/contributors?per_page=30`,
+          `https://api.github.com/repos/${repo}/contributors?per_page=10`,
           { headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" } }
         );
-        if (!contribResp.ok) continue;
+        if (!contribResp.ok) { await contribResp.text(); continue; }
         const contributors = await contribResp.json();
         if (!Array.isArray(contributors)) continue;
 
-        for (const c of contributors) {
+        // Only fetch details for top 5 contributors to avoid timeouts
+        for (const c of contributors.slice(0, 5)) {
           if (!c.login || c.type === "Bot") continue;
-          // Try to get the user's real name and company
           try {
             const userResp = await fetch(`https://api.github.com/users/${c.login}`, {
               headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" },
@@ -253,6 +253,8 @@ Only return valid JSON, no markdown fences or extra text.`,
                 role: "GitHub Contributor",
                 url: user.html_url || `https://github.com/${c.login}`,
               });
+            } else {
+              await userResp.text();
             }
           } catch {
             // Skip individual user fetch failures
