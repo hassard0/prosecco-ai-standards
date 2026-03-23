@@ -116,7 +116,7 @@ export default function StandardDetail() {
           </div>
         ) : (
           <article className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
               <div className="flex items-start gap-3 flex-wrap min-w-0">
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
                   {standard.title}

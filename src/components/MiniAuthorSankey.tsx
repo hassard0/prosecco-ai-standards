@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
 import { normalizeCompany } from "@/lib/normalizeCompany";
 
@@ -86,21 +86,37 @@ export function MiniAuthorSankey({ standardTitle, authors }: Props) {
     return { nodes, links };
   }, [authors, standardTitle]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(640);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setChartWidth(Math.max(280, Math.floor(w)));
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   if (!sankeyData) return null;
 
   const chartHeight = Math.max(160, sankeyData.nodes.length * 40);
+  const margin = chartWidth < 400
+    ? { top: 10, right: 80, bottom: 10, left: 80 }
+    : { top: 10, right: 160, bottom: 10, left: 160 };
 
   return (
-    <div className="flex justify-center overflow-x-auto">
+    <div ref={containerRef} className="w-full overflow-hidden">
       <Sankey
-        width={640}
+        width={chartWidth}
         height={chartHeight}
         data={sankeyData}
         node={<MiniSankeyNode />}
         nodePadding={14}
         nodeWidth={8}
         linkCurvature={0.5}
-        margin={{ top: 10, right: 160, bottom: 10, left: 160 }}
+        margin={margin}
         link={{ stroke: "hsl(var(--muted-foreground) / 0.10)", strokeOpacity: 0.5 }}
       >
         <Tooltip
