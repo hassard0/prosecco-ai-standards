@@ -1,10 +1,21 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import {
-  Calendar, Rocket, FileText, Users, Flag, Clock, Star, Circle, Search, X, CalendarIcon,
+  Calendar,
+  Rocket,
+  FileText,
+  Users,
+  Flag,
+  Clock,
+  Star,
+  Circle,
+  Search,
+  X,
+  CalendarIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import type { Standard } from "@/hooks/useStandards";
 
 interface TimelineEvent {
@@ -28,35 +38,51 @@ interface EnrichedEvent extends TimelineEvent {
   standardAcronym: string | null;
 }
 
-const TYPE_CONFIG: Record<string, { icon: typeof Calendar; color: string; bg: string }> = {
-  release: { icon: Rocket, color: "hsl(152 60% 32%)", bg: "hsl(152 60% 42% / 0.15)" },
-  draft: { icon: FileText, color: "hsl(220 60% 45%)", bg: "hsl(220 60% 55% / 0.15)" },
-  decision: { icon: Flag, color: "hsl(38 80% 40%)", bg: "hsl(38 80% 55% / 0.15)" },
-  meeting: { icon: Users, color: "hsl(270 40% 40%)", bg: "hsl(270 40% 55% / 0.15)" },
-  deadline: { icon: Clock, color: "hsl(0 60% 45%)", bg: "hsl(0 60% 50% / 0.15)" },
-  milestone: { icon: Star, color: "hsl(200 60% 40%)", bg: "hsl(200 60% 50% / 0.15)" },
-  other: { icon: Circle, color: "hsl(0 0% 45%)", bg: "hsl(0 0% 50% / 0.15)" },
+interface TimelineRow {
+  id: string;
+  label: string;
+  title: string;
+  events: EnrichedEvent[];
+}
+
+const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; bgClass: string }> = {
+  release: { icon: Rocket, colorClass: "text-emerald-700", bgClass: "bg-emerald-100" },
+  draft: { icon: FileText, colorClass: "text-blue-700", bgClass: "bg-blue-100" },
+  decision: { icon: Flag, colorClass: "text-amber-700", bgClass: "bg-amber-100" },
+  meeting: { icon: Users, colorClass: "text-fuchsia-700", bgClass: "bg-fuchsia-100" },
+  deadline: { icon: Clock, colorClass: "text-rose-700", bgClass: "bg-rose-100" },
+  milestone: { icon: Star, colorClass: "text-sky-700", bgClass: "bg-sky-100" },
+  other: { icon: Circle, colorClass: "text-zinc-600", bgClass: "bg-zinc-100" },
 };
 
+const LABEL_WIDTH = 192;
+
 function parseDate(dateStr: string): Date {
-  if (/^\d{4}$/.test(dateStr)) return new Date(`${dateStr}-01-01`);
-  if (/^\d{4}-\d{2}$/.test(dateStr)) return new Date(`${dateStr}-01`);
+  if (/^\d{4}$/.test(dateStr)) return new Date(`${dateStr}-01-01T00:00:00`);
+  if (/^\d{4}-\d{2}$/.test(dateStr)) return new Date(`${dateStr}-01T00:00:00`);
   return new Date(dateStr);
 }
 
 function formatDateLabel(dateStr: string) {
   try {
     if (/^\d{4}$/.test(dateStr)) return dateStr;
-    if (/^\d{4}-\d{2}$/.test(dateStr))
-      return new Date(dateStr + "-01").toLocaleDateString("en-US", { year: "numeric", month: "short" });
-    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    if (/^\d{4}-\d{2}$/.test(dateStr)) {
+      return new Date(`${dateStr}-01T00:00:00`).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+      });
+    }
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch {
     return dateStr;
   }
 }
 
-// ── Searchable multi-select dropdown ──
-function StandardFilter({
+function SearchableStandardFilter({
   options,
   selected,
   onChange,
@@ -67,80 +93,105 @@ function StandardFilter({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filtered = options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()));
+  const filteredOptions = options.filter((option) =>
+    option.label.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const toggle = (id: string) => {
-    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
+  const toggleSelection = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter((value) => value !== id));
+      return;
+    }
+    onChange([...selected, id]);
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={containerRef} className="relative">
       <button
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
-        <Search className="h-3 w-3" />
+        <Search className="h-3.5 w-3.5" />
         {selected.length === 0 ? "All standards" : `${selected.length} selected`}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-72 rounded-md border bg-popover shadow-lg">
-          <div className="p-2 border-b">
+        <div className="absolute left-0 top-full z-30 mt-1 w-72 rounded-md border bg-popover shadow-md">
+          <div className="border-b p-2">
             <Input
-              placeholder="Search standards…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search standards…"
               className="h-8 text-xs"
               autoFocus
             />
           </div>
-          <div className="max-h-52 overflow-y-auto p-1">
-            {filtered.length === 0 && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">No matches</p>
-            )}
-            {filtered.map((o) => {
-              const active = selected.includes(o.id);
-              return (
-                <button
-                  key={o.id}
-                  onClick={() => toggle(o.id)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
-                    active ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  <div
+
+          <div className="max-h-64 overflow-y-auto p-1">
+            {filteredOptions.length === 0 ? (
+              <p className="px-2 py-3 text-xs text-muted-foreground">No matching standards</p>
+            ) : (
+              filteredOptions.map((option) => {
+                const active = selected.includes(option.id);
+
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleSelection(option.id)}
                     className={cn(
-                      "h-3.5 w-3.5 shrink-0 rounded border transition-colors",
-                      active ? "border-primary bg-primary" : "border-border"
+                      "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
+                      active
+                        ? "bg-primary/10 text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
-                    {active && (
-                      <svg viewBox="0 0 14 14" className="h-full w-full text-primary-foreground">
-                        <path d="M3.5 7L6 9.5L10.5 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="truncate">{o.label}</span>
-                </button>
-              );
-            })}
+                    <div
+                      className={cn(
+                        "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border",
+                        active ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                      )}
+                    >
+                      {active && (
+                        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
+                          <path
+                            d="M2.5 6.2 4.8 8.5 9.5 3.8"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="truncate">{option.label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
+
           {selected.length > 0 && (
             <div className="border-t p-2">
               <button
+                type="button"
                 onClick={() => onChange([])}
-                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               >
                 Clear all
               </button>
@@ -152,12 +203,11 @@ function StandardFilter({
   );
 }
 
-// ── Main component ──
 export function AggregateTimeline({ standards }: { standards: Standard[] | undefined }) {
   const navigate = useNavigate();
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const { data: summaries, isLoading } = useQuery({
     queryKey: ["all-timeline-events"],
@@ -166,263 +216,335 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         .from("standard_summaries")
         .select("standard_id, timeline_events")
         .not("timeline_events", "eq", "[]");
+
       if (error) throw error;
       return data;
     },
   });
 
-  // Build all enriched events
-  const allEnriched: EnrichedEvent[] = useMemo(() => {
-    if (!summaries || !standards) return [];
-    const stdMap = new Map(standards.map((s) => [s.id, s]));
-    const all: EnrichedEvent[] = [];
+  const allEvents = useMemo(() => {
+    if (!summaries || !standards) return [] as EnrichedEvent[];
+
+    const standardMap = new Map(standards.map((standard) => [standard.id, standard]));
+    const events: EnrichedEvent[] = [];
+
     for (const summary of summaries) {
-      const std = stdMap.get(summary.standard_id);
-      if (!std) continue;
-      const events = summary.timeline_events as unknown as TimelineEvent[] | null;
-      if (!events || !Array.isArray(events)) continue;
-      for (const ev of events) {
-        if (!ev.date || !ev.title) continue;
-        all.push({ ...ev, standardId: std.id, standardTitle: std.title, standardAcronym: std.acronym });
+      const standard = standardMap.get(summary.standard_id);
+      if (!standard) continue;
+
+      const timelineEvents = summary.timeline_events as unknown as TimelineEvent[] | null;
+      if (!timelineEvents || !Array.isArray(timelineEvents)) continue;
+
+      for (const event of timelineEvents) {
+        if (!event.date || !event.title) continue;
+        events.push({
+          ...event,
+          standardId: standard.id,
+          standardTitle: standard.title,
+          standardAcronym: standard.acronym,
+        });
       }
     }
-    return all;
-  }, [summaries, standards]);
 
-  // Available standards for filter
-  const availableStandards = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const e of allEnriched) {
-      if (!seen.has(e.standardId))
-        seen.set(e.standardId, e.standardAcronym || e.standardTitle);
+    return events.sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
+  }, [standards, summaries]);
+
+  const standardOptions = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const event of allEvents) {
+      if (!map.has(event.standardId)) {
+        map.set(event.standardId, event.standardAcronym || event.standardTitle);
+      }
     }
-    return Array.from(seen.entries())
+
+    return Array.from(map.entries())
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [allEnriched]);
+  }, [allEvents]);
 
-  // Filtered events
-  const filtered = useMemo(() => {
-    let events = allEnriched;
+  const filteredEvents = useMemo(() => {
+    let next = allEvents;
+
     if (selectedStandards.length > 0) {
-      const set = new Set(selectedStandards);
-      events = events.filter((e) => set.has(e.standardId));
+      const allowed = new Set(selectedStandards);
+      next = next.filter((event) => allowed.has(event.standardId));
     }
-    if (dateFrom) events = events.filter((e) => parseDate(e.date) >= dateFrom);
+
+    if (dateFrom) {
+      next = next.filter((event) => parseDate(event.date).getTime() >= dateFrom.getTime());
+    }
+
     if (dateTo) {
-      const to = new Date(dateTo);
-      to.setHours(23, 59, 59, 999);
-      events = events.filter((e) => parseDate(e.date) <= to);
+      const inclusiveEnd = new Date(dateTo);
+      inclusiveEnd.setHours(23, 59, 59, 999);
+      next = next.filter((event) => parseDate(event.date).getTime() <= inclusiveEnd.getTime());
     }
-    return events;
-  }, [allEnriched, selectedStandards, dateFrom, dateTo]);
 
-  // Group by standard
+    return next;
+  }, [allEvents, dateFrom, dateTo, selectedStandards]);
+
   const rows = useMemo(() => {
-    const map = new Map<string, EnrichedEvent[]>();
-    const meta = new Map<string, { label: string; title: string }>();
-    for (const e of filtered) {
-      if (!map.has(e.standardId)) {
-        map.set(e.standardId, []);
-        meta.set(e.standardId, { label: e.standardAcronym || e.standardTitle.slice(0, 24), title: e.standardTitle });
+    const map = new Map<string, TimelineRow>();
+
+    for (const event of filteredEvents) {
+      if (!map.has(event.standardId)) {
+        map.set(event.standardId, {
+          id: event.standardId,
+          label: event.standardAcronym || event.standardTitle,
+          title: event.standardTitle,
+          events: [],
+        });
       }
-      map.get(e.standardId)!.push(e);
+
+      map.get(event.standardId)?.events.push(event);
     }
-    return Array.from(map.entries())
-      .map(([id, evts]) => ({
-        id,
-        ...meta.get(id)!,
-        events: evts.sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime()),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [filtered]);
 
-  // Shared time axis
-  const { minTime, maxTime, range, yearTicks } = useMemo(() => {
-    if (filtered.length === 0) return { minTime: 0, maxTime: 1, range: 1, yearTicks: [] };
-    const times = filtered.map((e) => parseDate(e.date).getTime());
-    const pad = 90 * 24 * 60 * 60 * 1000;
-    const min = Math.min(...times) - pad;
-    const max = Math.max(...times) + pad;
-    const r = max - min || 1;
+    return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [filteredEvents]);
 
-    const minY = new Date(min).getFullYear();
-    const maxY = new Date(max).getFullYear() + 1;
-    const ticks: { year: number; pct: number }[] = [];
-    for (let y = minY; y <= maxY; y++) {
-      const pct = ((new Date(`${y}-01-01`).getTime() - min) / r) * 100;
-      if (pct >= -2 && pct <= 102) ticks.push({ year: y, pct: Math.max(0, Math.min(100, pct)) });
+  const timelineMetrics = useMemo(() => {
+    if (filteredEvents.length === 0) {
+      return {
+        minTime: 0,
+        maxTime: 1,
+        trackWidth: 1200,
+        ticks: [] as { year: number; x: number }[],
+      };
     }
-    return { minTime: min, maxTime: max, range: r, yearTicks: ticks };
-  }, [filtered]);
 
-  const LABEL_W = 160;
-  const TRACK_MIN_W = 900;
+    const sourceTimes = filteredEvents.map((event) => parseDate(event.date).getTime());
+    const padding = 90 * 24 * 60 * 60 * 1000;
+    const minTime = Math.min(...sourceTimes) - padding;
+    const maxTime = Math.max(...sourceTimes) + padding;
+    const span = Math.max(1, maxTime - minTime);
+
+    const minYear = new Date(minTime).getFullYear();
+    const maxYear = new Date(maxTime).getFullYear();
+    const trackWidth = Math.max(1400, (maxYear - minYear + 1) * 320);
+
+    const positionFor = (time: number) => ((time - minTime) / span) * trackWidth;
+
+    const ticks: { year: number; x: number }[] = [];
+    for (let year = minYear; year <= maxYear + 1; year += 1) {
+      const tickTime = new Date(`${year}-01-01T00:00:00`).getTime();
+      const x = positionFor(tickTime);
+      if (x >= 0 && x <= trackWidth) {
+        ticks.push({ year, x });
+      }
+    }
+
+    return { minTime, maxTime, trackWidth, ticks };
+  }, [filteredEvents]);
+
+  const positionForEvent = (date: string) => {
+    const time = parseDate(date).getTime();
+    const span = Math.max(1, timelineMetrics.maxTime - timelineMetrics.minTime);
+    return ((time - timelineMetrics.minTime) / span) * timelineMetrics.trackWidth;
+  };
 
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <Skeleton className="h-5 w-40" />
-        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        <Skeleton className="h-5 w-48" />
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={index} className="h-12 w-full" />
+        ))}
       </div>
     );
   }
 
-  if (allEnriched.length === 0) {
+  if (allEvents.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground py-8 text-center">
+      <div className="py-8 text-center text-sm text-muted-foreground">
         No timeline data available yet. Generate summaries for standards to populate this view.
       </div>
     );
   }
 
-  const hasFilters = selectedStandards.length > 0 || dateFrom || dateTo;
+  const hasActiveFilters = selectedStandards.length > 0 || !!dateFrom || !!dateTo;
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-sm font-semibold text-foreground">Combined Timeline</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
-          {filtered.length} event{filtered.length !== 1 ? "s" : ""} across {rows.length} standard{rows.length !== 1 ? "s" : ""}
+        <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
+          {filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} across {rows.length} standard{rows.length === 1 ? "" : "s"}
         </span>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <StandardFilter options={availableStandards} selected={selectedStandards} onChange={setSelectedStandards} />
+        <SearchableStandardFilter
+          options={standardOptions}
+          selected={selectedStandards}
+          onChange={setSelectedStandards}
+        />
 
-        {/* Date from */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-xs", !dateFrom && "text-muted-foreground")}>
-              <CalendarIcon className="h-3 w-3" />
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-8 gap-1.5 text-xs", !dateFrom && "text-muted-foreground")}
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
               {dateFrom ? format(dateFrom, "MMM d, yyyy") : "From"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <CalendarPicker mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+            <CalendarPicker
+              mode="single"
+              selected={dateFrom}
+              onSelect={setDateFrom}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
           </PopoverContent>
         </Popover>
 
-        {/* Date to */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-xs", !dateTo && "text-muted-foreground")}>
-              <CalendarIcon className="h-3 w-3" />
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-8 gap-1.5 text-xs", !dateTo && "text-muted-foreground")}
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
               {dateTo ? format(dateTo, "MMM d, yyyy") : "To"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <CalendarPicker mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+            <CalendarPicker
+              mode="single"
+              selected={dateTo}
+              onSelect={setDateTo}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
           </PopoverContent>
         </Popover>
 
-        {/* Selected badges + clear */}
-        {selectedStandards.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 ml-1">
-            {selectedStandards.map((id) => {
-              const opt = availableStandards.find((o) => o.id === id);
-              return (
-                <Badge key={id} variant="secondary" className="gap-1 text-[10px] py-0.5 pl-2 pr-1">
-                  {opt?.label || id.slice(0, 8)}
-                  <button onClick={() => setSelectedStandards(selectedStandards.filter((s) => s !== id))} className="hover:text-foreground">
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </Badge>
-              );
-            })}
-          </div>
-        )}
+        {selectedStandards.map((id) => {
+          const selected = standardOptions.find((option) => option.id === id);
+          if (!selected) return null;
 
-        {hasFilters && (
+          return (
+            <Badge key={id} variant="secondary" className="gap-1 px-2 py-1 text-[10px]">
+              <span className="max-w-[120px] truncate">{selected.label}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedStandards(selectedStandards.filter((value) => value !== id))}
+                className="transition-colors hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          );
+        })}
+
+        {hasActiveFilters && (
           <button
-            onClick={() => { setSelectedStandards([]); setDateFrom(undefined); setDateTo(undefined); }}
-            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors ml-1"
+            type="button"
+            onClick={() => {
+              setSelectedStandards([]);
+              setDateFrom(undefined);
+              setDateTo(undefined);
+            }}
+            className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
           >
             Clear all
           </button>
         )}
       </div>
 
-      {/* Chart */}
-      {filtered.length === 0 ? (
-        <div className="text-sm text-muted-foreground py-8 text-center">No events match the current filters.</div>
+      {filteredEvents.length === 0 ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          No events match the current filters.
+        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: LABEL_W + TRACK_MIN_W }}>
-            {/* Year axis header */}
-            <div className="flex" style={{ paddingLeft: LABEL_W }}>
-              <div className="flex-1 relative h-6 border-b border-border">
-                {yearTicks.map((t) => (
-                  <span
-                    key={t.year}
-                    className="absolute bottom-1 text-[10px] font-semibold text-muted-foreground tabular-nums -translate-x-1/2"
-                    style={{ left: `${t.pct}%` }}
+        <div className="overflow-x-auto rounded-lg border bg-background/50">
+          <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
+            <div className="flex border-b bg-muted/20">
+              <div
+                className="shrink-0 border-r px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+                style={{ width: LABEL_WIDTH }}
+              >
+                Standard
+              </div>
+
+              <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
+                {timelineMetrics.ticks.map((tick) => (
+                  <div
+                    key={tick.year}
+                    className="absolute inset-y-0"
+                    style={{ left: tick.x }}
                   >
-                    {t.year}
-                  </span>
+                    <div className="absolute inset-y-0 w-px bg-border/60" />
+                    <span className="absolute left-2 top-3 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                      {tick.year}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Rows */}
             {rows.map((row) => (
-              <div
-                key={row.id}
-                className="flex items-stretch border-b border-border/40 group/row hover:bg-muted/20 transition-colors"
-              >
-                {/* Label */}
+              <div key={row.id} className="flex border-b last:border-b-0 hover:bg-muted/10">
                 <button
+                  type="button"
                   onClick={() => navigate(`/standard/${row.id}`)}
-                  className="shrink-0 text-right pr-4 py-3 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors truncate active:scale-[0.98]"
-                  style={{ width: LABEL_W }}
                   title={row.title}
+                  className="shrink-0 truncate border-r px-4 py-4 text-left text-sm font-medium text-foreground transition-colors hover:text-primary active:scale-[0.98]"
+                  style={{ width: LABEL_WIDTH }}
                 >
-                  {row.label}
+                  {row.title}
                 </button>
 
-                {/* Track */}
-                <div className="flex-1 relative py-2" style={{ minHeight: 44 }}>
-                  {/* Year gridlines */}
-                  {yearTicks.map((t) => (
+                <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
+                  {timelineMetrics.ticks.map((tick) => (
                     <div
-                      key={t.year}
-                      className="absolute top-0 bottom-0 w-px bg-border/30"
-                      style={{ left: `${t.pct}%` }}
+                      key={tick.year}
+                      className="absolute inset-y-0 w-px bg-border/30"
+                      style={{ left: tick.x }}
                     />
                   ))}
 
-                  {/* Center baseline */}
-                  <div className="absolute top-1/2 left-0 right-0 h-px bg-border/50 -translate-y-1/2" />
+                  <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border" />
 
-                  {/* Event dots */}
-                  {row.events.map((event, i) => {
-                    const pct = ((parseDate(event.date).getTime() - minTime) / range) * 100;
+                  {row.events.map((event, index) => {
                     const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
                     const Icon = config.icon;
+                    const x = positionForEvent(event.date);
 
                     return (
                       <div
-                        key={i}
-                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 group/dot"
-                        style={{ left: `${Math.max(1, Math.min(99, pct))}%` }}
+                        key={`${row.id}-${index}`}
+                        className="group absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: x }}
                       >
                         <div
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-border/50 cursor-default hover:scale-[1.3] transition-transform"
-                          style={{ backgroundColor: config.bg }}
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full border border-background shadow-sm transition-transform group-hover:scale-110",
+                            config.bgClass,
+                            config.colorClass
+                          )}
                         >
-                          <Icon className="h-3.5 w-3.5" style={{ color: config.color }} />
+                          <Icon className="h-4 w-4" />
                         </div>
 
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-30 pointer-events-none">
-                          <div className="bg-popover border rounded-md shadow-lg px-3 py-2 w-56 text-left">
-                            <p className="text-xs font-semibold text-foreground leading-tight">{event.title}</p>
-                            <p className="text-[10px] text-muted-foreground tabular-nums mt-1">{formatDateLabel(event.date)}</p>
+                        <div className="pointer-events-none absolute left-1/2 top-full z-20 hidden w-60 -translate-x-1/2 pt-3 group-hover:block">
+                          <div className="rounded-md border bg-popover p-3 text-left shadow-lg">
+                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                              {formatDateLabel(event.date)}
+                            </p>
+                            <p className="mt-1 text-sm font-medium leading-tight text-foreground">
+                              {event.title}
+                            </p>
                             {event.description && (
-                              <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-3">{event.description}</p>
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                {event.description}
+                              </p>
                             )}
                           </div>
                         </div>
