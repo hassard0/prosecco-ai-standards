@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -309,19 +309,39 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
   }, [filteredEvents]);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const w = el.clientWidth;
-      if (w) setContainerWidth(w);
+  const measureContainer = useCallback(() => {
+    if (!containerElement) return;
+    const nextWidth = Math.round(containerElement.getBoundingClientRect().width);
+    if (nextWidth > 0) {
+      setContainerWidth(nextWidth);
+    }
+  }, [containerElement]);
+
+  useLayoutEffect(() => {
+    if (!containerElement) return;
+
+    measureContainer();
+
+    const resizeObserver = new ResizeObserver(() => {
+      measureContainer();
     });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+
+    resizeObserver.observe(containerElement);
+    window.addEventListener("resize", measureContainer);
+
+    const frame = requestAnimationFrame(() => {
+      measureContainer();
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measureContainer);
+      resizeObserver.disconnect();
+    };
+  }, [containerElement, measureContainer]);
 
   const timelineMetrics = useMemo(() => {
     if (filteredEvents.length === 0) {
@@ -329,6 +349,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         minTime: 0,
         maxTime: 1,
         trackWidth: containerWidth - LABEL_WIDTH,
+        usableTrackWidth: Math.max(0, containerWidth - LABEL_WIDTH - TRACK_EDGE_PADDING * 2),
         monthTicks: [] as { label: string; x: number; isYear: boolean }[],
       };
     }
@@ -367,13 +388,13 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       tickMonth = new Date(tickMonth.getFullYear(), tickMonth.getMonth() + 1, 1);
     }
 
-    return { minTime, maxTime, trackWidth, monthTicks };
+    return { minTime, maxTime, trackWidth, usableTrackWidth, monthTicks };
   }, [filteredEvents, containerWidth]);
 
   const positionForEvent = (date: string) => {
     const time = parseDate(date).getTime();
     const span = Math.max(1, timelineMetrics.maxTime - timelineMetrics.minTime);
-    return ((time - timelineMetrics.minTime) / span) * timelineMetrics.trackWidth;
+    return TRACK_EDGE_PADDING + ((time - timelineMetrics.minTime) / span) * timelineMetrics.usableTrackWidth;
   };
 
   if (isLoading) {
@@ -507,7 +528,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       ) : (
         <>
           {/* ── Desktop: table layout ── */}
-           <div ref={containerRef} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
+           <div ref={setContainerElement} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
              <div className="min-w-full" style={{ width: Math.max(containerWidth, LABEL_WIDTH + timelineMetrics.trackWidth) }}>
               <div className="flex border-b bg-muted/20">
                 <div
