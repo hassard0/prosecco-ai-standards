@@ -225,6 +225,8 @@ export default function Admin() {
       }
       if (selectedTags.length > 0 && !selectedTags.some((tag) => s.tags?.includes(tag))) return false;
       if (selectedOrgs.length > 0 && (!s.organization || !selectedOrgs.includes(s.organization))) return false;
+      if (filterNoResources && s.resources && Array.isArray(s.resources) && (s.resources as any[]).length > 0) return false;
+      if (filterNoSummaries && summaryStandardIds?.has(s.id)) return false;
       return true;
     });
   };
