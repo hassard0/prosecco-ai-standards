@@ -83,7 +83,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <a
-                    href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt`}
+                    href={`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/llms-txt`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="cursor-pointer"
@@ -93,7 +93,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a
-                    href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt?full=true`}
+                    href={`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/llms-txt?full=true`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="cursor-pointer"
