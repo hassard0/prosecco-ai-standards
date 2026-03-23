@@ -133,7 +133,7 @@ Only return valid JSON, no markdown fences or extra text.`,
                       items: {
                         type: "object",
                         properties: {
-                          type: { type: "string", enum: ["mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "discord", "slack", "other"] },
+                          type: { type: "string", enum: ["primary_spec", "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "discord", "slack", "other"] },
                           label: { type: "string" },
                           url: { type: "string" },
                         },
