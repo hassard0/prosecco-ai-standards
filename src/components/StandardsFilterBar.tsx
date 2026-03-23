@@ -117,8 +117,10 @@ export function StandardsFilterBar({
   onFilterNoResourcesChange,
   filterNoSummaries,
   onFilterNoSummariesChange,
+  showExpired,
+  onShowExpiredChange,
 }: StandardsFilterBarProps) {
-  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0 || !!filterNoResources || !!filterNoSummaries;
+  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0 || !!filterNoResources || !!filterNoSummaries || !!showExpired;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
