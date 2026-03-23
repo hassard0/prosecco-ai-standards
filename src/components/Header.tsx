@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Bot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,6 +6,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Settings, Radar, Network, Clock } from "lucide-react";
 import { NavLink } from "./NavLink";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   searchQuery: string;
