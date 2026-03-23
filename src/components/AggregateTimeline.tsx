@@ -14,6 +14,7 @@ import {
   X,
   CalendarIcon,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -559,21 +560,22 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                     return (
                       <div
                         key={`${row.id}-${index}`}
-                        className="group absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                        className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
                         style={{ left: x }}
                       >
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 items-center justify-center rounded-full border border-background shadow-sm transition-transform group-hover:scale-110",
-                            config.bgClass,
-                            config.colorClass
-                          )}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-
-                        <div className="pointer-events-none absolute left-1/2 top-full z-20 hidden w-60 -translate-x-1/2 pt-3 group-hover:block">
-                          <div className="rounded-md border bg-popover p-3 text-left shadow-lg">
+                        <Tooltip delayDuration={100}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={cn(
+                                "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
+                                config.bgClass,
+                                config.colorClass
+                              )}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="w-60 p-3" sideOffset={8}>
                             <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
                               {formatDateLabel(event.date)}
                             </p>
@@ -585,8 +587,8 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                                 {event.description}
                               </p>
                             )}
-                          </div>
-                        </div>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     );
                   })}
