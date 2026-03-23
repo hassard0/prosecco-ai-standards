@@ -86,7 +86,14 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
   const columnData = COLUMNS.map((col) => ({
     ...col,
-    standards: filtered.filter((s) => s.status === col.status),
+    standards: filtered
+      .filter((s) => s.status === col.status)
+      .sort((a, b) => {
+        const aExp = (a as any).is_expired ? 1 : 0;
+        const bExp = (b as any).is_expired ? 1 : 0;
+        if (aExp !== bExp) return aExp - bExp;
+        return a.title.localeCompare(b.title);
+      }),
   }));
 
   if (error) {
