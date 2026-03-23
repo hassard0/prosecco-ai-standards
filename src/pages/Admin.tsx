@@ -7,9 +7,10 @@ import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2 } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { StandardsFilterBar } from "@/components/StandardsFilterBar";
@@ -52,6 +53,7 @@ export default function Admin() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [bulkEnriching, setBulkEnriching] = useState(false);
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
 
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
@@ -70,6 +72,7 @@ export default function Admin() {
       return;
     }
     setBulkEnriching(true);
+    setBulkAction("enrich");
     let enriched = 0;
     let failed = 0;
     for (const s of needsResources) {
@@ -90,10 +93,56 @@ export default function Admin() {
       }
     }
     setBulkEnriching(false);
+    setBulkAction(null);
     qc.invalidateQueries({ queryKey: ["standards"] });
     toast({
       title: "Bulk enrich complete",
       description: `${enriched} enriched, ${failed} failed, ${needsResources.length - enriched - failed} had no new resources.`,
+    });
+  };
+
+  const handleBulkGenerateSummaries = async () => {
+    if (!standards) return;
+    // Find standards that have resources
+    const withResources = standards.filter(
+      (s) => s.resources && Array.isArray(s.resources) && (s.resources as any[]).length > 0
+    );
+    if (withResources.length === 0) {
+      toast({ title: "Nothing to summarize", description: "No standards have resources yet." });
+      return;
+    }
+    // Check which already have summaries
+    const { data: existingSummaries } = await supabase
+      .from("standard_summaries")
+      .select("standard_id");
+    const summarizedIds = new Set((existingSummaries || []).map((s) => s.standard_id));
+    const needsSummary = withResources.filter((s) => !summarizedIds.has(s.id));
+    if (needsSummary.length === 0) {
+      toast({ title: "All up to date", description: "All standards with resources already have summaries." });
+      return;
+    }
+    setBulkEnriching(true);
+    setBulkAction("summaries");
+    let generated = 0;
+    let failed = 0;
+    for (const s of needsSummary) {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("summarize-mailing-list", {
+          body: { standard_id: s.id },
+        });
+        if (fnError) { failed++; continue; }
+        const updated = (data?.results || []).filter((r: any) => r.status === "updated").length;
+        if (updated > 0) { generated++; } else { failed++; }
+      } catch {
+        failed++;
+      }
+    }
+    setBulkEnriching(false);
+    setBulkAction(null);
+    qc.invalidateQueries({ queryKey: ["standards"] });
+    toast({
+      title: "Bulk summaries complete",
+      description: `${generated} generated, ${failed} failed out of ${needsSummary.length}.`,
     });
   };
 
@@ -182,16 +231,25 @@ export default function Admin() {
             <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)} className="gap-1.5">
               <Search className="h-3.5 w-3.5" /> Discover
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkEnrichResources}
-              disabled={bulkEnriching}
-              className="gap-1.5"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
-              {bulkEnriching ? "Enriching…" : "Enrich Resources"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={bulkEnriching} className="gap-1.5">
+                  <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
+                  {bulkEnriching
+                    ? bulkAction === "summaries" ? "Generating…" : "Enriching…"
+                    : "Bulk Actions"}
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleBulkEnrichResources} disabled={bulkEnriching} className="gap-2">
+                  <Link2 className="h-3.5 w-3.5" /> Enrich Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBulkGenerateSummaries} disabled={bulkEnriching} className="gap-2">
+                  <FileText className="h-3.5 w-3.5" /> Generate Summaries
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> New Standard
             </Button>
