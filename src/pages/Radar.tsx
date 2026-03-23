@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { AggregateTimeline } from "@/components/AggregateTimeline";
 
 // Quadrants designed around the actual standards in the directory
 const QUADRANT_DEFS = [
