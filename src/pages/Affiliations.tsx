@@ -96,7 +96,7 @@ export default function Affiliations() {
       stdNames.add(s.title);
       for (const a of authors) {
         const c = normalizeCompany(a.company);
-        if (c !== "Unknown") companies.add(c);
+        companies.add(c);
       }
     }
     return {
