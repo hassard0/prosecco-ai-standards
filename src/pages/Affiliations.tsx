@@ -177,7 +177,10 @@ export default function Affiliations() {
 
     const nodes = [
       ...companies.map((c) => ({ name: c })),
-      ...standardNames.map((s) => ({ name: s })),
+      ...standardNames.map((s) => {
+        const std = standards!.find((st) => st.title === s);
+        return { name: s, standardId: std?.id };
+      }),
     ];
 
     const links: { source: number; target: number; value: number }[] = [];
