@@ -154,6 +154,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={col.color}
                 standards={col.standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
+                viewMode={viewMode}
               />
             ))}
           </div>
