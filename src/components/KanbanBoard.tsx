@@ -72,7 +72,31 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
   return (
     <div className="space-y-6">
-      <TagFilter tags={allTags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+      <div className="flex items-center justify-between gap-4">
+        <TagFilter tags={allTags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+        <div className="flex items-center gap-1 p-1 rounded-md bg-muted shrink-0">
+          <button
+            onClick={() => setViewMode("compact")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "compact" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Compact view"
+          >
+            <Rows3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("detailed")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "detailed" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Detailed view"
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
