@@ -86,7 +86,7 @@ export default function Affiliations() {
   }, []);
 
   // Extract all companies and standards that have author data
-  const { allCompanies, allStandardNames } = useMemo(() => {
+  const { allCompanies, allStandardNames, hasUnknown } = useMemo(() => {
     if (!standards) return { allCompanies: [], allStandardNames: [] };
     const companies = new Set<string>();
     const stdNames = new Set<string>();
