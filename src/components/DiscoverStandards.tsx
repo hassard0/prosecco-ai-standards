@@ -147,7 +147,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
             {step === "results" && `Found ${results.length} Standard${results.length !== 1 ? "s" : ""}`}
           </DialogTitle>
           <DialogDescription>
-            {step === "pick-orgs" && "Select organizations to scan for AI/Agent/LLM standards."}
+            {step === "pick-orgs" && "Select organizations to scan for technology standards."}
             {step === "scanning" && "AI is searching for relevant standards…"}
             {step === "results" && "Select which standards to import to your Backlog."}
           </DialogDescription>
