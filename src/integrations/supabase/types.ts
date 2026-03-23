@@ -63,6 +63,8 @@ export type Database = {
           source_url: string
           standard_id: string
           summary: string
+          timeline_events: Json | null
+          whats_new: string | null
         }
         Insert: {
           created_at?: string
@@ -71,6 +73,8 @@ export type Database = {
           source_url: string
           standard_id: string
           summary: string
+          timeline_events?: Json | null
+          whats_new?: string | null
         }
         Update: {
           created_at?: string
@@ -79,6 +83,8 @@ export type Database = {
           source_url?: string
           standard_id?: string
           summary?: string
+          timeline_events?: Json | null
+          whats_new?: string | null
         }
         Relationships: [
           {
