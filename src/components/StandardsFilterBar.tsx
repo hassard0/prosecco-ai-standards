@@ -15,6 +15,8 @@ interface StandardsFilterBarProps {
   allOrganizations: string[];
   selectedOrganizations: string[];
   onOrganizationsChange: (orgs: string[]) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }
 
 function MultiSelectFilter({
