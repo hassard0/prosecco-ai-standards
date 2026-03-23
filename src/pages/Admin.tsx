@@ -7,6 +7,7 @@ import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw } from "lucide-react";
