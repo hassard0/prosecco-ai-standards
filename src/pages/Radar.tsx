@@ -178,8 +178,9 @@ export default function Radar() {
         {isLoading ? (
           <Skeleton className="w-full aspect-square max-w-3xl mx-auto rounded-full" />
         ) : (
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Radar SVG */}
+          <div className="flex flex-col xl:flex-row gap-8">
+            {/* Radar SVG + Legend */}
+            <div className="flex-1 min-w-0 flex flex-col lg:flex-row gap-8">
             <div className="flex-1 min-w-0">
               <svg viewBox="0 0 1000 1000" className="w-full h-auto max-w-3xl mx-auto">
                 {/* Quadrant background fills */}
