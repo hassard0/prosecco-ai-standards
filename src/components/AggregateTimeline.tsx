@@ -120,8 +120,8 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
   const years = Object.keys(yearGroups).sort((a, b) => Number(b) - Number(a));
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-sm font-semibold text-foreground">Combined Timeline</h2>
         <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
@@ -129,61 +129,76 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         </span>
       </div>
 
-      <div className="relative ml-3 max-h-[600px] overflow-y-auto pr-1 scrollbar-thin">
-        {/* Vertical line */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
+      {/* Horizontal scrollable timeline */}
+      <div className="relative overflow-x-auto pb-4">
+        {/* Horizontal line */}
+        <div className="absolute top-[30px] left-0 right-0 h-px bg-border" />
 
-        {years.map((year) => (
-          <div key={year} className="mb-4">
-            {/* Year marker */}
-            <div className="relative flex items-center gap-3 mb-2">
-              <div className="relative z-10 h-[15px] w-[15px] shrink-0 rounded-full bg-muted flex items-center justify-center">
-                <div className="h-2 w-2 rounded-full bg-foreground/40" />
+        <div className="flex gap-0 min-w-max">
+          {years.map((year, yi) => (
+            <div key={year} className="flex items-start">
+              {/* Year marker */}
+              <div className="flex flex-col items-center shrink-0 relative" style={{ width: 60 }}>
+                <span className="text-[10px] font-bold text-foreground mb-1.5 tracking-wide">{year}</span>
+                <div className="h-3 w-3 rounded-full bg-muted border-2 border-border z-10" />
               </div>
-              <span className="text-xs font-bold text-foreground tracking-wide">{year}</span>
-            </div>
 
-            <div className="space-y-1.5">
-              {yearGroups[year].map((event, i) => {
-                const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
-                const Icon = config.icon;
-                const label = event.standardAcronym || event.standardTitle.slice(0, 20);
+              {/* Events for this year */}
+              <div className="flex gap-3 pt-0">
+                {yearGroups[year].map((event, i) => {
+                  const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                  const Icon = config.icon;
+                  const label = event.standardAcronym || event.standardTitle.slice(0, 16);
 
-                return (
-                  <div key={`${event.standardId}-${i}`} className="relative flex gap-3 group">
+                  return (
                     <div
-                      className="relative z-10 mt-1 flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full"
-                      style={{ backgroundColor: config.bg }}
+                      key={`${event.standardId}-${i}`}
+                      className="flex flex-col items-center shrink-0 group"
+                      style={{ width: 140 }}
                     >
-                      <Icon className="h-2.5 w-2.5" style={{ color: config.color }} />
-                    </div>
+                      {/* Date */}
+                      <span className="text-[9px] text-muted-foreground tabular-nums mb-1">
+                        {formatDate(event.date)}
+                      </span>
 
-                    <div className="flex-1 min-w-0 pb-0.5">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <button
-                          onClick={() => navigate(`/standard/${event.standardId}`)}
-                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors truncate max-w-[100px] active:scale-[0.97]"
+                      {/* Node on the line */}
+                      <div
+                        className="flex h-5 w-5 items-center justify-center rounded-full z-10 shrink-0"
+                        style={{ backgroundColor: config.bg }}
+                      >
+                        <Icon className="h-3 w-3" style={{ color: config.color }} />
+                      </div>
+
+                      {/* Card below */}
+                      <button
+                        onClick={() => navigate(`/standard/${event.standardId}`)}
+                        className="mt-2 w-full rounded-md border bg-card p-2 text-left hover:bg-muted/50 transition-colors active:scale-[0.97] cursor-pointer"
+                      >
+                        <span
+                          className="text-[9px] font-semibold px-1 py-0.5 rounded bg-muted text-muted-foreground inline-block mb-1 truncate max-w-full"
                           title={event.standardTitle}
                         >
                           {label}
-                        </button>
-                        <span className="text-xs font-medium text-foreground truncate">{event.title}</span>
-                        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                          {formatDate(event.date)}
                         </span>
-                      </div>
-                      {event.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
-                          {event.description}
+                        <p className="text-[11px] font-medium text-foreground leading-tight line-clamp-2">
+                          {event.title}
                         </p>
-                      )}
+                        {event.description && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">
+                            {event.description}
+                          </p>
+                        )}
+                      </button>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Spacer between years */}
+              {yi < years.length - 1 && <div className="w-6 shrink-0" />}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
