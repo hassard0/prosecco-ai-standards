@@ -131,9 +131,36 @@ Be thorough and comprehensive — return at least 10-15 standards per organizati
     }
 
     const parsed = JSON.parse(toolCall.function.arguments);
+    const standards = parsed.standards || [];
+
+    // Verify links in parallel with a timeout
+    const verified = await Promise.all(
+      standards.map(async (s: any) => {
+        if (!s.link) return s;
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 5000);
+          const res = await fetch(s.link, {
+            method: "HEAD",
+            signal: ctrl.signal,
+            redirect: "follow",
+          });
+          clearTimeout(timer);
+          if (res.ok || res.status === 405 || res.status === 403) {
+            // 405/403 often means the URL exists but blocks HEAD; keep it
+            return s;
+          }
+          console.log(`Link check failed (${res.status}): ${s.link}`);
+          return { ...s, link: null };
+        } catch {
+          console.log(`Link unreachable: ${s.link}`);
+          return { ...s, link: null };
+        }
+      })
+    );
 
     return new Response(
-      JSON.stringify({ success: true, standards: parsed.standards }),
+      JSON.stringify({ success: true, standards: verified }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
