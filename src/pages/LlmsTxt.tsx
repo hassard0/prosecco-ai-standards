@@ -4,8 +4,8 @@ import { useLocation } from "react-router-dom";
 export default function LlmsTxt() {
   const [text, setText] = useState("Loading…");
   const location = useLocation();
-  const isJson = location.pathname.includes("directory-view");
-  const full = location.pathname.includes("llms-full-view");
+  const isJson = location.pathname.includes("directory.json");
+  const full = location.pathname.includes("llms-full");
 
   useEffect(() => {
     const params = isJson ? "?format=json" : full ? "?full=true" : "";
