@@ -168,7 +168,7 @@ export default function Affiliations() {
         const stdIdx = companies.length + standardNames.indexOf(stdName);
         const standard = standards.find((s) => s.title === stdName);
         const count = ((standard as any)?.authors as Author[] || []).filter(
-          (a) => a.company?.trim() === company
+          (a) => normalizeCompany(a.company) === company
         ).length;
         links.push({ source: companyIdx, target: stdIdx, value: count });
       }
