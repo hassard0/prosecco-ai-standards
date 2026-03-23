@@ -209,6 +209,10 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const [activeTooltip, setActiveTooltip] = useState<{
+    event: EnrichedEvent;
+    rect: DOMRect;
+  } | null>(null);
 
   const { data: summaries, isLoading } = useQuery({
     queryKey: ["all-timeline-events"],
