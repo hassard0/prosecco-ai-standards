@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAuthorSankey } from "@/components/MiniAuthorSankey";
 import { StandardTimeline } from "@/components/StandardTimeline";
 import { WhatsNew } from "@/components/WhatsNew";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,15 +116,28 @@ export default function StandardDetail() {
           </div>
         ) : (
           <article className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <div className="flex items-start gap-3 flex-wrap mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
-                {standard.title}
-              </h1>
-              {standard.acronym && (
-                <span className="mt-1 px-2.5 py-1 text-xs font-semibold tracking-wider uppercase rounded-full bg-primary/10 text-primary shrink-0">
-                  {standard.acronym}
-                </span>
-              )}
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-3 flex-wrap min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ lineHeight: "1.15" }}>
+                  {standard.title}
+                </h1>
+                {standard.acronym && (
+                  <span className="mt-1 px-2.5 py-1 text-xs font-semibold tracking-wider uppercase rounded-full bg-primary/10 text-primary shrink-0">
+                    {standard.acronym}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {standard.link && (
+                  <Button asChild size="sm" className="active:scale-[0.97] transition-all">
+                    <a href={standard.link} target="_blank" rel="noopener noreferrer">
+                      View Spec
+                      <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                )}
+                <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 mb-6 flex-wrap">
@@ -174,15 +188,7 @@ export default function StandardDetail() {
                 <p className="text-[11px] text-muted-foreground mb-4">
                   AI-generated summary · Updated {new Date(latestSummary.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
-                  {latestSummary.summary.split("\n").map((line, i) => {
-                    if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
-                    if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
-                    if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
-                    if (line.trim()) return <p key={i} className="text-sm">{line}</p>;
-                    return null;
-                  })}
-                </div>
+                <MarkdownContent content={latestSummary.summary} />
               </div>
             )}
 
@@ -202,17 +208,8 @@ export default function StandardDetail() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              {standard.link && (
-                <Button asChild size="lg" className="active:scale-[0.97] transition-all">
-                  <a href={standard.link} target="_blank" rel="noopener noreferrer">
-                    View Specification
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-              )}
-              <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
-            </div>
+
+
 
             {/* Authors & Affiliations */}
             {authors.length > 0 && (
