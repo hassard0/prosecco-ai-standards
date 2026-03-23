@@ -201,3 +201,5 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         </div>
       </div>
     </div>
+  );
+}
