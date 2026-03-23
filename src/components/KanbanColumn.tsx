@@ -10,7 +10,7 @@ interface KanbanColumnProps {
   viewMode: "compact" | "detailed";
 }
 
-export function KanbanColumn({ title, standards, accentColor, onSelectStandard }: KanbanColumnProps) {
+export function KanbanColumn({ title, standards, accentColor, onSelectStandard, viewMode }: KanbanColumnProps) {
   return (
     <div className="flex flex-col min-w-0">
       <div className="flex items-center gap-2 mb-4 px-1">
