@@ -50,6 +50,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/timeline">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Timeline</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground hover:text-foreground" asChild>
               <Link to="/affiliations">
                 <Network className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">Affiliations</span>
