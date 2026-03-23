@@ -42,21 +42,21 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert on technical standards and specifications across technology domains. Your job is to identify notable standards, protocols, specifications, frameworks, working groups, drafts, and governance documents from specific organizations.
+            content: `You are an expert on AI, ML, agent, and agentic technology standards. Your job is to identify standards, protocols, specifications, and frameworks from specific organizations that are specifically about AI, machine learning, agents, agentic systems, LLMs, or closely related topics (e.g. AI safety, AI ethics, AI governance, AI interoperability).
 
-Do NOT prioritize or bias toward AI, ML, agents, or LLMs unless the organization itself is specifically centered on those areas. Instead, return the organization's broader and most relevant standards landscape across its actual remit (for example: web, identity, security, networking, cloud, interoperability, data formats, privacy, accessibility, governance, and adjacent technical areas).
+Only include standards that are directly related to AI, ML, agents, or agentic systems. Do NOT include general-purpose standards (like generic HTTP specs, general security frameworks, web standards, identity protocols, etc.) unless they have a specific AI/ML/agent focus.
 
 For each standard found, provide accurate metadata. If you're unsure about a detail, leave it empty rather than guessing.`,
           },
           {
             role: "user",
-            content: `Find a broad, representative set of notable standards, protocols, and specifications from these organizations: ${orgList}
+            content: `Find ALL AI, ML, agent, and agentic-related standards, protocols, and specifications from these organizations: ${orgList}
 
-Do not scope results to AI, ML, agents, or LLMs. Include the standards each organization is actually known for across its full technology domain.
+Only return standards specifically about AI, machine learning, agents, agentic systems, or LLMs. Do not return general technology standards.
 
 For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the specification or project page, and relevant tags.
 
-Be thorough and comprehensive — return at least 15-20 standards per organization if they exist. Include published standards, drafts, working groups, frameworks, guidelines, and other significant specifications. Always include the spec URL when available.`,
+Be thorough — return as many AI/ML/agent standards as exist for each organization. Include working groups, drafts, published specs, frameworks, and guidelines. Always include the spec URL when available.`,
           },
         ],
         tools: [
