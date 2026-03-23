@@ -261,9 +261,9 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                               >
-                                View Spec ↗
+                                View Spec <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                             {s.tags && s.tags.length > 0 && (
