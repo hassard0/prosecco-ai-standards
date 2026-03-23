@@ -90,13 +90,14 @@ export default function Radar() {
   const filtered = useMemo(() => {
     if (!standards) return [];
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return standards;
-    return standards.filter(
-      (s) =>
+    return standards.filter((s) => {
+      if (!q) return true;
+      return (
         s.title.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
         (s.acronym && s.acronym.toLowerCase().includes(q))
-    );
+      );
+    });
   }, [standards, searchQuery]);
 
   const blips = useMemo(() => {
