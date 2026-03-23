@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SITE = "https://prosecco-ai-standards.lovable.app";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,35 +31,70 @@ serve(async (req) => {
 
     const lines: string[] = [];
 
-    // Header
+    // ── Header ──
     lines.push("# Prosecco.dev — AI Standards Directory");
     lines.push("");
-    lines.push("> A curated directory of AI agent interoperability standards, protocols, and specifications.");
+    lines.push("> A curated, open directory of AI agent interoperability standards, protocols, and specifications.");
+    lines.push("> Maintained by the community to help developers, researchers, and organizations navigate the evolving AI standards landscape.");
     lines.push("");
+
     lines.push("## About");
     lines.push("");
     lines.push("Prosecco.dev tracks emerging and approved standards for AI agent communication,");
-    lines.push("tool use, identity, and interoperability. Each standard is categorized by status");
-    lines.push("(Backlog, Emerging, Draft, Approved), tagged by topic, and linked to its primary");
-    lines.push("specification and community resources.");
+    lines.push("tool use, identity, and interoperability. Each standard is categorized by maturity");
+    lines.push("status (Backlog → Emerging → Draft → Approved), tagged by topic area, and linked");
+    lines.push("to its primary specification, community channels, and reference implementations.");
     lines.push("");
-    lines.push(`- Website: https://prosecco-ai-standards.lovable.app`);
-    lines.push(`- llms.txt: https://prosecco-ai-standards.lovable.app/llms.txt`);
-    lines.push(`- llms-full.txt: https://prosecco-ai-standards.lovable.app/llms-full.txt`);
+
+    lines.push("## Site Map");
+    lines.push("");
+    lines.push(`- Homepage: ${SITE}/`);
+    lines.push(`- Standards Radar (visual overview): ${SITE}/radar`);
+    lines.push(`- Timeline (activity over time): ${SITE}/timeline`);
+    lines.push(`- Affiliations (organizations & authors): ${SITE}/affiliations`);
+    lines.push(`- llms.txt: ${SITE}/llms.txt`);
+    lines.push(`- llms-full.txt: ${SITE}/llms-full.txt`);
     lines.push("");
 
     if (!standards || standards.length === 0) {
       lines.push("No standards found.");
     } else {
-      // Group by status
-      const statusOrder = ["Approved", "Draft", "Emerging", "Backlog"];
+      // Collect stats
+      const statusOrder = ["Approved", "Draft", "Emerging", "Backlog"] as const;
       const grouped: Record<string, typeof standards> = {};
+      const allTags = new Set<string>();
+      const allOrgs = new Set<string>();
+
       for (const s of standards) {
         const status = s.status || "Emerging";
         if (!grouped[status]) grouped[status] = [];
         grouped[status].push(s);
+        if (s.tags) for (const t of s.tags) allTags.add(t);
+        if (s.organization) allOrgs.add(s.organization);
       }
 
+      // Summary stats
+      lines.push("## Overview");
+      lines.push("");
+      lines.push(`- Total standards tracked: **${standards.length}**`);
+      for (const status of statusOrder) {
+        const count = grouped[status]?.length ?? 0;
+        if (count > 0) lines.push(`- ${status}: ${count}`);
+      }
+      lines.push(`- Organizations: ${allOrgs.size} (${[...allOrgs].sort().join(", ")})`);
+      lines.push(`- Topic tags: ${[...allTags].sort().join(", ")}`);
+      lines.push("");
+
+      // ── Standards index (always shown) ──
+      lines.push("## Standards Index");
+      lines.push("");
+      for (const s of standards) {
+        const nameStr = s.acronym ? `${s.title} (${s.acronym})` : s.title;
+        lines.push(`- [${nameStr}](${SITE}/standard/${s.id}) — ${s.status}${s.organization ? ` · ${s.organization}` : ""}`);
+      }
+      lines.push("");
+
+      // ── Per-status sections ──
       for (const status of statusOrder) {
         const items = grouped[status];
         if (!items || items.length === 0) continue;
@@ -68,37 +105,50 @@ serve(async (req) => {
         for (const s of items) {
           const nameStr = s.acronym ? `${s.title} (${s.acronym})` : s.title;
           lines.push(`### ${nameStr}`);
+          lines.push("");
+          lines.push(`- Prosecco page: ${SITE}/standard/${s.id}`);
           if (s.organization) lines.push(`- Organization: ${s.organization}`);
-          if (s.link) lines.push(`- Spec: ${s.link}`);
+          if (s.link) lines.push(`- Specification: ${s.link}`);
           if (s.tags && s.tags.length > 0) lines.push(`- Tags: ${s.tags.join(", ")}`);
+          lines.push(`- Status: ${s.status}`);
+          lines.push(`- Last updated: ${s.updated_at ? new Date(s.updated_at).toISOString().split("T")[0] : "unknown"}`);
+          lines.push("");
+
+          // Description (always shown — it's short)
+          lines.push(s.description);
           lines.push("");
 
           if (full) {
-            // Full version: include description, authors, resources
-            lines.push(s.description);
-            lines.push("");
-
+            // Authors
             const authors = Array.isArray(s.authors) ? s.authors : [];
             if (authors.length > 0) {
-              lines.push("**Authors/Contributors:**");
+              lines.push("**Authors & Contributors:**");
+              lines.push("");
               for (const a of authors as { name: string; company?: string; role?: string; url?: string }[]) {
                 const parts = [a.name];
                 if (a.company && a.company !== "Unknown") parts.push(`(${a.company})`);
                 if (a.role) parts.push(`— ${a.role}`);
+                if (a.url) parts.push(`[profile](${a.url})`);
                 lines.push(`- ${parts.join(" ")}`);
               }
               lines.push("");
             }
 
+            // Resources
             const resources = Array.isArray(s.resources) ? s.resources : [];
             if (resources.length > 0) {
-              lines.push("**Resources:**");
+              lines.push("**Resources & Links:**");
+              lines.push("");
               for (const r of resources as { type: string; label: string; url: string }[]) {
-                lines.push(`- [${r.label || r.type}](${r.url})`);
+                const typeLabel = r.type.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+                lines.push(`- [${r.label || typeLabel}](${r.url}) (${typeLabel})`);
               }
               lines.push("");
             }
           }
+
+          lines.push("---");
+          lines.push("");
         }
       }
     }
