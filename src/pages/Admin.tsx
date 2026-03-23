@@ -10,12 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2 } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2, Merge } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { StandardsFilterBar } from "@/components/StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DeduplicateDialog } from "@/components/DeduplicateDialog";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
 
@@ -68,7 +69,7 @@ export default function Admin() {
   const [filterNoSummaries, setFilterNoSummaries] = useState(false);
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
-
+  const [deduplicateOpen, setDeduplicateOpen] = useState(false);
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
     if (!standards) return [];
@@ -274,6 +275,9 @@ export default function Admin() {
                 <DropdownMenuItem onClick={handleBulkGenerateSummaries} disabled={bulkEnriching} className="gap-2">
                   <FileText className="h-3.5 w-3.5" /> Generate Summaries
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDeduplicateOpen(true)} className="gap-2">
+                  <Merge className="h-3.5 w-3.5" /> De-duplicate
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
@@ -437,6 +441,7 @@ export default function Admin() {
       </Dialog>
 
       <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
+      <DeduplicateDialog open={deduplicateOpen} onOpenChange={setDeduplicateOpen} standards={standards || []} />
     </div>
   );
 }
