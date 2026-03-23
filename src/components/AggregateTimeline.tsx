@@ -589,6 +589,32 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           </div>
         </div>
       )}
+
+      {/* Fixed-position tooltip rendered outside overflow container */}
+      {activeTooltip && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: activeTooltip.rect.left + activeTooltip.rect.width / 2,
+            top: activeTooltip.rect.bottom + 8,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="rounded-md border bg-popover p-3 shadow-lg w-60 text-left">
+            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {formatDateLabel(activeTooltip.event.date)}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-tight text-foreground">
+              {activeTooltip.event.title}
+            </p>
+            {activeTooltip.event.description && (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {activeTooltip.event.description}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
