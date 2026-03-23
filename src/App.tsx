@@ -14,6 +14,7 @@ import AdminFeedbackPage from "./pages/AdminFeedbackPage.tsx";
 import StandardDetail from "./pages/StandardDetail.tsx";
 import Radar from "./pages/Radar.tsx";
 import Affiliations from "./pages/Affiliations.tsx";
+import TimelinePage from "./pages/Timeline.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
