@@ -207,8 +207,8 @@ function SearchableStandardFilter({
 export function AggregateTimeline({ standards }: { standards: Standard[] | undefined }) {
   const navigate = useNavigate();
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2025, 0, 1));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   const { data: summaries, isLoading } = useQuery({
     queryKey: ["all-timeline-events"],
