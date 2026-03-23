@@ -503,91 +503,138 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           No events match the current filters.
         </div>
       ) : (
-        <div ref={containerRef} className="overflow-x-auto rounded-lg border bg-background/50">
-          <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
-            <div className="flex border-b bg-muted/20">
-              <div
-                className="shrink-0 border-r px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
-                style={{ width: LABEL_WIDTH }}
-              >
-                Standard
+        <>
+          {/* ── Desktop: table layout ── */}
+          <div ref={containerRef} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
+            <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
+              <div className="flex border-b bg-muted/20">
+                <div
+                  className="shrink-0 border-r px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+                  style={{ width: LABEL_WIDTH }}
+                >
+                  Standard
+                </div>
+
+                <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
+                  {timelineMetrics.monthTicks.map((tick, i) => (
+                    <div key={i} className="absolute inset-y-0" style={{ left: tick.x }}>
+                      <div className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border" : "bg-border/40")} />
+                      <span className={cn(
+                        "absolute left-2 top-3 whitespace-nowrap tabular-nums",
+                        tick.isYear ? "text-[11px] font-bold text-foreground" : "text-[9px] font-medium text-muted-foreground"
+                      )}>
+                        {tick.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
-                {timelineMetrics.monthTicks.map((tick, i) => (
-                  <div
-                    key={i}
-                    className="absolute inset-y-0"
-                    style={{ left: tick.x }}
+              {rows.map((row) => (
+                <div key={row.id} className="flex border-b last:border-b-0 hover:bg-muted/10">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/standard/${row.id}`)}
+                    title={row.title}
+                    className="shrink-0 truncate border-r px-4 py-4 text-left text-sm font-medium text-foreground transition-colors hover:text-primary active:scale-[0.98]"
+                    style={{ width: LABEL_WIDTH }}
                   >
-                    <div className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border" : "bg-border/40")} />
-                    <span className={cn(
-                      "absolute left-2 top-3 whitespace-nowrap tabular-nums",
-                      tick.isYear ? "text-[11px] font-bold text-foreground" : "text-[9px] font-medium text-muted-foreground"
-                    )}>
-                      {tick.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    {row.title}
+                  </button>
 
+                  <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
+                    {timelineMetrics.monthTicks.map((tick, i) => (
+                      <div
+                        key={i}
+                        className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border/50" : "bg-border/20")}
+                        style={{ left: tick.x }}
+                      />
+                    ))}
+
+                    <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+
+                    {row.events.map((event, index) => {
+                      const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                      const Icon = config.icon;
+                      const x = positionForEvent(event.date);
+
+                      return (
+                        <div
+                          key={`${row.id}-${index}`}
+                          className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                          style={{ left: x }}
+                          onMouseEnter={(e) => {
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            setActiveTooltip({ event, rect });
+                          }}
+                          onMouseLeave={() => setActiveTooltip(null)}
+                        >
+                          <div
+                            className={cn(
+                              "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
+                              config.bgClass,
+                              config.colorClass
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Mobile: horizontal scroll cards per standard ── */}
+          <div className="sm:hidden space-y-3">
             {rows.map((row) => (
-              <div key={row.id} className="flex border-b last:border-b-0 hover:bg-muted/10">
+              <div key={row.id} className="rounded-lg border bg-background/50">
                 <button
                   type="button"
                   onClick={() => navigate(`/standard/${row.id}`)}
-                  title={row.title}
-                  className="shrink-0 truncate border-r px-4 py-4 text-left text-sm font-medium text-foreground transition-colors hover:text-primary active:scale-[0.98]"
-                  style={{ width: LABEL_WIDTH }}
+                  className="w-full truncate px-3 pt-3 pb-1 text-left text-sm font-semibold text-foreground hover:text-primary active:scale-[0.98]"
                 >
                   {row.title}
                 </button>
 
-                <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
-                  {timelineMetrics.monthTicks.map((tick, i) => (
-                    <div
-                      key={i}
-                      className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border/50" : "bg-border/20")}
-                      style={{ left: tick.x }}
-                    />
-                  ))}
+                <div className="overflow-x-auto pb-3">
+                  <div className="flex items-start gap-0 px-3 min-w-max">
+                    {row.events.map((event, index) => {
+                      const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                      const Icon = config.icon;
+                      const isLast = index === row.events.length - 1;
 
-                  <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-
-                  {row.events.map((event, index) => {
-                    const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
-                    const Icon = config.icon;
-                    const x = positionForEvent(event.date);
-
-                    return (
-                      <div
-                        key={`${row.id}-${index}`}
-                        className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-                        style={{ left: x }}
-                        onMouseEnter={(e) => {
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setActiveTooltip({ event, rect });
-                        }}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
-                            config.bgClass,
-                            config.colorClass
-                          )}
-                        >
-                          <Icon className="h-4 w-4" />
+                      return (
+                        <div key={`m-${row.id}-${index}`} className="flex items-center shrink-0">
+                          <div className="flex flex-col items-center w-28">
+                            <span className="text-[9px] tabular-nums text-muted-foreground mb-1">
+                              {formatDateLabel(event.date)}
+                            </span>
+                            <div
+                              className={cn(
+                                "flex h-7 w-7 items-center justify-center rounded-full border border-background shadow-sm",
+                                config.bgClass,
+                                config.colorClass
+                              )}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <p className="mt-1.5 text-[10px] font-medium leading-tight text-foreground text-center line-clamp-2 px-1">
+                              {event.title}
+                            </p>
+                          </div>
+                          {!isLast && <div className="h-px w-4 bg-border shrink-0 -mt-3" />}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {/* Fixed-position tooltip rendered outside overflow container */}
