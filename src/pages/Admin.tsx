@@ -52,6 +52,7 @@ export default function Admin() {
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
+  const [adminSearch, setAdminSearch] = useState("");
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
 
