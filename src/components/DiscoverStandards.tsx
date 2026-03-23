@@ -232,8 +232,11 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                   {results.map((s, idx) => {
                     const checked = selectedResults.has(idx);
                     return (
-                      <button
+                      <div
                         key={idx}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleResult(idx); } }}
                         onClick={() => toggleResult(idx)}
                         className={cn(
                           "flex items-start gap-3 w-full text-left rounded-lg border p-3 transition-all duration-150 active:scale-[0.98]",
@@ -287,7 +290,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                             )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
