@@ -87,19 +87,19 @@ export function MiniAuthorSankey({ standardTitle, authors }: Props) {
 
   if (!sankeyData) return null;
 
-  const chartHeight = Math.max(120, sankeyData.nodes.length * 32);
+  const chartHeight = Math.max(160, sankeyData.nodes.length * 40);
 
   return (
-    <div className="overflow-x-auto -mx-2">
+    <div className="flex justify-center overflow-x-auto">
       <Sankey
-        width={520}
+        width={640}
         height={chartHeight}
         data={sankeyData}
         node={<MiniSankeyNode />}
-        nodePadding={12}
-        nodeWidth={6}
+        nodePadding={14}
+        nodeWidth={8}
         linkCurvature={0.5}
-        margin={{ top: 8, right: 140, bottom: 8, left: 140 }}
+        margin={{ top: 10, right: 160, bottom: 10, left: 160 }}
         link={{ stroke: "hsl(var(--muted-foreground) / 0.10)", strokeOpacity: 0.5 }}
       >
         <Tooltip
