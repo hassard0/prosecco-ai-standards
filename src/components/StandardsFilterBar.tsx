@@ -21,6 +21,8 @@ interface StandardsFilterBarProps {
   onFilterNoResourcesChange?: (val: boolean) => void;
   filterNoSummaries?: boolean;
   onFilterNoSummariesChange?: (val: boolean) => void;
+  showExpired?: boolean;
+  onShowExpiredChange?: (val: boolean) => void;
 }
 
 function MultiSelectFilter({
