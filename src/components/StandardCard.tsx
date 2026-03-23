@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, AlertTriangle } from "lucide-react";
 import type { Standard } from "@/hooks/useStandards";
 import { cn } from "@/lib/utils";
 
