@@ -57,7 +57,6 @@ const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; b
 
 const LABEL_WIDTH = 192;
 const TRACK_EDGE_PADDING = 24;
-const TRACK_END_GUTTER = 88;
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function parseDate(dateStr: string): Date {
