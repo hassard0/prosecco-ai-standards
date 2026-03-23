@@ -205,9 +205,20 @@ export default function AdminEdit() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Tags</Label>
-                <TagInput tags={tags} onChange={setTags} placeholder="Type a tag and press Enter…" />
-              </div>
+                  <Label>Tags</Label>
+                  <TagInput tags={tags} onChange={setTags} placeholder="Type a tag and press Enter…" />
+                </div>
+
+              <div className="space-y-1.5">
+                  <Label>Lifecycle</Label>
+                  <Select value={isExpired ? "expired" : "active"} onValueChange={(v) => setIsExpired(v === "expired")}>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </section>
 
             {/* Link + AI Enrichment */}

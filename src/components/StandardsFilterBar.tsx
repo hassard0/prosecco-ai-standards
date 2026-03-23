@@ -183,6 +183,7 @@ export function StandardsFilterBar({
             onTagsChange([]); onOrganizationsChange([]); onSearchChange("");
             onFilterNoResourcesChange?.(false);
             onFilterNoSummariesChange?.(false);
+            onShowExpiredChange?.(false);
           }}
         >
           <X className="h-3 w-3" /> Clear

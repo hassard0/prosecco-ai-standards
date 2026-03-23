@@ -40,6 +40,12 @@ export function StandardCard({ standard, onClick, index, viewMode = "detailed" }
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          {(standard as any).is_expired && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive">
+              <AlertTriangle className="h-3 w-3" />
+              Expired
+            </span>
+          )}
           {standard.organization && (
             <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
               {standard.organization}

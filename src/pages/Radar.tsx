@@ -108,7 +108,8 @@ export default function Radar() {
     const grouped: Record<string, Standard[]> = {};
     for (const s of filtered) {
       const qi = assignQuadrant(s);
-      const ri = RINGS.findIndex((r) => r.status === s.status);
+      // Expired standards → Hold ring
+      const ri = (s as any).is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
       if (ri === -1) continue;
       const key = `${qi}-${ri}`;
       if (!grouped[key]) grouped[key] = [];
@@ -117,7 +118,7 @@ export default function Radar() {
 
     for (const s of filtered) {
       const qi = assignQuadrant(s);
-      const ri = RINGS.findIndex((r) => r.status === s.status);
+      const ri = (s as any).is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
       if (ri === -1) continue;
 
       const key = `${qi}-${ri}`;
