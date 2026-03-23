@@ -299,6 +299,10 @@ export default function Admin() {
             onOrganizationsChange={setSelectedOrgs}
             searchQuery={adminSearch}
             onSearchChange={setAdminSearch}
+            filterNoResources={filterNoResources}
+            onFilterNoResourcesChange={setFilterNoResources}
+            filterNoSummaries={filterNoSummaries}
+            onFilterNoSummariesChange={setFilterNoSummaries}
           />
         </div>
         {error ? (
