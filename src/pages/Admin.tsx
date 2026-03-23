@@ -72,6 +72,7 @@ export default function Admin() {
       return;
     }
     setBulkEnriching(true);
+    setBulkAction("enrich");
     let enriched = 0;
     let failed = 0;
     for (const s of needsResources) {
@@ -92,10 +93,56 @@ export default function Admin() {
       }
     }
     setBulkEnriching(false);
+    setBulkAction(null);
     qc.invalidateQueries({ queryKey: ["standards"] });
     toast({
       title: "Bulk enrich complete",
       description: `${enriched} enriched, ${failed} failed, ${needsResources.length - enriched - failed} had no new resources.`,
+    });
+  };
+
+  const handleBulkGenerateSummaries = async () => {
+    if (!standards) return;
+    // Find standards that have resources
+    const withResources = standards.filter(
+      (s) => s.resources && Array.isArray(s.resources) && (s.resources as any[]).length > 0
+    );
+    if (withResources.length === 0) {
+      toast({ title: "Nothing to summarize", description: "No standards have resources yet." });
+      return;
+    }
+    // Check which already have summaries
+    const { data: existingSummaries } = await supabase
+      .from("standard_summaries")
+      .select("standard_id");
+    const summarizedIds = new Set((existingSummaries || []).map((s) => s.standard_id));
+    const needsSummary = withResources.filter((s) => !summarizedIds.has(s.id));
+    if (needsSummary.length === 0) {
+      toast({ title: "All up to date", description: "All standards with resources already have summaries." });
+      return;
+    }
+    setBulkEnriching(true);
+    setBulkAction("summaries");
+    let generated = 0;
+    let failed = 0;
+    for (const s of needsSummary) {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("summarize-mailing-list", {
+          body: { standard_id: s.id },
+        });
+        if (fnError) { failed++; continue; }
+        const updated = (data?.results || []).filter((r: any) => r.status === "updated").length;
+        if (updated > 0) { generated++; } else { failed++; }
+      } catch {
+        failed++;
+      }
+    }
+    setBulkEnriching(false);
+    setBulkAction(null);
+    qc.invalidateQueries({ queryKey: ["standards"] });
+    toast({
+      title: "Bulk summaries complete",
+      description: `${generated} generated, ${failed} failed out of ${needsSummary.length}.`,
     });
   };
 
