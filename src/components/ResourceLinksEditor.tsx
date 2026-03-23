@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const RESOURCE_TYPES = [
+  { value: "primary_spec", label: "Primary Spec" },
   { value: "mailing_list", label: "Mailing List" },
   { value: "github", label: "GitHub Repo" },
   { value: "discord", label: "Discord" },
