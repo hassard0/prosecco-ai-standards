@@ -290,7 +290,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                             )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
