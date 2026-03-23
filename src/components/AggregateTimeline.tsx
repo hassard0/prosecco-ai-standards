@@ -312,12 +312,13 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
   const [containerWidth, setContainerWidth] = useState(1200);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const el = containerRef.current?.parentElement ?? containerRef.current;
+    if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
       if (w) setContainerWidth(Math.floor(w));
     });
-    ro.observe(containerRef.current);
+    ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
@@ -505,8 +506,8 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       ) : (
         <>
           {/* ── Desktop: table layout ── */}
-          <div ref={containerRef} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
-            <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
+           <div ref={containerRef} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
+             <div style={{ width: Math.max(containerWidth, LABEL_WIDTH + timelineMetrics.trackWidth) }}>
               <div className="flex border-b bg-muted/20">
                 <div
                   className="shrink-0 border-r px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
