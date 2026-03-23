@@ -248,15 +248,39 @@ export default function StandardDetail() {
               </div>
             )}
 
+            {/* Generate Summary Button (admins) */}
+            {resources.length > 0 && isAdmin && (
+              <div className="mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateSummary}
+                  disabled={generating}
+                  className="active:scale-[0.97] transition-all"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${generating ? "animate-spin" : ""}`} />
+                  {generating ? "Generating…" : latestSummary ? "Refresh Summary" : "Generate Summary"}
+                </Button>
+              </div>
+            )}
+
+            {/* What's New */}
+            {whatsNew && latestSummary && (
+              <WhatsNew content={whatsNew} generatedAt={latestSummary.generated_at} />
+            )}
+
+            {/* Timeline */}
+            <StandardTimeline events={timelineEvents} />
+
             {/* Mailing List Summaries */}
-            {summaries && summaries.length > 0 && (
+            {latestSummary && (
               <div className="rounded-lg border bg-card p-5 mb-6">
-                <h2 className="text-sm font-semibold text-foreground mb-1">Mailing List Summary</h2>
+                <h2 className="text-sm font-semibold text-foreground mb-1">Discussion Summary</h2>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  AI-generated summary of recent discussions · Updated {new Date(summaries[0].generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  AI-generated summary · Updated {new Date(latestSummary.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
-                  {summaries[0].summary.split("\n").map((line, i) => {
+                  {latestSummary.summary.split("\n").map((line, i) => {
                     if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
                     if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
                     if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
