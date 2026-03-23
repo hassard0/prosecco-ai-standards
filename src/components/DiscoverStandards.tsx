@@ -147,7 +147,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
             {step === "results" && `Found ${results.length} Standard${results.length !== 1 ? "s" : ""}`}
           </DialogTitle>
           <DialogDescription>
-            {step === "pick-orgs" && "Select organizations to scan for technology standards."}
+            {step === "pick-orgs" && "Select organizations to scan for AI/ML/Agent standards."}
             {step === "scanning" && "AI is searching for relevant standards…"}
             {step === "results" && "Select which standards to import to your Backlog."}
           </DialogDescription>
@@ -195,7 +195,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
         {step === "scanning" && (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Searching for standards…</p>
+            <p className="text-sm text-muted-foreground">Searching for AI/ML/Agent standards…</p>
             <div className="space-y-2 w-full max-w-sm">
               {[0, 1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" style={{ animationDelay: `${i * 150}ms` }} />
