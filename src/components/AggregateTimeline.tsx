@@ -14,7 +14,6 @@ import {
   X,
   CalendarIcon,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -210,6 +209,10 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const [activeTooltip, setActiveTooltip] = useState<{
+    event: EnrichedEvent;
+    rect: DOMRect;
+  } | null>(null);
 
   const { data: summaries, isLoading } = useQuery({
     queryKey: ["all-timeline-events"],
@@ -562,39 +565,53 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                         key={`${row.id}-${index}`}
                         className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
                         style={{ left: x }}
+                        onMouseEnter={(e) => {
+                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          setActiveTooltip({ event, rect });
+                        }}
+                        onMouseLeave={() => setActiveTooltip(null)}
                       >
-                        <Tooltip delayDuration={100}>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={cn(
-                                "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
-                                config.bgClass,
-                                config.colorClass
-                              )}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="w-60 p-3" sideOffset={8}>
-                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-                              {formatDateLabel(event.date)}
-                            </p>
-                            <p className="mt-1 text-sm font-medium leading-tight text-foreground">
-                              {event.title}
-                            </p>
-                            {event.description && (
-                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                {event.description}
-                              </p>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-background shadow-sm transition-transform hover:scale-110",
+                            config.bgClass,
+                            config.colorClass
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fixed-position tooltip rendered outside overflow container */}
+      {activeTooltip && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: activeTooltip.rect.left + activeTooltip.rect.width / 2,
+            top: activeTooltip.rect.bottom + 8,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="rounded-md border bg-popover p-3 shadow-lg w-60 text-left">
+            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {formatDateLabel(activeTooltip.event.date)}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-tight text-foreground">
+              {activeTooltip.event.title}
+            </p>
+            {activeTooltip.event.description && (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {activeTooltip.event.description}
+              </p>
+            )}
           </div>
         </div>
       )}
