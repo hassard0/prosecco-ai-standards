@@ -140,8 +140,8 @@ export default function Affiliations() {
       if (selectedStandards.size > 0 && !selectedStandards.has(s.title)) continue;
 
       for (const a of authors) {
-        const company = a.company?.trim();
-        if (!company) continue;
+        const company = normalizeCompany(a.company);
+        if (company === "Unknown") continue;
 
         // If filtering by company, skip non-matching
         if (selectedCompanies.size > 0 && !selectedCompanies.has(company)) continue;
