@@ -17,6 +17,10 @@ interface StandardsFilterBarProps {
   onOrganizationsChange: (orgs: string[]) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  filterNoResources?: boolean;
+  onFilterNoResourcesChange?: (val: boolean) => void;
+  filterNoSummaries?: boolean;
+  onFilterNoSummariesChange?: (val: boolean) => void;
 }
 
 function MultiSelectFilter({
@@ -107,8 +111,12 @@ export function StandardsFilterBar({
   onOrganizationsChange,
   searchQuery,
   onSearchChange,
+  filterNoResources,
+  onFilterNoResourcesChange,
+  filterNoSummaries,
+  onFilterNoSummariesChange,
 }: StandardsFilterBarProps) {
-  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0;
+  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0 || !!filterNoResources || !!filterNoSummaries;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -123,12 +131,42 @@ export function StandardsFilterBar({
       </div>
       <MultiSelectFilter label="Tags" options={allTags} selected={selectedTags} onChange={onTagsChange} />
       <MultiSelectFilter label="Organization" options={allOrganizations} selected={selectedOrganizations} onChange={onOrganizationsChange} />
+      {onFilterNoResourcesChange && (
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 h-8 text-xs font-medium",
+            filterNoResources && "border-destructive/40 bg-destructive/5 text-foreground"
+          )}
+          onClick={() => onFilterNoResourcesChange(!filterNoResources)}
+        >
+          No Resources
+        </Button>
+      )}
+      {onFilterNoSummariesChange && (
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 h-8 text-xs font-medium",
+            filterNoSummaries && "border-destructive/40 bg-destructive/5 text-foreground"
+          )}
+          onClick={() => onFilterNoSummariesChange(!filterNoSummaries)}
+        >
+          No Summaries
+        </Button>
+      )}
       {hasFilters && (
         <Button
           variant="ghost"
           size="sm"
           className="h-8 text-xs gap-1 text-muted-foreground"
-          onClick={() => { onTagsChange([]); onOrganizationsChange([]); onSearchChange(""); }}
+          onClick={() => {
+            onTagsChange([]); onOrganizationsChange([]); onSearchChange("");
+            onFilterNoResourcesChange?.(false);
+            onFilterNoSummariesChange?.(false);
+          }}
         >
           <X className="h-3 w-3" /> Clear
         </Button>

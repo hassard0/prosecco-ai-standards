@@ -46,6 +46,17 @@ export default function Admin() {
     },
   });
 
+  const { data: summaryStandardIds } = useQuery({
+    queryKey: ["summary-standard-ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("standard_summaries")
+        .select("standard_id");
+      if (error) throw error;
+      return new Set((data || []).map((s) => s.standard_id));
+    },
+  });
+
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -53,6 +64,8 @@ export default function Admin() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [adminSearch, setAdminSearch] = useState("");
+  const [filterNoResources, setFilterNoResources] = useState(false);
+  const [filterNoSummaries, setFilterNoSummaries] = useState(false);
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
 
@@ -212,6 +225,8 @@ export default function Admin() {
       }
       if (selectedTags.length > 0 && !selectedTags.some((tag) => s.tags?.includes(tag))) return false;
       if (selectedOrgs.length > 0 && (!s.organization || !selectedOrgs.includes(s.organization))) return false;
+      if (filterNoResources && s.resources && Array.isArray(s.resources) && (s.resources as any[]).length > 0) return false;
+      if (filterNoSummaries && summaryStandardIds?.has(s.id)) return false;
       return true;
     });
   };
@@ -284,6 +299,10 @@ export default function Admin() {
             onOrganizationsChange={setSelectedOrgs}
             searchQuery={adminSearch}
             onSearchChange={setAdminSearch}
+            filterNoResources={filterNoResources}
+            onFilterNoResourcesChange={setFilterNoResources}
+            filterNoSummaries={filterNoSummaries}
+            onFilterNoSummariesChange={setFilterNoSummaries}
           />
         </div>
         {error ? (
