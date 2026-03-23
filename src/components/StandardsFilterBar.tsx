@@ -17,6 +17,10 @@ interface StandardsFilterBarProps {
   onOrganizationsChange: (orgs: string[]) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  filterNoResources?: boolean;
+  onFilterNoResourcesChange?: (val: boolean) => void;
+  filterNoSummaries?: boolean;
+  onFilterNoSummariesChange?: (val: boolean) => void;
 }
 
 function MultiSelectFilter({
