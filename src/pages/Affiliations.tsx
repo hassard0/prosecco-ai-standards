@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { normalizeCompany } from "@/lib/normalizeCompany";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStandards } from "@/hooks/useStandards";
@@ -93,7 +94,8 @@ export default function Affiliations() {
       if (!authors?.length) continue;
       stdNames.add(s.title);
       for (const a of authors) {
-        if (a.company?.trim()) companies.add(a.company.trim());
+        const c = normalizeCompany(a.company);
+        if (c !== "Unknown") companies.add(c);
       }
     }
     return {
@@ -138,8 +140,8 @@ export default function Affiliations() {
       if (selectedStandards.size > 0 && !selectedStandards.has(s.title)) continue;
 
       for (const a of authors) {
-        const company = a.company?.trim();
-        if (!company) continue;
+        const company = normalizeCompany(a.company);
+        if (company === "Unknown") continue;
 
         // If filtering by company, skip non-matching
         if (selectedCompanies.size > 0 && !selectedCompanies.has(company)) continue;
@@ -166,7 +168,7 @@ export default function Affiliations() {
         const stdIdx = companies.length + standardNames.indexOf(stdName);
         const standard = standards.find((s) => s.title === stdName);
         const count = ((standard as any)?.authors as Author[] || []).filter(
-          (a) => a.company?.trim() === company
+          (a) => normalizeCompany(a.company) === company
         ).length;
         links.push({ source: companyIdx, target: stdIdx, value: count });
       }

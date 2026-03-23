@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
+import { normalizeCompany } from "@/lib/normalizeCompany";
 
 interface Author {
   name: string;
@@ -62,8 +63,8 @@ export function MiniAuthorSankey({ standardTitle, authors }: Props) {
   const sankeyData = useMemo(() => {
     const companyMap: Record<string, number> = {};
     for (const a of authors) {
-      const company = a.company?.trim();
-      if (!company) continue;
+      const company = normalizeCompany(a.company);
+      if (company === "Unknown") continue;
       companyMap[company] = (companyMap[company] || 0) + 1;
     }
 
