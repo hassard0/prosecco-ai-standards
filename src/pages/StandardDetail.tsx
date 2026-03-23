@@ -159,6 +159,33 @@ export default function StandardDetail() {
               </div>
             )}
 
+            {/* What's New */}
+            {whatsNew && latestSummary && (
+              <WhatsNew content={whatsNew} generatedAt={latestSummary.generated_at} />
+            )}
+
+            {/* Timeline */}
+            <StandardTimeline events={timelineEvents} />
+
+            {/* Discussion Summary */}
+            {latestSummary && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <h2 className="text-sm font-semibold text-foreground mb-1">Discussion Summary</h2>
+                <p className="text-[11px] text-muted-foreground mb-4">
+                  AI-generated summary · Updated {new Date(latestSummary.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
+                  {latestSummary.summary.split("\n").map((line, i) => {
+                    if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
+                    if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
+                    if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
+                    if (line.trim()) return <p key={i} className="text-sm">{line}</p>;
+                    return null;
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Generate Summary Button (admins) */}
             {resources.length > 0 && isAdmin && (
               <div className="mb-6">
@@ -257,34 +284,6 @@ export default function StandardDetail() {
                         <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                       </a>
                     );
-                  })}
-                </div>
-              </div>
-            )}
-
-
-            {/* What's New */}
-            {whatsNew && latestSummary && (
-              <WhatsNew content={whatsNew} generatedAt={latestSummary.generated_at} />
-            )}
-
-            {/* Timeline */}
-            <StandardTimeline events={timelineEvents} />
-
-            {/* Mailing List Summaries */}
-            {latestSummary && (
-              <div className="rounded-lg border bg-card p-5 mb-6">
-                <h2 className="text-sm font-semibold text-foreground mb-1">Discussion Summary</h2>
-                <p className="text-[11px] text-muted-foreground mb-4">
-                  AI-generated summary · Updated {new Date(latestSummary.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </p>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-card-foreground leading-relaxed">
-                  {latestSummary.summary.split("\n").map((line, i) => {
-                    if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold mt-4 mb-1">{line.slice(3)}</h3>;
-                    if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4">{line.slice(2)}</li>;
-                    if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="text-sm font-semibold mt-3">{line.slice(2, -2)}</p>;
-                    if (line.trim()) return <p key={i} className="text-sm">{line}</p>;
-                    return null;
                   })}
                 </div>
               </div>
