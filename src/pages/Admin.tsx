@@ -272,6 +272,8 @@ export default function Admin() {
             allOrganizations={allOrganizations}
             selectedOrganizations={selectedOrgs}
             onOrganizationsChange={setSelectedOrgs}
+            searchQuery={adminSearch}
+            onSearchChange={setAdminSearch}
           />
         </div>
         {error ? (
