@@ -6,6 +6,153 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type DiscoveredStandard = {
+  title: string;
+  acronym?: string;
+  description: string;
+  organization: string;
+  link?: string | null;
+  tags?: string[];
+};
+
+const ORGANIZATION_DOMAINS: Record<string, string[]> = {
+  "IETF": ["ietf.org", "datatracker.ietf.org", "rfc-editor.org"],
+  "Linux Foundation": ["linuxfoundation.org", "lfprojects.org"],
+  "FIDO Alliance": ["fidoalliance.org"],
+  "CNCF": ["cncf.io"],
+  "OpenID Foundation": ["openid.net"],
+  "W3C": ["w3.org"],
+  "OASIS": ["oasis-open.org", "docs.oasis-open.org"],
+  "NIST": ["nist.gov", "csrc.nist.gov"],
+  "IEEE": ["ieee.org", "standards.ieee.org"],
+  "ISO/IEC": ["iso.org", "iec.ch"],
+};
+
+const SEARCH_UA =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function decodeHtmlEntities(input: string) {
+  return input
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#x27;/g, "'");
+}
+
+function normalizeUrl(url: string) {
+  return url.replace(/\/$/, "");
+}
+
+function getDomainsForOrganization(organization: string) {
+  const direct = ORGANIZATION_DOMAINS[organization];
+  if (direct) return direct;
+
+  const normalizedEntry = Object.entries(ORGANIZATION_DOMAINS).find(([name]) =>
+    name.toLowerCase() === organization.toLowerCase()
+  );
+
+  return normalizedEntry?.[1] ?? [];
+}
+
+async function verifyUrl(url: string) {
+  const methods: Array<"HEAD" | "GET"> = ["HEAD", "GET"];
+
+  for (const method of methods) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(url, {
+        method,
+        signal: ctrl.signal,
+        redirect: "follow",
+        headers: {
+          "User-Agent": SEARCH_UA,
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+      });
+      clearTimeout(timer);
+
+      if (res.ok || res.status === 403 || res.status === 405) {
+        return true;
+      }
+    } catch {
+      // Try next method
+    }
+  }
+
+  return false;
+}
+
+function extractDuckDuckGoLinks(html: string) {
+  const matches = [...html.matchAll(/<a[^>]+href="(https?:\/\/[^"#]+)"[^>]*>/gi)];
+  const urls = matches
+    .map((match) => decodeHtmlEntities(match[1]))
+    .filter((url) => !url.includes("duckduckgo.com"));
+
+  return Array.from(new Set(urls.map(normalizeUrl)));
+}
+
+async function searchForOfficialSpecLink(standard: DiscoveredStandard) {
+  const domains = getDomainsForOrganization(standard.organization);
+  const domainHints = domains.length > 0 ? domains.map((domain) => `site:${domain}`).join(" OR ") : "";
+  const query = `${standard.title} ${standard.acronym ?? ""} ${standard.organization} specification standard ${domainHints}`.trim();
+  const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const response = await fetch(searchUrl, {
+      headers: {
+        "User-Agent": SEARCH_UA,
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const html = await response.text();
+    const candidates = extractDuckDuckGoLinks(html).filter((url) => {
+      if (domains.length === 0) return true;
+      return domains.some((domain) => new RegExp(`(^https?:\\/\\/)?([^/]+\\.)?${escapeRegExp(domain)}(/|$)`, "i").test(url));
+    });
+
+    for (const candidate of candidates.slice(0, 5)) {
+      if (await verifyUrl(candidate)) {
+        return candidate;
+      }
+    }
+  } catch (error) {
+    console.log(`Search fallback failed for ${standard.title}:`, error instanceof Error ? error.message : error);
+  }
+
+  return null;
+}
+
+async function ensureWorkingLink(standard: DiscoveredStandard) {
+  if (standard.link && await verifyUrl(standard.link)) {
+    return standard;
+  }
+
+  const fallbackLink = await searchForOfficialSpecLink(standard);
+  if (fallbackLink) {
+    return { ...standard, link: fallbackLink };
+  }
+
+  console.log(`No verified spec link found: ${standard.title} (${standard.organization})`);
+  return { ...standard, link: null };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -46,6 +193,8 @@ serve(async (req) => {
 
 Only include standards that are directly related to AI, ML, agents, or agentic systems. Do NOT include general-purpose standards (like generic HTTP specs, general security frameworks, web standards, identity protocols, etc.) unless they have a specific AI/ML/agent focus.
 
+Prioritize official specification pages on the publishing organization's own domain when returning links. Avoid guessed, placeholder, or committee-root URLs unless they are the canonical page for that exact standard.
+
 For each standard found, provide accurate metadata. If you're unsure about a detail, leave it empty rather than guessing.`,
           },
           {
@@ -54,9 +203,9 @@ For each standard found, provide accurate metadata. If you're unsure about a det
 
 Only return standards specifically about AI, machine learning, agents, agentic systems, or LLMs. Do not return general technology standards.
 
-For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the specification or project page, and relevant tags.
+For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the official specification or project page, and relevant tags.
 
-Be thorough — return as many AI/ML/agent standards as exist for each organization. Include working groups, drafts, published specs, frameworks, and guidelines. Always include the spec URL when available.`,
+Be thorough — return as many AI/ML/agent standards as exist for each organization. Include working groups, drafts, published specs, frameworks, and guidelines. Always include the most official spec URL when available.`,
           },
         ],
         tools: [
@@ -133,33 +282,9 @@ Be thorough — return as many AI/ML/agent standards as exist for each organizat
     }
 
     const parsed = JSON.parse(toolCall.function.arguments);
-    const standards = parsed.standards || [];
+    const standards = (parsed.standards || []) as DiscoveredStandard[];
 
-    // Verify links in parallel with a timeout
-    const verified = await Promise.all(
-      standards.map(async (s: any) => {
-        if (!s.link) return s;
-        try {
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 5000);
-          const res = await fetch(s.link, {
-            method: "HEAD",
-            signal: ctrl.signal,
-            redirect: "follow",
-          });
-          clearTimeout(timer);
-          if (res.ok || res.status === 405 || res.status === 403) {
-            // 405/403 often means the URL exists but blocks HEAD; keep it
-            return s;
-          }
-          console.log(`Link check failed (${res.status}): ${s.link}`);
-          return { ...s, link: null };
-        } catch {
-          console.log(`Link unreachable: ${s.link}`);
-          return { ...s, link: null };
-        }
-      })
-    );
+    const verified = await Promise.all(standards.map((standard) => ensureWorkingLink(standard)));
 
     return new Response(
       JSON.stringify({ success: true, standards: verified }),
