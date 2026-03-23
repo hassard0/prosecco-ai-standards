@@ -96,7 +96,7 @@ Return a JSON object with these fields:
 - status: One of "Emerging", "Draft", or "Approved" based on maturity
 - tags: Array of relevant tags
 - link: The canonical URL for the specification
-- resources: Array of related resources found on the page, each with { type, label, url } where type is one of: "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "discord", "slack", "other"
+- resources: Array of related resources found on the page, each with { type, label, url } where type is one of: "primary_spec", "mailing_list", "github", "working_group", "reference_impl", "documentation", "blog", "video", "discord", "slack", "other". Use "primary_spec" for the main specification document URL.
 - authors: Array of specification authors/editors/contributors, each with { name, company, role, url } where role is e.g. "Editor", "Chair", "Contributor", "Author". company should be just the company name. url is optional profile link.
 
 Only return valid JSON, no markdown fences or extra text.`,
