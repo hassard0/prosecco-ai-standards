@@ -91,6 +91,11 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                     llms-full.txt
                   </a>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/directory.json" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                    directory.json
+                  </a>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <ThemeToggle />
