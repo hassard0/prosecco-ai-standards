@@ -161,6 +161,19 @@ export function StandardsFilterBar({
           No Summaries
         </Button>
       )}
+      {onShowExpiredChange && (
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 h-8 text-xs font-medium",
+            showExpired && "border-orange-500/40 bg-orange-500/5 text-foreground"
+          )}
+          onClick={() => onShowExpiredChange(!showExpired)}
+        >
+          Show Expired
+        </Button>
+      )}
       {hasFilters && (
         <Button
           variant="ghost"
