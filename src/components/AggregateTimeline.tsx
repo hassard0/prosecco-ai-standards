@@ -151,7 +151,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[700px]">
+        <div style={{ minWidth: Math.max(1200, rows.length * 60 + 200) }}>
           {/* Year axis */}
           <div className="flex items-end mb-1 pl-[140px]">
             <div className="flex-1 relative h-5">
