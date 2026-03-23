@@ -24,6 +24,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
 };
 
 const RESOURCE_ICONS: Record<string, typeof Mail> = {
+  primary_spec: FileText,
   mailing_list: Mail,
   github: Github,
   discord: MessageCircle,
