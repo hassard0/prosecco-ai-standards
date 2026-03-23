@@ -441,6 +441,7 @@ export default function Admin() {
       </Dialog>
 
       <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
+      <DeduplicateDialog open={deduplicateOpen} onOpenChange={setDeduplicateOpen} standards={standards || []} />
     </div>
   );
 }
