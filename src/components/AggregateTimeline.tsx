@@ -57,6 +57,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; b
 
 const LABEL_WIDTH = 192;
 const TRACK_EDGE_PADDING = 24;
+const TRACK_END_GUTTER = 88;
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function parseDate(dateStr: string): Date {
@@ -508,7 +509,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         <>
           {/* ── Desktop: table layout ── */}
            <div ref={containerRef} className="hidden sm:block overflow-x-auto rounded-lg border bg-background/50">
-             <div style={{ width: Math.max(containerWidth, LABEL_WIDTH + timelineMetrics.trackWidth) }}>
+             <div style={{ width: Math.max(containerWidth, LABEL_WIDTH + timelineMetrics.trackWidth + TRACK_END_GUTTER) }}>
               <div className="flex border-b bg-muted/20">
                 <div
                   className="shrink-0 border-r px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
@@ -517,7 +518,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                   Standard
                 </div>
 
-                <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
+                <div className="relative h-12" style={{ width: timelineMetrics.trackWidth + TRACK_END_GUTTER }}>
                   {timelineMetrics.monthTicks.map((tick, i) => (
                     <div key={i} className="absolute inset-y-0" style={{ left: tick.x }}>
                       <div className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border" : "bg-border/40")} />
@@ -544,7 +545,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                     {row.title}
                   </button>
 
-                  <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
+                  <div className="relative" style={{ width: timelineMetrics.trackWidth + TRACK_END_GUTTER, height: 76 }}>
                     {timelineMetrics.monthTicks.map((tick, i) => (
                       <div
                         key={i}
