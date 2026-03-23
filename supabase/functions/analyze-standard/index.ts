@@ -272,7 +272,6 @@ Only return valid JSON, no markdown fences or extra text.`,
       console.error("GitHub enrichment failed entirely, skipping:", ghErr);
       // Don't fail the whole request - just return without GH contributors
     }
-    }
 
     return new Response(
       JSON.stringify({ success: true, data: extracted }),
