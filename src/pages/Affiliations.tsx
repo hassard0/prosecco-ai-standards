@@ -94,7 +94,8 @@ export default function Affiliations() {
       if (!authors?.length) continue;
       stdNames.add(s.title);
       for (const a of authors) {
-        if (a.company?.trim()) companies.add(a.company.trim());
+        const c = normalizeCompany(a.company);
+        if (c !== "Unknown") companies.add(c);
       }
     }
     return {
