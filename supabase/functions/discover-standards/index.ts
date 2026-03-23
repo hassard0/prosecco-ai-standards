@@ -42,19 +42,21 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert on technical standards and specifications across technology domains. Your job is to identify standards, protocols, specifications, and frameworks from specific organizations that are relevant to modern technology — including but not limited to AI, agents, LLMs, machine learning, identity, authentication, security, web standards, cloud infrastructure, networking, data formats, privacy, and interoperability.
+            content: `You are an expert on technical standards and specifications across technology domains. Your job is to identify notable standards, protocols, specifications, frameworks, working groups, drafts, and governance documents from specific organizations.
 
-Include any standard that is relevant to the technology ecosystem. Be broad and comprehensive.
+Do NOT prioritize or bias toward AI, ML, agents, or LLMs unless the organization itself is specifically centered on those areas. Instead, return the organization's broader and most relevant standards landscape across its actual remit (for example: web, identity, security, networking, cloud, interoperability, data formats, privacy, accessibility, governance, and adjacent technical areas).
 
 For each standard found, provide accurate metadata. If you're unsure about a detail, leave it empty rather than guessing.`,
           },
           {
             role: "user",
-            content: `Find ALL notable standards, protocols, and specifications from these organizations: ${orgList}
+            content: `Find a broad, representative set of notable standards, protocols, and specifications from these organizations: ${orgList}
+
+Do not scope results to AI, ML, agents, or LLMs. Include the standards each organization is actually known for across its full technology domain.
 
 For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the specification or project page, and relevant tags.
 
-Be thorough and comprehensive — return at least 15-20 standards per organization if they exist. Include working groups, drafts, published RFCs, frameworks, guidelines, toolkits, and any significant specification. Always include the spec URL when available.`,
+Be thorough and comprehensive — return at least 15-20 standards per organization if they exist. Include published standards, drafts, working groups, frameworks, guidelines, and other significant specifications. Always include the spec URL when available.`,
           },
         ],
         tools: [
