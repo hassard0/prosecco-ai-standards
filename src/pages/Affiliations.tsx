@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStandards } from "@/hooks/useStandards";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Search, ChevronDown } from "lucide-react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +33,16 @@ const COMPANY_COLORS = [
 function SankeyNodeRenderer(props: any) {
   const { x, y, width, height, index, payload } = props;
   const isCompany = payload.depth === 0;
+  const isStandard = !isCompany;
   const color = isCompany
     ? COMPANY_COLORS[index % COMPANY_COLORS.length]
     : "hsl(var(--muted-foreground) / 0.5)";
+
+  const handleClick = () => {
+    if (isStandard && payload.standardId && props.onStandardClick) {
+      props.onStandardClick(payload.standardId);
+    }
+  };
 
   return (
     <Layer key={`sankey-node-${index}`}>
@@ -47,6 +54,8 @@ function SankeyNodeRenderer(props: any) {
         fill={color}
         fillOpacity={0.9}
         rx={3}
+        style={isStandard ? { cursor: "pointer" } : undefined}
+        onClick={handleClick}
       />
       <text
         x={isCompany ? x - 6 : x + width + 6}
@@ -54,9 +63,16 @@ function SankeyNodeRenderer(props: any) {
         textAnchor={isCompany ? "end" : "start"}
         dominantBaseline="central"
         className="fill-foreground"
-        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400 }}
+        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400, cursor: isStandard ? "pointer" : undefined }}
+        onClick={handleClick}
       >
-        {payload.name}
+        {isStandard ? (
+          <tspan style={{ textDecoration: "underline", textDecorationColor: "hsl(var(--muted-foreground) / 0.3)" }}>
+            {payload.name}
+          </tspan>
+        ) : (
+          payload.name
+        )}
       </text>
     </Layer>
   );
@@ -64,6 +80,7 @@ function SankeyNodeRenderer(props: any) {
 
 export default function Affiliations() {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const { data: standards, isLoading } = useStandards();
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
@@ -161,7 +178,10 @@ export default function Affiliations() {
 
     const nodes = [
       ...companies.map((c) => ({ name: c })),
-      ...standardNames.map((s) => ({ name: s })),
+      ...standardNames.map((s) => {
+        const std = standards!.find((st) => st.title === s);
+        return { name: s, standardId: std?.id };
+      }),
     ];
 
     const links: { source: number; target: number; value: number }[] = [];
@@ -364,7 +384,7 @@ export default function Affiliations() {
               width={900}
               height={Math.max(400, sankeyData.nodes.length * 28)}
               data={sankeyData}
-              node={<SankeyNodeRenderer />}
+              node={<SankeyNodeRenderer onStandardClick={(id: string) => navigate(`/standard/${id}`)} />}
               nodePadding={14}
               nodeWidth={8}
               linkCurvature={0.5}
