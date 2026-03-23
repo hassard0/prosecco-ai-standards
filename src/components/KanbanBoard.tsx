@@ -23,6 +23,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
+  const [localSearch, setLocalSearch] = useState("");
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
   const [mobileTab, setMobileTab] = useState(0);
   const navigate = useNavigate();
