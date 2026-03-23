@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAuthorSankey } from "@/components/MiniAuthorSankey";
 import { StandardTimeline } from "@/components/StandardTimeline";
 import { WhatsNew } from "@/components/WhatsNew";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
