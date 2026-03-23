@@ -28,6 +28,7 @@ const COLUMNS: { status: StatusType; label: string; color: string; description: 
 export default function Admin() {
   const { user, isAdmin, loading, signOut } = useAuth();
   const { data: standards, isLoading, error } = useStandards();
+  const { data: tags } = useTags();
   const { toast } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
