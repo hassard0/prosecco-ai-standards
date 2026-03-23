@@ -197,49 +197,126 @@ export default function Affiliations() {
           </p>
         </div>
 
-        {/* Filters */}
         {allCompanies.length > 0 && (
-          <div className="space-y-3 mb-6">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Companies</span>
-                {hasFilters && (
-                  <button onClick={clearFilters} className="text-[10px] text-primary hover:underline">
-                    Clear all
-                  </button>
+          <div className="flex flex-wrap items-start gap-3 mb-6">
+            {/* Company dropdown */}
+            <div ref={companyRef} className="relative">
+              <button
+                onClick={() => { setCompanyDropdownOpen(!companyDropdownOpen); setStandardDropdownOpen(false); }}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                Companies
+                {selectedCompanies.size > 0 && (
+                  <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px] font-medium">{selectedCompanies.size}</span>
                 )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {allCompanies.map((c) => (
-                  <Badge
-                    key={c}
-                    variant={selectedCompanies.has(c) ? "default" : "outline"}
-                    className="cursor-pointer text-xs transition-all hover:shadow-sm active:scale-[0.97]"
-                    onClick={() => toggleCompany(c)}
-                  >
-                    {c}
-                    {selectedCompanies.has(c) && <X className="h-3 w-3 ml-1" />}
-                  </Badge>
-                ))}
-              </div>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+              {companyDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-56 rounded-md border bg-popover shadow-lg">
+                  <div className="p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search companies…"
+                        value={companySearch}
+                        onChange={(e) => setCompanySearch(e.target.value)}
+                        className="h-7 pl-7 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-1">
+                    {allCompanies
+                      .filter((c) => c.toLowerCase().includes(companySearch.toLowerCase()))
+                      .map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => toggleCompany(c)}
+                          className="flex items-center gap-2 w-full rounded px-2 py-1.5 text-xs hover:bg-accent transition-colors text-left"
+                        >
+                          <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${selectedCompanies.has(c) ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                            {selectedCompanies.has(c) && <span className="text-primary-foreground text-[9px]">✓</span>}
+                          </div>
+                          {c}
+                        </button>
+                      ))}
+                    {allCompanies.filter((c) => c.toLowerCase().includes(companySearch.toLowerCase())).length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">No matches</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Standards</span>
-              <div className="flex flex-wrap gap-1.5">
-                {allStandardNames.map((s) => (
-                  <Badge
-                    key={s}
-                    variant={selectedStandards.has(s) ? "default" : "outline"}
-                    className="cursor-pointer text-xs transition-all hover:shadow-sm active:scale-[0.97]"
-                    onClick={() => toggleStandard(s)}
-                  >
-                    {s}
-                    {selectedStandards.has(s) && <X className="h-3 w-3 ml-1" />}
-                  </Badge>
-                ))}
-              </div>
+            {/* Standard dropdown */}
+            <div ref={standardRef} className="relative">
+              <button
+                onClick={() => { setStandardDropdownOpen(!standardDropdownOpen); setCompanyDropdownOpen(false); }}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                Standards
+                {selectedStandards.size > 0 && (
+                  <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px] font-medium">{selectedStandards.size}</span>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+              {standardDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-64 rounded-md border bg-popover shadow-lg">
+                  <div className="p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search standards…"
+                        value={standardSearch}
+                        onChange={(e) => setStandardSearch(e.target.value)}
+                        className="h-7 pl-7 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-1">
+                    {allStandardNames
+                      .filter((s) => s.toLowerCase().includes(standardSearch.toLowerCase()))
+                      .map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => toggleStandard(s)}
+                          className="flex items-center gap-2 w-full rounded px-2 py-1.5 text-xs hover:bg-accent transition-colors text-left"
+                        >
+                          <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${selectedStandards.has(s) ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                            {selectedStandards.has(s) && <span className="text-primary-foreground text-[9px]">✓</span>}
+                          </div>
+                          {s}
+                        </button>
+                      ))}
+                    {allStandardNames.filter((s) => s.toLowerCase().includes(standardSearch.toLowerCase())).length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">No matches</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Selected tags + clear */}
+            {hasFilters && (
+              <>
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {[...selectedCompanies].map((c) => (
+                    <Badge key={c} variant="default" className="text-xs cursor-pointer active:scale-[0.97]" onClick={() => toggleCompany(c)}>
+                      {c} <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
+                  {[...selectedStandards].map((s) => (
+                    <Badge key={s} variant="secondary" className="text-xs cursor-pointer active:scale-[0.97]" onClick={() => toggleStandard(s)}>
+                      {s} <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
+                </div>
+                <button onClick={clearFilters} className="text-xs text-primary hover:underline">
+                  Clear all
+                </button>
+              </>
+            )}
           </div>
         )}
 
