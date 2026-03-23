@@ -163,6 +163,21 @@ serve(async (req) => {
               }
               lines.push("");
             }
+
+            // Summary
+            const sumData = summariesByStandard[s.id];
+            if (sumData) {
+              if (sumData.whats_new) {
+                lines.push("**What's New:**");
+                lines.push("");
+                lines.push(sumData.whats_new);
+                lines.push("");
+              }
+              lines.push("**Discussion Summary:**");
+              lines.push("");
+              lines.push(sumData.summary);
+              lines.push("");
+            }
           }
 
           lines.push("---");
