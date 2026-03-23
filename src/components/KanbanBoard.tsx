@@ -6,6 +6,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { TagFilter } from "./TagFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { LayoutList, Rows3 } from "lucide-react";
 
 interface KanbanBoardProps {
   searchQuery: string;
