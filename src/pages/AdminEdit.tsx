@@ -58,6 +58,7 @@ export default function AdminEdit() {
     setTags(s.tags ?? []);
     setResources(((s as any).resources as ResourceLink[]) ?? []);
     setAuthors(((s as any).authors as Author[]) ?? []);
+    setIsExpired((s as any).is_expired ?? false);
   }, [id, isNew, standards]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
