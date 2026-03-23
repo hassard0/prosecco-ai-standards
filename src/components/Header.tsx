@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Bot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,6 +6,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Settings, Radar, Network, Clock } from "lucide-react";
 import { NavLink } from "./NavLink";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   searchQuery: string;
@@ -68,6 +74,35 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 </Link>
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" aria-label="LLMs.txt">
+                  <Bot className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer"
+                  >
+                    llms.txt
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llms-txt?full=true`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer"
+                  >
+                    llms-full.txt
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ThemeToggle />
           </div>
         </div>
