@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useStandards } from "@/hooks/useStandards";
+import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
+import { StandardsFilterBar } from "@/components/StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const COLUMNS: { status: StatusType; label: string; color: string; description: 
 export default function Admin() {
   const { user, isAdmin, loading, signOut } = useAuth();
   const { data: standards, isLoading, error } = useStandards();
+  const { data: tags } = useTags();
   const { toast } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -47,7 +49,16 @@ export default function Admin() {
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [bulkEnriching, setBulkEnriching] = useState(false);
+
+  const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
+  const allOrganizations = useMemo(() => {
+    if (!standards) return [];
+    const orgs = new Set(standards.filter((s) => s.organization).map((s) => s.organization!));
+    return [...orgs].sort();
+  }, [standards]);
 
   const handleBulkEnrichResources = async () => {
     if (!standards) return;
@@ -138,7 +149,12 @@ export default function Admin() {
   };
 
   const columnStandards = (status: StatusType) =>
-    (standards || []).filter((s) => s.status === status);
+    (standards || []).filter((s) => {
+      if (s.status !== status) return false;
+      if (selectedTags.length > 0 && !selectedTags.some((tag) => s.tags?.includes(tag))) return false;
+      if (selectedOrgs.length > 0 && (!s.organization || !selectedOrgs.includes(s.organization))) return false;
+      return true;
+    });
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,6 +205,16 @@ export default function Admin() {
 
       {/* Kanban */}
       <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-4">
+          <StandardsFilterBar
+            allTags={allTags}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            allOrganizations={allOrganizations}
+            selectedOrganizations={selectedOrgs}
+            onOrganizationsChange={setSelectedOrgs}
+          />
+        </div>
         {error ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
             Failed to load standards.
