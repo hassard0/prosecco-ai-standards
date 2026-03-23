@@ -83,7 +83,14 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <TagFilter tags={allTags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+        <StandardsFilterBar
+          allTags={allTags}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          allOrganizations={allOrganizations}
+          selectedOrganizations={selectedOrgs}
+          onOrganizationsChange={setSelectedOrgs}
+        />
         <div className="flex items-center gap-1 p-1 rounded-md bg-muted shrink-0">
           <button
             onClick={() => setViewMode("compact")}
