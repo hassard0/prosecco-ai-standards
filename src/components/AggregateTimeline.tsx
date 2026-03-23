@@ -545,7 +545,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                     {row.title}
                   </button>
 
-                  <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
+                  <div className="relative" style={{ width: timelineMetrics.trackWidth + TRACK_END_GUTTER, height: 76 }}>
                     {timelineMetrics.monthTicks.map((tick, i) => (
                       <div
                         key={i}
