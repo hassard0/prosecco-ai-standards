@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
+import { normalizeCompany } from "@/lib/normalizeCompany";
 
 interface Author {
   name: string;
