@@ -125,20 +125,25 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
 
   const rows = groupByStandard(enrichedEvents);
 
-  // Global date range for alignment
+  // Global date range for alignment — pad 3 months each side so dots don't sit on edges
   const allDates = enrichedEvents.map((e) => parseDate(e.date).getTime());
-  const minDate = Math.min(...allDates);
-  const maxDate = Math.max(...allDates);
+  const pad = 90 * 24 * 60 * 60 * 1000; // 3 months
+  const minDate = Math.min(...allDates) - pad;
+  const maxDate = Math.max(...allDates) + pad;
   const range = maxDate - minDate || 1;
 
   // Generate year tick marks
   const minYear = new Date(minDate).getFullYear();
-  const maxYear = new Date(maxDate).getFullYear();
+  const maxYear = new Date(maxDate).getFullYear() + 1;
   const yearTicks: { year: number; pct: number }[] = [];
   for (let y = minYear; y <= maxYear; y++) {
     const t = new Date(`${y}-01-01`).getTime();
-    yearTicks.push({ year: y, pct: ((t - minDate) / range) * 100 });
+    const pct = ((t - minDate) / range) * 100;
+    if (pct >= 0 && pct <= 100) yearTicks.push({ year: y, pct });
   }
+
+  // Width: 200px per year span, minimum 1400
+  const trackWidth = Math.max(1400, (maxYear - minYear) * 250);
 
   return (
     <div className="space-y-4">
