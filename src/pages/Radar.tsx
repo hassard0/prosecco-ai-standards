@@ -6,7 +6,6 @@ import { Footer } from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { AggregateTimeline } from "@/components/AggregateTimeline";
 
 // Quadrants designed around the actual standards in the directory
 const QUADRANT_DEFS = [
@@ -178,9 +177,8 @@ export default function Radar() {
         {isLoading ? (
           <Skeleton className="w-full aspect-square max-w-3xl mx-auto rounded-full" />
         ) : (
-          <div className="flex flex-col xl:flex-row gap-8">
-            {/* Radar SVG + Legend */}
-            <div className="flex-1 min-w-0 flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Radar SVG */}
             <div className="flex-1 min-w-0">
               <svg viewBox="0 0 1000 1000" className="w-full h-auto max-w-3xl mx-auto">
                 {/* Quadrant background fills */}
@@ -368,12 +366,6 @@ export default function Radar() {
                   </div>
                 );
               })}
-            </div>
-            </div>
-
-            {/* Aggregate Timeline */}
-            <div className="xl:w-96 shrink-0 rounded-lg border bg-card p-5">
-              <AggregateTimeline standards={filtered} />
             </div>
           </div>
         )}
