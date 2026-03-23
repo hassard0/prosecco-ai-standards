@@ -490,7 +490,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           No events match the current filters.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-background/50">
+        <div ref={containerRef} className="overflow-x-auto rounded-lg border bg-background/50">
           <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
             <div className="flex border-b bg-muted/20">
               <div
@@ -501,15 +501,18 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
               </div>
 
               <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
-                {timelineMetrics.ticks.map((tick) => (
+                {timelineMetrics.monthTicks.map((tick, i) => (
                   <div
-                    key={tick.year}
+                    key={i}
                     className="absolute inset-y-0"
                     style={{ left: tick.x }}
                   >
-                    <div className="absolute inset-y-0 w-px bg-border/60" />
-                    <span className="absolute left-2 top-3 text-[10px] font-semibold tabular-nums text-muted-foreground">
-                      {tick.year}
+                    <div className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border" : "bg-border/40")} />
+                    <span className={cn(
+                      "absolute left-2 top-3 whitespace-nowrap tabular-nums",
+                      tick.isYear ? "text-[11px] font-bold text-foreground" : "text-[9px] font-medium text-muted-foreground"
+                    )}>
+                      {tick.label}
                     </span>
                   </div>
                 ))}
@@ -529,10 +532,10 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                 </button>
 
                 <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
-                  {timelineMetrics.ticks.map((tick) => (
+                  {timelineMetrics.monthTicks.map((tick, i) => (
                     <div
-                      key={tick.year}
-                      className="absolute inset-y-0 w-px bg-border/30"
+                      key={i}
+                      className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border/50" : "bg-border/20")}
                       style={{ left: tick.x }}
                     />
                   ))}
