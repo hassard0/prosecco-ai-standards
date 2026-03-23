@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { KanbanColumn } from "./KanbanColumn";
-import { TagFilter } from "./TagFilter";
+import { StandardsFilterBar } from "./StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { LayoutList, Rows3 } from "lucide-react";
@@ -22,6 +22,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { data: standards, isLoading, error } = useStandards();
   const { data: tags } = useTags();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
   const [mobileTab, setMobileTab] = useState(0);
   const navigate = useNavigate();
@@ -31,9 +32,14 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
     return tags.map((t) => t.name);
   }, [tags]);
 
+  const allOrganizations = useMemo(() => {
+    if (!standards) return [];
+    const orgs = new Set(standards.filter((s) => s.organization && s.status !== "Backlog").map((s) => s.organization!));
+    return [...orgs].sort();
+  }, [standards]);
+
   const filtered = useMemo(() => {
     if (!standards) return [];
-    // Exclude Backlog from public view
     const published = standards.filter((s) => s.status !== "Backlog");
     const query = searchQuery.toLowerCase().trim();
     return published.filter((s) => {
@@ -47,9 +53,13 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
         selectedTags.length === 0 ||
         selectedTags.some((tag) => s.tags?.includes(tag));
 
-      return matchesSearch && matchesTags;
+      const matchesOrgs =
+        selectedOrgs.length === 0 ||
+        (s.organization && selectedOrgs.includes(s.organization));
+
+      return matchesSearch && matchesTags && matchesOrgs;
     });
-  }, [standards, searchQuery, selectedTags]);
+  }, [standards, searchQuery, selectedTags, selectedOrgs]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
