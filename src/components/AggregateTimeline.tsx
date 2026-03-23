@@ -123,8 +123,22 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     );
   }
 
-  const yearGroups = groupByYear(enrichedEvents);
-  const years = Object.keys(yearGroups).sort((a, b) => Number(b) - Number(a));
+  const rows = groupByStandard(enrichedEvents);
+
+  // Global date range for alignment
+  const allDates = enrichedEvents.map((e) => parseDate(e.date).getTime());
+  const minDate = Math.min(...allDates);
+  const maxDate = Math.max(...allDates);
+  const range = maxDate - minDate || 1;
+
+  // Generate year tick marks
+  const minYear = new Date(minDate).getFullYear();
+  const maxYear = new Date(maxDate).getFullYear();
+  const yearTicks: { year: number; pct: number }[] = [];
+  for (let y = minYear; y <= maxYear; y++) {
+    const t = new Date(`${y}-01-01`).getTime();
+    yearTicks.push({ year: y, pct: ((t - minDate) / range) * 100 });
+  }
 
   return (
     <div className="space-y-4">
@@ -132,79 +146,91 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-sm font-semibold text-foreground">Combined Timeline</h2>
         <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
-          {enrichedEvents.length} events across {summaries?.length ?? 0} standards
+          {enrichedEvents.length} events across {rows.length} standards
         </span>
       </div>
 
-      {/* Horizontal scrollable timeline */}
-      <div className="relative overflow-x-auto pb-4">
-        {/* Horizontal line */}
-        <div className="absolute top-[30px] left-0 right-0 h-px bg-border" />
-
-        <div className="flex gap-0 min-w-max">
-          {years.map((year, yi) => (
-            <div key={year} className="flex items-start">
-              {/* Year marker */}
-              <div className="flex flex-col items-center shrink-0 relative" style={{ width: 60 }}>
-                <span className="text-[10px] font-bold text-foreground mb-1.5 tracking-wide">{year}</span>
-                <div className="h-3 w-3 rounded-full bg-muted border-2 border-border z-10" />
-              </div>
-
-              {/* Events for this year */}
-              <div className="flex gap-3 pt-0">
-                {yearGroups[year].map((event, i) => {
-                  const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
-                  const Icon = config.icon;
-                  const label = event.standardAcronym || event.standardTitle.slice(0, 16);
-
-                  return (
-                    <div
-                      key={`${event.standardId}-${i}`}
-                      className="flex flex-col items-center shrink-0 group"
-                      style={{ width: 140 }}
-                    >
-                      {/* Date */}
-                      <span className="text-[9px] text-muted-foreground tabular-nums mb-1">
-                        {formatDate(event.date)}
-                      </span>
-
-                      {/* Node on the line */}
-                      <div
-                        className="flex h-5 w-5 items-center justify-center rounded-full z-10 shrink-0"
-                        style={{ backgroundColor: config.bg }}
-                      >
-                        <Icon className="h-3 w-3" style={{ color: config.color }} />
-                      </div>
-
-                      {/* Card below */}
-                      <button
-                        onClick={() => navigate(`/standard/${event.standardId}`)}
-                        className="mt-2 w-full rounded-md border bg-card p-2 text-left hover:bg-muted/50 transition-colors active:scale-[0.97] cursor-pointer"
-                      >
-                        <span
-                          className="text-[9px] font-semibold px-1 py-0.5 rounded bg-muted text-muted-foreground inline-block mb-1 truncate max-w-full"
-                          title={event.standardTitle}
-                        >
-                          {label}
-                        </span>
-                        <p className="text-[11px] font-medium text-foreground leading-tight line-clamp-2">
-                          {event.title}
-                        </p>
-                        {event.description && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">
-                            {event.description}
-                          </p>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Spacer between years */}
-              {yi < years.length - 1 && <div className="w-6 shrink-0" />}
+      <div className="overflow-x-auto">
+        <div className="min-w-[700px]">
+          {/* Year axis */}
+          <div className="flex items-end mb-1 pl-[140px]">
+            <div className="flex-1 relative h-5">
+              {yearTicks.map((t) => (
+                <span
+                  key={t.year}
+                  className="absolute text-[10px] font-semibold text-muted-foreground tabular-nums -translate-x-1/2"
+                  style={{ left: `${Math.min(Math.max(t.pct, 2), 98)}%` }}
+                >
+                  {t.year}
+                </span>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Rows */}
+          <div className="space-y-1">
+            {rows.map((row) => (
+              <div key={row.id} className="flex items-center gap-0 group/row">
+                {/* Standard label */}
+                <button
+                  onClick={() => navigate(`/standard/${row.id}`)}
+                  className="w-[140px] shrink-0 text-right pr-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors truncate active:scale-[0.97]"
+                  title={row.title}
+                >
+                  {row.label}
+                </button>
+
+                {/* Track */}
+                <div className="flex-1 relative h-10 rounded bg-muted/20 group-hover/row:bg-muted/40 transition-colors">
+                  {/* Horizontal baseline */}
+                  <div className="absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
+
+                  {/* Year gridlines */}
+                  {yearTicks.map((t) => (
+                    <div
+                      key={t.year}
+                      className="absolute top-0 bottom-0 w-px bg-border/40"
+                      style={{ left: `${t.pct}%` }}
+                    />
+                  ))}
+
+                  {/* Event dots */}
+                  {row.events.map((event, i) => {
+                    const pct = ((parseDate(event.date).getTime() - minDate) / range) * 100;
+                    const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                    const Icon = config.icon;
+
+                    return (
+                      <div
+                        key={i}
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 group/dot"
+                        style={{ left: `${Math.min(Math.max(pct, 1), 99)}%` }}
+                      >
+                        <div
+                          className="flex h-6 w-6 items-center justify-center rounded-full cursor-default hover:scale-125 transition-transform"
+                          style={{ backgroundColor: config.bg }}
+                          title={`${event.title} — ${formatDate(event.date)}`}
+                        >
+                          <Icon className="h-3 w-3" style={{ color: config.color }} />
+                        </div>
+
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-20 pointer-events-none">
+                          <div className="bg-popover border rounded-md shadow-md px-2.5 py-1.5 w-48 text-left">
+                            <p className="text-[11px] font-medium text-foreground leading-tight">{event.title}</p>
+                            <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">{formatDate(event.date)}</p>
+                            {event.description && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{event.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
