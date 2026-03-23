@@ -147,7 +147,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
             {step === "results" && `Found ${results.length} Standard${results.length !== 1 ? "s" : ""}`}
           </DialogTitle>
           <DialogDescription>
-            {step === "pick-orgs" && "Select organizations to scan for AI/Agent/LLM standards."}
+            {step === "pick-orgs" && "Select organizations to scan for technology standards."}
             {step === "scanning" && "AI is searching for relevant standards…"}
             {step === "results" && "Select which standards to import to your Backlog."}
           </DialogDescription>
@@ -195,7 +195,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
         {step === "scanning" && (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Searching for AI/Agent/LLM standards…</p>
+            <p className="text-sm text-muted-foreground">Searching for standards…</p>
             <div className="space-y-2 w-full max-w-sm">
               {[0, 1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" style={{ animationDelay: `${i * 150}ms` }} />
@@ -261,9 +261,9 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-[10px] text-primary hover:underline underline-offset-2 flex items-center gap-0.5"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                               >
-                                Spec ↗
+                                View Spec ↗
                               </a>
                             )}
                             {s.tags && s.tags.length > 0 && (

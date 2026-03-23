@@ -42,19 +42,19 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert on AI, LLM, and agent-related technical standards and specifications. Your job is to identify standards, protocols, specifications, and frameworks from specific organizations that are related to AI agents, LLMs, machine learning, AI safety, AI interoperability, or AI infrastructure.
+            content: `You are an expert on technical standards and specifications across technology domains. Your job is to identify standards, protocols, specifications, and frameworks from specific organizations that are relevant to modern technology — including but not limited to AI, agents, LLMs, machine learning, identity, authentication, security, web standards, cloud infrastructure, networking, data formats, privacy, and interoperability.
 
-Only include standards that are specifically about or directly relevant to AI, agents, LLMs, or machine learning. Do NOT include general-purpose standards (like generic HTTP specs, general security frameworks, etc.) unless they have a specific AI/agent focus.
+Include any standard that is relevant to the technology ecosystem. Be broad and comprehensive.
 
 For each standard found, provide accurate metadata. If you're unsure about a detail, leave it empty rather than guessing.`,
           },
           {
             role: "user",
-            content: `Find ALL AI/Agent/LLM-related standards, protocols, and specifications from these organizations: ${orgList}
+            content: `Find ALL notable standards, protocols, and specifications from these organizations: ${orgList}
 
 For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the specification or project page, and relevant tags.
 
-Be thorough and comprehensive — return at least 10-15 standards per organization if they exist. Include working groups, drafts, published RFCs, frameworks, guidelines, toolkits, and any specification related to AI, agents, LLMs, machine learning, AI safety, AI ethics, AI governance, or AI interoperability. Always include the spec URL when available.`,
+Be thorough and comprehensive — return at least 15-20 standards per organization if they exist. Include working groups, drafts, published RFCs, frameworks, guidelines, toolkits, and any significant specification. Always include the spec URL when available.`,
           },
         ],
         tools: [
