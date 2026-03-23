@@ -67,6 +67,7 @@ export default function Affiliations() {
   const { data: standards, isLoading } = useStandards();
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
+  const [showUnknown, setShowUnknown] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [standardDropdownOpen, setStandardDropdownOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
@@ -85,7 +86,7 @@ export default function Affiliations() {
   }, []);
 
   // Extract all companies and standards that have author data
-  const { allCompanies, allStandardNames } = useMemo(() => {
+  const { allCompanies, allStandardNames, hasUnknown } = useMemo(() => {
     if (!standards) return { allCompanies: [], allStandardNames: [] };
     const companies = new Set<string>();
     const stdNames = new Set<string>();
@@ -95,13 +96,15 @@ export default function Affiliations() {
       stdNames.add(s.title);
       for (const a of authors) {
         const c = normalizeCompany(a.company);
-        if (c !== "Unknown") companies.add(c);
+        companies.add(c);
       }
     }
-    return {
-      allCompanies: [...companies].sort(),
-      allStandardNames: [...stdNames].sort(),
-    };
+      const sorted = [...companies].sort();
+      return {
+        allCompanies: sorted.filter((c) => c !== "Unknown"),
+        allStandardNames: [...stdNames].sort(),
+        hasUnknown: companies.has("Unknown"),
+      };
   }, [standards]);
 
   const toggleCompany = (c: string) => {
@@ -141,7 +144,7 @@ export default function Affiliations() {
 
       for (const a of authors) {
         const company = normalizeCompany(a.company);
-        if (company === "Unknown") continue;
+        if (company === "Unknown" && !showUnknown) continue;
 
         // If filtering by company, skip non-matching
         if (selectedCompanies.size > 0 && !selectedCompanies.has(company)) continue;
@@ -175,7 +178,7 @@ export default function Affiliations() {
     }
 
     return { nodes, links };
-  }, [standards, selectedCompanies, selectedStandards]);
+  }, [standards, selectedCompanies, selectedStandards, showUnknown]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -298,6 +301,19 @@ export default function Affiliations() {
                 </div>
               )}
             </div>
+
+            {/* Show Unknown toggle */}
+            {hasUnknown && (
+              <button
+                onClick={() => setShowUnknown((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${showUnknown ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                  {showUnknown && <span className="text-primary-foreground text-[9px]">✓</span>}
+                </div>
+                Show Unknown
+              </button>
+            )}
 
             {/* Selected tags + clear */}
             {hasFilters && (
