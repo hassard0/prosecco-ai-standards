@@ -8,9 +8,25 @@ interface Author {
   url?: string;
 }
 
+const COMPANY_COLORS = [
+  "hsl(220 70% 50%)",
+  "hsl(340 65% 47%)",
+  "hsl(160 55% 40%)",
+  "hsl(30 80% 50%)",
+  "hsl(270 55% 50%)",
+  "hsl(190 60% 42%)",
+  "hsl(10 70% 48%)",
+  "hsl(90 50% 40%)",
+  "hsl(300 45% 45%)",
+  "hsl(50 75% 45%)",
+];
+
 function MiniSankeyNode(props: any) {
   const { x, y, width, height, index, payload } = props;
   const isCompany = payload.depth === 0;
+  const color = isCompany
+    ? COMPANY_COLORS[index % COMPANY_COLORS.length]
+    : "hsl(var(--muted-foreground) / 0.4)";
 
   return (
     <Layer key={`mini-sankey-node-${index}`}>
@@ -19,17 +35,17 @@ function MiniSankeyNode(props: any) {
         y={y}
         width={width}
         height={height}
-        fill={isCompany ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.4)"}
+        fill={color}
         fillOpacity={0.9}
         rx={2}
       />
       <text
-        x={isCompany ? x - 4 : x + width + 4}
+        x={isCompany ? x - 6 : x + width + 6}
         y={y + height / 2}
         textAnchor={isCompany ? "end" : "start"}
         dominantBaseline="central"
         className="fill-foreground"
-        style={{ fontSize: 10 }}
+        style={{ fontSize: 11, fontWeight: isCompany ? 500 : 400 }}
       >
         {payload.name}
       </text>
@@ -71,20 +87,20 @@ export function MiniAuthorSankey({ standardTitle, authors }: Props) {
 
   if (!sankeyData) return null;
 
-  const chartHeight = Math.max(80, sankeyData.nodes.length * 24);
+  const chartHeight = Math.max(120, sankeyData.nodes.length * 32);
 
   return (
     <div className="overflow-x-auto -mx-2">
       <Sankey
-        width={460}
+        width={520}
         height={chartHeight}
         data={sankeyData}
         node={<MiniSankeyNode />}
-        nodePadding={8}
-        nodeWidth={5}
+        nodePadding={12}
+        nodeWidth={6}
         linkCurvature={0.5}
-        margin={{ top: 4, right: 120, bottom: 4, left: 120 }}
-        link={{ stroke: "hsl(var(--primary) / 0.12)", strokeOpacity: 0.5 }}
+        margin={{ top: 8, right: 140, bottom: 8, left: 140 }}
+        link={{ stroke: "hsl(var(--muted-foreground) / 0.10)", strokeOpacity: 0.5 }}
       >
         <Tooltip
           content={({ payload }) => {
@@ -92,7 +108,7 @@ export function MiniAuthorSankey({ standardTitle, authors }: Props) {
             const data = payload[0].payload;
             if (data.source && data.target) {
               return (
-                <div className="rounded-md border bg-popover px-2.5 py-1.5 text-[11px] shadow-md">
+                <div className="rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-md">
                   <span className="font-medium">{data.source.name}</span>
                   <span className="text-muted-foreground"> → </span>
                   <span className="text-muted-foreground">
