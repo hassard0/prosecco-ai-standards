@@ -103,6 +103,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          is_expired: boolean
           link: string | null
           logo_url: string | null
           organization: string | null
@@ -118,6 +119,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          is_expired?: boolean
           link?: string | null
           logo_url?: string | null
           organization?: string | null
@@ -133,6 +135,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          is_expired?: boolean
           link?: string | null
           logo_url?: string | null
           organization?: string | null

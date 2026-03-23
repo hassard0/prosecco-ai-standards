@@ -39,6 +39,7 @@ export default function AdminEdit() {
   const [tags, setTags] = useState<string[]>([]);
   const [resources, setResources] = useState<ResourceLink[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
+  const [isExpired, setIsExpired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichData, setEnrichData] = useState<any>(null);
@@ -57,6 +58,7 @@ export default function AdminEdit() {
     setTags(s.tags ?? []);
     setResources(((s as any).resources as ResourceLink[]) ?? []);
     setAuthors(((s as any).authors as Author[]) ?? []);
+    setIsExpired((s as any).is_expired ?? false);
   }, [id, isNew, standards]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
@@ -76,6 +78,7 @@ export default function AdminEdit() {
       tags,
       resources: resources.filter((r) => r.url.trim()) as any,
       authors: authors.filter((a) => a.name.trim()) as any,
+      is_expired: isExpired,
     };
 
     const { error } = isNew
@@ -202,9 +205,20 @@ export default function AdminEdit() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Tags</Label>
-                <TagInput tags={tags} onChange={setTags} placeholder="Type a tag and press Enter…" />
-              </div>
+                  <Label>Tags</Label>
+                  <TagInput tags={tags} onChange={setTags} placeholder="Type a tag and press Enter…" />
+                </div>
+
+              <div className="space-y-1.5">
+                  <Label>Lifecycle</Label>
+                  <Select value={isExpired ? "expired" : "active"} onValueChange={(v) => setIsExpired(v === "expired")}>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </section>
 
             {/* Link + AI Enrichment */}

@@ -21,6 +21,8 @@ interface StandardsFilterBarProps {
   onFilterNoResourcesChange?: (val: boolean) => void;
   filterNoSummaries?: boolean;
   onFilterNoSummariesChange?: (val: boolean) => void;
+  showExpired?: boolean;
+  onShowExpiredChange?: (val: boolean) => void;
 }
 
 function MultiSelectFilter({
@@ -115,8 +117,10 @@ export function StandardsFilterBar({
   onFilterNoResourcesChange,
   filterNoSummaries,
   onFilterNoSummariesChange,
+  showExpired,
+  onShowExpiredChange,
 }: StandardsFilterBarProps) {
-  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0 || !!filterNoResources || !!filterNoSummaries;
+  const hasFilters = selectedTags.length > 0 || selectedOrganizations.length > 0 || searchQuery.length > 0 || !!filterNoResources || !!filterNoSummaries || !!showExpired;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -157,6 +161,19 @@ export function StandardsFilterBar({
           No Summaries
         </Button>
       )}
+      {onShowExpiredChange && (
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 h-8 text-xs font-medium",
+            showExpired && "border-orange-500/40 bg-orange-500/5 text-foreground"
+          )}
+          onClick={() => onShowExpiredChange(!showExpired)}
+        >
+          Show Expired
+        </Button>
+      )}
       {hasFilters && (
         <Button
           variant="ghost"
@@ -166,6 +183,7 @@ export function StandardsFilterBar({
             onTagsChange([]); onOrganizationsChange([]); onSearchChange("");
             onFilterNoResourcesChange?.(false);
             onFilterNoSummariesChange?.(false);
+            onShowExpiredChange?.(false);
           }}
         >
           <X className="h-3 w-3" /> Clear

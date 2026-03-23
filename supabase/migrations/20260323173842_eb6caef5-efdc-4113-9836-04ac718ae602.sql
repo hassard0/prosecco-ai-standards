@@ -1,0 +1,1 @@
+ALTER TABLE public.standards ADD COLUMN is_expired boolean NOT NULL DEFAULT false;
