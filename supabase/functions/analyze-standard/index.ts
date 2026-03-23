@@ -194,80 +194,84 @@ Only return valid JSON, no markdown fences or extra text.`,
     const extracted = JSON.parse(toolCall.function.arguments);
 
     // Find GitHub repo URLs from resources or the page content and fetch contributors
-    const githubRepos: string[] = [];
-    const ghRepoPattern = /https?:\/\/github\.com\/([^\/\s]+\/[^\/\s#?]+)/g;
+    // Wrapped in try-catch so GitHub failures never break the overall response
+    try {
+      const githubRepos: string[] = [];
+      const ghRepoPattern = /https?:\/\/github\.com\/([^\/\s]+\/[^\/\s#?]+)/g;
 
-    // Check extracted resources for GitHub repos
-    if (extracted.resources) {
-      for (const r of extracted.resources) {
-        if (r.type === "github" && r.url) {
-          const match = r.url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
-          if (match) githubRepos.push(match[1]);
-        }
-      }
-    }
-
-    // Also scan the page content for GitHub URLs
-    let ghMatch;
-    while ((ghMatch = ghRepoPattern.exec(pageContent)) !== null) {
-      const repo = ghMatch[1].replace(/\.git$/, "");
-      if (!githubRepos.includes(repo)) githubRepos.push(repo);
-    }
-
-    // Also check the input URL itself
-    const inputMatch = url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
-    if (inputMatch) {
-      const repo = inputMatch[1].replace(/\.git$/, "");
-      if (!githubRepos.includes(repo)) githubRepos.push(repo);
-    }
-
-    // Fetch contributors from GitHub repos (up to 3 repos, top 30 contributors each)
-    const existingNames = new Set((extracted.authors || []).map((a: any) => a.name?.toLowerCase()));
-    const ghContributors: any[] = [];
-
-    for (const repo of githubRepos.slice(0, 2)) {
-      try {
-        const contribResp = await fetch(
-          `https://api.github.com/repos/${repo}/contributors?per_page=10`,
-          { headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" } }
-        );
-        if (!contribResp.ok) { await contribResp.text(); continue; }
-        const contributors = await contribResp.json();
-        if (!Array.isArray(contributors)) continue;
-
-        // Only fetch details for top 5 contributors to avoid timeouts
-        for (const c of contributors.slice(0, 5)) {
-          if (!c.login || c.type === "Bot") continue;
-          try {
-            const userResp = await fetch(`https://api.github.com/users/${c.login}`, {
-              headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" },
-            });
-            if (userResp.ok) {
-              const user = await userResp.json();
-              const name = user.name || c.login;
-              if (existingNames.has(name.toLowerCase())) continue;
-              existingNames.add(name.toLowerCase());
-              ghContributors.push({
-                name,
-                company: (user.company || "").replace(/^@/, "").trim() || "Unknown",
-                role: "GitHub Contributor",
-                url: user.html_url || `https://github.com/${c.login}`,
-              });
-            } else {
-              await userResp.text();
-            }
-          } catch {
-            // Skip individual user fetch failures
+      if (extracted.resources) {
+        for (const r of extracted.resources) {
+          if (r.type === "github" && r.url) {
+            const match = r.url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
+            if (match) githubRepos.push(match[1]);
           }
         }
-      } catch {
-        // Skip repo fetch failures
       }
-    }
 
-    // Merge GitHub contributors into authors
-    if (ghContributors.length > 0) {
-      extracted.authors = [...(extracted.authors || []), ...ghContributors];
+      let ghMatch;
+      while ((ghMatch = ghRepoPattern.exec(pageContent)) !== null) {
+        const repo = ghMatch[1].replace(/\.git$/, "");
+        if (!githubRepos.includes(repo)) githubRepos.push(repo);
+      }
+
+      const inputMatch = url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
+      if (inputMatch) {
+        const repo = inputMatch[1].replace(/\.git$/, "");
+        if (!githubRepos.includes(repo)) githubRepos.push(repo);
+      }
+
+      console.log("GitHub repos found:", githubRepos);
+
+      const existingNames = new Set((extracted.authors || []).map((a: any) => a.name?.toLowerCase()));
+      const ghContributors: any[] = [];
+
+      for (const repo of githubRepos.slice(0, 3)) {
+        try {
+          const contribResp = await fetch(
+            `https://api.github.com/repos/${repo}/contributors?per_page=15`,
+            { headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" } }
+          );
+          if (!contribResp.ok) { await contribResp.text(); continue; }
+          const contributors = await contribResp.json();
+          if (!Array.isArray(contributors)) continue;
+
+          for (const c of contributors.slice(0, 10)) {
+            if (!c.login || c.type === "Bot") continue;
+            try {
+              const userResp = await fetch(`https://api.github.com/users/${c.login}`, {
+                headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" },
+              });
+              if (userResp.ok) {
+                const user = await userResp.json();
+                const name = user.name || c.login;
+                if (existingNames.has(name.toLowerCase())) continue;
+                existingNames.add(name.toLowerCase());
+                ghContributors.push({
+                  name,
+                  company: (user.company || "").replace(/^@/, "").trim() || "Unknown",
+                  role: "GitHub Contributor",
+                  url: user.html_url || `https://github.com/${c.login}`,
+                });
+              } else {
+                await userResp.text();
+              }
+            } catch (ue) {
+              console.error("User fetch error:", ue);
+            }
+          }
+        } catch (re) {
+          console.error("Repo fetch error:", re);
+        }
+      }
+
+      if (ghContributors.length > 0) {
+        extracted.authors = [...(extracted.authors || []), ...ghContributors];
+      }
+      console.log("Final authors count:", extracted.authors?.length ?? 0);
+    } catch (ghErr) {
+      console.error("GitHub enrichment failed entirely, skipping:", ghErr);
+      // Don't fail the whole request - just return without GH contributors
+    }
     }
 
     return new Response(
