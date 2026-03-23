@@ -138,7 +138,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-4 w-4 text-primary" />
@@ -253,8 +253,19 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{s.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-[10px] text-muted-foreground">{s.organization}</span>
+                            {s.link && (
+                              <a
+                                href={s.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[10px] text-primary hover:underline underline-offset-2 flex items-center gap-0.5"
+                              >
+                                Spec ↗
+                              </a>
+                            )}
                             {s.tags && s.tags.length > 0 && (
                               <div className="flex gap-1">
                                 {s.tags.slice(0, 3).map((tag) => (
