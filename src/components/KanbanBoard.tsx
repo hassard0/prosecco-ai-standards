@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
@@ -7,6 +7,15 @@ import { StandardsFilterBar } from "./StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { LayoutList, Rows3 } from "lucide-react";
+
+function getViewModeCookie(): "compact" | "detailed" {
+  const match = document.cookie.match(/(?:^|; )viewMode=(compact|detailed)/);
+  return (match?.[1] as "compact" | "detailed") ?? "detailed";
+}
+
+function setViewModeCookie(mode: "compact" | "detailed") {
+  document.cookie = `viewMode=${mode}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
 
 interface KanbanBoardProps {
   searchQuery: string;
@@ -24,7 +33,11 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [localSearch, setLocalSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
+  const [viewMode, setViewModeState] = useState<"compact" | "detailed">(getViewModeCookie);
+  const setViewMode = useCallback((mode: "compact" | "detailed") => {
+    setViewModeState(mode);
+    setViewModeCookie(mode);
+  }, []);
   const [mobileTab, setMobileTab] = useState(0);
   const navigate = useNavigate();
 
