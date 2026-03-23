@@ -302,6 +302,19 @@ export default function Affiliations() {
               )}
             </div>
 
+            {/* Show Unknown toggle */}
+            {hasUnknown && (
+              <button
+                onClick={() => setShowUnknown((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${showUnknown ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                  {showUnknown && <span className="text-primary-foreground text-[9px]">✓</span>}
+                </div>
+                Show Unknown
+              </button>
+            )}
+
             {/* Selected tags + clear */}
             {hasFilters && (
               <>
