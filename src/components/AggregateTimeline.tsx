@@ -56,6 +56,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; b
 };
 
 const LABEL_WIDTH = 192;
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function parseDate(dateStr: string): Date {
   if (/^\d{4}$/.test(dateStr)) return new Date(`${dateStr}-01-01T00:00:00`);
@@ -303,39 +304,65 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
   }, [filteredEvents]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerWidth(Math.floor(w));
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   const timelineMetrics = useMemo(() => {
     if (filteredEvents.length === 0) {
       return {
         minTime: 0,
         maxTime: 1,
-        trackWidth: 1200,
-        ticks: [] as { year: number; x: number }[],
+        trackWidth: containerWidth - LABEL_WIDTH,
+        monthTicks: [] as { label: string; x: number; isYear: boolean }[],
       };
     }
 
     const sourceTimes = filteredEvents.map((event) => parseDate(event.date).getTime());
-    const padding = 90 * 24 * 60 * 60 * 1000;
+    const padding = 30 * 24 * 60 * 60 * 1000; // 1 month padding
     const minTime = Math.min(...sourceTimes) - padding;
     const maxTime = Math.max(...sourceTimes) + padding;
     const span = Math.max(1, maxTime - minTime);
+    const spanDays = span / (24 * 60 * 60 * 1000);
 
-    const minYear = new Date(minTime).getFullYear();
-    const maxYear = new Date(maxTime).getFullYear();
-    const trackWidth = Math.max(1400, (maxYear - minYear + 1) * 320);
+    // Auto-size: at least 60px per month visible, minimum container width
+    const spanMonths = Math.max(1, Math.ceil(spanDays / 30));
+    const trackWidth = Math.max(containerWidth - LABEL_WIDTH, spanMonths * 60);
 
     const positionFor = (time: number) => ((time - minTime) / span) * trackWidth;
 
-    const ticks: { year: number; x: number }[] = [];
-    for (let year = minYear; year <= maxYear + 1; year += 1) {
-      const tickTime = new Date(`${year}-01-01T00:00:00`).getTime();
-      const x = positionFor(tickTime);
-      if (x >= 0 && x <= trackWidth) {
-        ticks.push({ year, x });
+    // Generate month ticks
+    const monthTicks: { label: string; x: number; isYear: boolean }[] = [];
+    const startDate = new Date(minTime);
+    let tickMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const endTime = maxTime + 30 * 24 * 60 * 60 * 1000;
+
+    while (tickMonth.getTime() <= endTime) {
+      const x = positionFor(tickMonth.getTime());
+      if (x >= -20 && x <= trackWidth + 20) {
+        const isYear = tickMonth.getMonth() === 0;
+        const weekOfYear = Math.ceil(
+          ((tickMonth.getTime() - new Date(tickMonth.getFullYear(), 0, 1).getTime()) / (24 * 60 * 60 * 1000) + 1) / 7
+        );
+        const label = isYear
+          ? `${tickMonth.getFullYear()}`
+          : `${MONTH_NAMES[tickMonth.getMonth()]} W${weekOfYear}`;
+        monthTicks.push({ label, x, isYear });
       }
+      tickMonth = new Date(tickMonth.getFullYear(), tickMonth.getMonth() + 1, 1);
     }
 
-    return { minTime, maxTime, trackWidth, ticks };
-  }, [filteredEvents]);
+    return { minTime, maxTime, trackWidth, monthTicks };
+  }, [filteredEvents, containerWidth]);
 
   const positionForEvent = (date: string) => {
     const time = parseDate(date).getTime();
@@ -463,7 +490,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           No events match the current filters.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-background/50">
+        <div ref={containerRef} className="overflow-x-auto rounded-lg border bg-background/50">
           <div style={{ width: LABEL_WIDTH + timelineMetrics.trackWidth }}>
             <div className="flex border-b bg-muted/20">
               <div
@@ -474,15 +501,18 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
               </div>
 
               <div className="relative h-12" style={{ width: timelineMetrics.trackWidth }}>
-                {timelineMetrics.ticks.map((tick) => (
+                {timelineMetrics.monthTicks.map((tick, i) => (
                   <div
-                    key={tick.year}
+                    key={i}
                     className="absolute inset-y-0"
                     style={{ left: tick.x }}
                   >
-                    <div className="absolute inset-y-0 w-px bg-border/60" />
-                    <span className="absolute left-2 top-3 text-[10px] font-semibold tabular-nums text-muted-foreground">
-                      {tick.year}
+                    <div className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border" : "bg-border/40")} />
+                    <span className={cn(
+                      "absolute left-2 top-3 whitespace-nowrap tabular-nums",
+                      tick.isYear ? "text-[11px] font-bold text-foreground" : "text-[9px] font-medium text-muted-foreground"
+                    )}>
+                      {tick.label}
                     </span>
                   </div>
                 ))}
@@ -502,10 +532,10 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                 </button>
 
                 <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
-                  {timelineMetrics.ticks.map((tick) => (
+                  {timelineMetrics.monthTicks.map((tick, i) => (
                     <div
-                      key={tick.year}
-                      className="absolute inset-y-0 w-px bg-border/30"
+                      key={i}
+                      className={cn("absolute inset-y-0 w-px", tick.isYear ? "bg-border/50" : "bg-border/20")}
                       style={{ left: tick.x }}
                     />
                   ))}
