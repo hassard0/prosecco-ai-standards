@@ -49,6 +49,8 @@ export default function Admin() {
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [bulkEnriching, setBulkEnriching] = useState(false);
 
   const handleBulkEnrichResources = async () => {
