@@ -178,7 +178,7 @@ export default function Affiliations() {
     }
 
     return { nodes, links };
-  }, [standards, selectedCompanies, selectedStandards]);
+  }, [standards, selectedCompanies, selectedStandards, showUnknown]);
 
   return (
     <div className="flex flex-col min-h-screen">
