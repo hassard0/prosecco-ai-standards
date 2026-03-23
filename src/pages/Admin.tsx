@@ -53,6 +53,7 @@ export default function Admin() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [bulkEnriching, setBulkEnriching] = useState(false);
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
 
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
