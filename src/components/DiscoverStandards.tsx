@@ -138,7 +138,7 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} onFocusOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-4 w-4 text-primary" />
@@ -258,17 +258,19 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                             </div>
 
                             {s.link ? (
-                              <a
-                                href={s.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(s.link, "_blank", "noopener,noreferrer");
+                                }}
                                 className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
                                 aria-label={`Open specification for ${s.title}`}
                               >
                                 Spec
                                 <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.25} />
-                              </a>
+                              </button>
                             ) : (
                               <span className="inline-flex shrink-0 items-center rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
                                 No verified spec link
