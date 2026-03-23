@@ -369,6 +369,12 @@ export default function Radar() {
                 );
               })}
             </div>
+            </div>
+
+            {/* Aggregate Timeline */}
+            <div className="xl:w-96 shrink-0 rounded-lg border bg-card p-5">
+              <AggregateTimeline standards={filtered} />
+            </div>
           </div>
         )}
       </main>
