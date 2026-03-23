@@ -56,12 +56,36 @@ export default function StandardDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: standards, isLoading } = useStandards();
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: summaries } = useSummaries(id);
+  const { data: summaries, refetch: refetchSummaries } = useSummaries(id);
+  const { isAdmin } = useAuth();
+  const [generating, setGenerating] = useState(false);
+  const queryClient = useQueryClient();
 
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
   const resources = ((standard as any)?.resources as { type: string; label: string; url: string }[]) || [];
   const authors = ((standard as any)?.authors as { name: string; company: string; role?: string; url?: string }[]) || [];
+
+  const handleGenerateSummary = async () => {
+    if (!id) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-mailing-list", {
+        body: { standard_id: id },
+      });
+      if (error) throw error;
+      toast.success("Summary generated successfully");
+      refetchSummaries();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate summary");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const latestSummary = summaries?.[0];
+  const timelineEvents = (latestSummary as any)?.timeline_events || [];
+  const whatsNew = (latestSummary as any)?.whats_new;
 
   return (
     <div className="flex flex-col min-h-screen">
