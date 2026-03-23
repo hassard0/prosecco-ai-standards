@@ -193,6 +193,81 @@ Only return valid JSON, no markdown fences or extra text.`,
 
     const extracted = JSON.parse(toolCall.function.arguments);
 
+    // Find GitHub repo URLs from resources or the page content and fetch contributors
+    const githubRepos: string[] = [];
+    const ghRepoPattern = /https?:\/\/github\.com\/([^\/\s]+\/[^\/\s#?]+)/g;
+
+    // Check extracted resources for GitHub repos
+    if (extracted.resources) {
+      for (const r of extracted.resources) {
+        if (r.type === "github" && r.url) {
+          const match = r.url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
+          if (match) githubRepos.push(match[1]);
+        }
+      }
+    }
+
+    // Also scan the page content for GitHub URLs
+    let ghMatch;
+    while ((ghMatch = ghRepoPattern.exec(pageContent)) !== null) {
+      const repo = ghMatch[1].replace(/\.git$/, "");
+      if (!githubRepos.includes(repo)) githubRepos.push(repo);
+    }
+
+    // Also check the input URL itself
+    const inputMatch = url.match(/github\.com\/([^\/\s]+\/[^\/\s#?]+)/);
+    if (inputMatch) {
+      const repo = inputMatch[1].replace(/\.git$/, "");
+      if (!githubRepos.includes(repo)) githubRepos.push(repo);
+    }
+
+    // Fetch contributors from GitHub repos (up to 3 repos, top 30 contributors each)
+    const existingNames = new Set((extracted.authors || []).map((a: any) => a.name?.toLowerCase()));
+    const ghContributors: any[] = [];
+
+    for (const repo of githubRepos.slice(0, 3)) {
+      try {
+        const contribResp = await fetch(
+          `https://api.github.com/repos/${repo}/contributors?per_page=30`,
+          { headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" } }
+        );
+        if (!contribResp.ok) continue;
+        const contributors = await contribResp.json();
+        if (!Array.isArray(contributors)) continue;
+
+        for (const c of contributors) {
+          if (!c.login || c.type === "Bot") continue;
+          // Try to get the user's real name and company
+          try {
+            const userResp = await fetch(`https://api.github.com/users/${c.login}`, {
+              headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" },
+            });
+            if (userResp.ok) {
+              const user = await userResp.json();
+              const name = user.name || c.login;
+              if (existingNames.has(name.toLowerCase())) continue;
+              existingNames.add(name.toLowerCase());
+              ghContributors.push({
+                name,
+                company: (user.company || "").replace(/^@/, "").trim() || "Unknown",
+                role: "GitHub Contributor",
+                url: user.html_url || `https://github.com/${c.login}`,
+              });
+            }
+          } catch {
+            // Skip individual user fetch failures
+          }
+        }
+      } catch {
+        // Skip repo fetch failures
+      }
+    }
+
+    // Merge GitHub contributors into authors
+    if (ghContributors.length > 0) {
+      extracted.authors = [...(extracted.authors || []), ...ghContributors];
+    }
+
     return new Response(
       JSON.stringify({ success: true, data: extracted }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
