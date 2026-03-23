@@ -205,6 +205,16 @@ export default function Admin() {
 
       {/* Kanban */}
       <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-4">
+          <StandardsFilterBar
+            allTags={allTags}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            allOrganizations={allOrganizations}
+            selectedOrganizations={selectedOrgs}
+            onOrganizationsChange={setSelectedOrgs}
+          />
+        </div>
         {error ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
             Failed to load standards.
