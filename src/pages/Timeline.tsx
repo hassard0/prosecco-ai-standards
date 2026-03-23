@@ -15,7 +15,7 @@ export default function TimelinePage() {
     <div className="flex flex-col min-h-screen">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      <main className="flex-1 mx-auto max-w-4xl w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
