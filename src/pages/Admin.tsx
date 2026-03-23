@@ -53,6 +53,13 @@ export default function Admin() {
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [bulkEnriching, setBulkEnriching] = useState(false);
 
+  const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
+  const allOrganizations = useMemo(() => {
+    if (!standards) return [];
+    const orgs = new Set(standards.filter((s) => s.organization).map((s) => s.organization!));
+    return [...orgs].sort();
+  }, [standards]);
+
   const handleBulkEnrichResources = async () => {
     if (!standards) return;
     const needsResources = standards.filter(
