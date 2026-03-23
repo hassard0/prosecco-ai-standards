@@ -47,6 +47,44 @@ export default function Admin() {
   const [dragOverCol, setDragOverCol] = useState<StatusType | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [bulkEnriching, setBulkEnriching] = useState(false);
+
+  const handleBulkEnrichResources = async () => {
+    if (!standards) return;
+    const needsResources = standards.filter(
+      (s) => s.link && (!s.resources || (Array.isArray(s.resources) && (s.resources as any[]).length === 0))
+    );
+    if (needsResources.length === 0) {
+      toast({ title: "Nothing to enrich", description: "All standards with links already have resources." });
+      return;
+    }
+    setBulkEnriching(true);
+    let enriched = 0;
+    let failed = 0;
+    for (const s of needsResources) {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("analyze-standard", {
+          body: { url: s.link },
+        });
+        if (fnError || !data?.success) { failed++; continue; }
+        const newResources = data.data?.resources;
+        if (!newResources || newResources.length === 0) { continue; }
+        const { error: updateError } = await supabase
+          .from("standards")
+          .update({ resources: newResources })
+          .eq("id", s.id);
+        if (updateError) { failed++; } else { enriched++; }
+      } catch {
+        failed++;
+      }
+    }
+    setBulkEnriching(false);
+    qc.invalidateQueries({ queryKey: ["standards"] });
+    toast({
+      title: "Bulk enrich complete",
+      description: `${enriched} enriched, ${failed} failed, ${needsResources.length - enriched - failed} had no new resources.`,
+    });
+  };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
