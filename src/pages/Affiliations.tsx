@@ -99,10 +99,12 @@ export default function Affiliations() {
         companies.add(c);
       }
     }
-    return {
-      allCompanies: [...companies].sort(),
-      allStandardNames: [...stdNames].sort(),
-    };
+      const sorted = [...companies].sort();
+      return {
+        allCompanies: sorted.filter((c) => c !== "Unknown"),
+        allStandardNames: [...stdNames].sort(),
+        hasUnknown: companies.has("Unknown"),
+      };
   }, [standards]);
 
   const toggleCompany = (c: string) => {
