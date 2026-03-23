@@ -16,7 +16,8 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const full = url.searchParams.get("full") === "true";
+    const format = url.searchParams.get("format");
+    const full = url.searchParams.get("full") === "true" || format === "json";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
