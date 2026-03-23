@@ -312,11 +312,11 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
   const [containerWidth, setContainerWidth] = useState(1200);
 
   useEffect(() => {
-    const el = containerRef.current?.parentElement ?? containerRef.current;
+    const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setContainerWidth(Math.floor(w));
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w) setContainerWidth(w);
     });
     ro.observe(el);
     return () => ro.disconnect();
