@@ -29,6 +29,24 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    // Fetch summaries for full version
+    let summariesByStandard: Record<string, { summary: string; whats_new: string | null; generated_at: string }> = {};
+    if (full) {
+      const { data: summaries } = await supabase
+        .from("standard_summaries")
+        .select("standard_id, summary, whats_new, generated_at")
+        .order("generated_at", { ascending: false });
+
+      if (summaries) {
+        for (const s of summaries) {
+          // Keep only the latest summary per standard
+          if (!summariesByStandard[s.standard_id]) {
+            summariesByStandard[s.standard_id] = { summary: s.summary, whats_new: s.whats_new, generated_at: s.generated_at };
+          }
+        }
+      }
+    }
+
     const lines: string[] = [];
 
     // ── Header ──
@@ -143,6 +161,21 @@ serve(async (req) => {
                 const typeLabel = r.type.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
                 lines.push(`- [${r.label || typeLabel}](${r.url}) (${typeLabel})`);
               }
+              lines.push("");
+            }
+
+            // Summary
+            const sumData = summariesByStandard[s.id];
+            if (sumData) {
+              if (sumData.whats_new) {
+                lines.push("**What's New:**");
+                lines.push("");
+                lines.push(sumData.whats_new);
+                lines.push("");
+              }
+              lines.push("**Discussion Summary:**");
+              lines.push("");
+              lines.push(sumData.summary);
               lines.push("");
             }
           }
