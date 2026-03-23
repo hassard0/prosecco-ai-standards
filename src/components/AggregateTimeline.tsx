@@ -123,120 +123,78 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     );
   }
 
-  const rows = groupByStandard(enrichedEvents);
-
-  // Global date range for alignment — pad 3 months each side so dots don't sit on edges
-  const allDates = enrichedEvents.map((e) => parseDate(e.date).getTime());
-  const pad = 90 * 24 * 60 * 60 * 1000; // 3 months
-  const minDate = Math.min(...allDates) - pad;
-  const maxDate = Math.max(...allDates) + pad;
-  const range = maxDate - minDate || 1;
-
-  // Generate year tick marks
-  const minYear = new Date(minDate).getFullYear();
-  const maxYear = new Date(maxDate).getFullYear() + 1;
-  const yearTicks: { year: number; pct: number }[] = [];
-  for (let y = minYear; y <= maxYear; y++) {
-    const t = new Date(`${y}-01-01`).getTime();
-    const pct = ((t - minDate) / range) * 100;
-    if (pct >= 0 && pct <= 100) yearTicks.push({ year: y, pct });
-  }
-
-  // Width: 200px per year span, minimum 1400
-  const trackWidth = Math.max(1400, (maxYear - minYear) * 250);
+  const rows = groupByStandard(enrichedEvents).sort((a, b) => {
+    const aLatest = parseDate(a.events[a.events.length - 1]?.date ?? "1900-01-01").getTime();
+    const bLatest = parseDate(b.events[b.events.length - 1]?.date ?? "1900-01-01").getTime();
+    return bLatest - aLatest;
+  });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-sm font-semibold text-foreground">Combined Timeline</h2>
-        <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+        <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
           {enrichedEvents.length} events across {rows.length} standards
         </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <div style={{ width: trackWidth + 160 }}>
-          {/* Year axis */}
-          <div className="flex items-end mb-1 pl-[140px]">
-            <div className="flex-1 relative h-5">
-              {yearTicks.map((t) => (
-                <span
-                  key={t.year}
-                  className="absolute text-[10px] font-semibold text-muted-foreground tabular-nums -translate-x-1/2"
-                  style={{ left: `${Math.min(Math.max(t.pct, 2), 98)}%` }}
-                >
-                  {t.year}
-                </span>
-              ))}
+      <div className="space-y-4">
+        {rows.map((row) => (
+          <section key={row.id} className="rounded-lg border bg-background/40 p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <button
+                onClick={() => navigate(`/standard/${row.id}`)}
+                className="max-w-[220px] truncate text-left text-sm font-semibold text-foreground transition-colors hover:text-primary active:scale-[0.98]"
+                title={row.title}
+              >
+                {row.title}
+              </button>
+              <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                {row.events.length} event{row.events.length === 1 ? "" : "s"}
+              </span>
             </div>
-          </div>
 
-          {/* Rows */}
-          <div className="space-y-1">
-            {rows.map((row) => (
-              <div key={row.id} className="flex items-center gap-0 group/row">
-                {/* Standard label */}
-                <button
-                  onClick={() => navigate(`/standard/${row.id}`)}
-                  className="w-[140px] shrink-0 text-right pr-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors truncate active:scale-[0.97]"
-                  title={row.title}
-                >
-                  {row.label}
-                </button>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex min-w-max items-start gap-0 pr-6">
+                {row.events.map((event, i) => {
+                  const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                  const Icon = config.icon;
+                  const isLast = i === row.events.length - 1;
 
-                {/* Track */}
-                <div className="flex-1 relative h-10 rounded bg-muted/20 group-hover/row:bg-muted/40 transition-colors">
-                  {/* Horizontal baseline */}
-                  <div className="absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
-
-                  {/* Year gridlines */}
-                  {yearTicks.map((t) => (
-                    <div
-                      key={t.year}
-                      className="absolute top-0 bottom-0 w-px bg-border/40"
-                      style={{ left: `${t.pct}%` }}
-                    />
-                  ))}
-
-                  {/* Event dots */}
-                  {row.events.map((event, i) => {
-                    const pct = ((parseDate(event.date).getTime() - minDate) / range) * 100;
-                    const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
-                    const Icon = config.icon;
-
-                    return (
-                      <div
-                        key={i}
-                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 group/dot"
-                        style={{ left: `${Math.min(Math.max(pct, 1), 99)}%` }}
-                      >
-                        <div
-                          className="flex h-6 w-6 items-center justify-center rounded-full cursor-default hover:scale-125 transition-transform"
-                          style={{ backgroundColor: config.bg }}
-                          title={`${event.title} — ${formatDate(event.date)}`}
-                        >
-                          <Icon className="h-3 w-3" style={{ color: config.color }} />
+                  return (
+                    <div key={`${row.id}-${i}`} className="flex items-start">
+                      <div className="w-[240px] shrink-0">
+                        <div className="mb-2 text-[10px] font-medium tabular-nums text-muted-foreground">
+                          {formatDate(event.date)}
                         </div>
 
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-20 pointer-events-none">
-                          <div className="bg-popover border rounded-md shadow-md px-2.5 py-1.5 w-48 text-left">
-                            <p className="text-[11px] font-medium text-foreground leading-tight">{event.title}</p>
-                            <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">{formatDate(event.date)}</p>
-                            {event.description && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{event.description}</p>
-                            )}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/60"
+                            style={{ backgroundColor: config.bg }}
+                          >
+                            <Icon className="h-4 w-4" style={{ color: config.color }} />
                           </div>
+                          {!isLast && <div className="h-px flex-1 bg-border" />}
+                        </div>
+
+                        <div className="mt-3 rounded-md border bg-card p-3 shadow-sm transition-[box-shadow] hover:shadow-md">
+                          <p className="text-sm font-medium leading-tight text-foreground">{event.title}</p>
+                          {event.description && (
+                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                              {event.description}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
