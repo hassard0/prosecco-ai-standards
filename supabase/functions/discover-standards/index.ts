@@ -50,11 +50,11 @@ For each standard found, provide accurate metadata. If you're unsure about a det
           },
           {
             role: "user",
-            content: `Find AI/Agent/LLM-related standards, protocols, and specifications from these organizations: ${orgList}
+            content: `Find ALL AI/Agent/LLM-related standards, protocols, and specifications from these organizations: ${orgList}
 
-For each one, provide the title, acronym (if any), a concise description, the publishing organization, a link to the spec (if known), and relevant tags.
+For each one, provide the title, acronym (if any), a concise description, the publishing organization, the direct URL link to the specification or project page, and relevant tags.
 
-Return as many relevant standards as you can find from each organization.`,
+Be thorough and comprehensive — return at least 10-15 standards per organization if they exist. Include working groups, drafts, published RFCs, frameworks, guidelines, toolkits, and any specification related to AI, agents, LLMs, machine learning, AI safety, AI ethics, AI governance, or AI interoperability. Always include the spec URL when available.`,
           },
         ],
         tools: [
