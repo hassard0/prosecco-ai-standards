@@ -67,6 +67,7 @@ export default function Affiliations() {
   const { data: standards, isLoading } = useStandards();
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
+  const [showUnknown, setShowUnknown] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [standardDropdownOpen, setStandardDropdownOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
