@@ -80,6 +80,7 @@ function SankeyNodeRenderer(props: any) {
 
 export default function Affiliations() {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const { data: standards, isLoading } = useStandards();
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
