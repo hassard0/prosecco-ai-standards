@@ -7,6 +7,7 @@ interface KanbanColumnProps {
   standards: Standard[];
   accentColor: string;
   onSelectStandard: (standard: Standard) => void;
+  viewMode: "compact" | "detailed";
 }
 
 export function KanbanColumn({ title, standards, accentColor, onSelectStandard }: KanbanColumnProps) {
