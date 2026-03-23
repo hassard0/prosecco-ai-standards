@@ -148,13 +148,6 @@ export default function Admin() {
     setDraggedId(null);
   };
 
-  const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
-  const allOrganizations = useMemo(() => {
-    if (!standards) return [];
-    const orgs = new Set(standards.filter((s) => s.organization).map((s) => s.organization!));
-    return [...orgs].sort();
-  }, [standards]);
-
   const columnStandards = (status: StatusType) =>
     (standards || []).filter((s) => {
       if (s.status !== status) return false;
