@@ -243,17 +243,17 @@ Only return valid JSON, no markdown fences or extra text.`,
       const existingNames = new Set((extracted.authors || []).map((a: any) => a.name?.toLowerCase()));
       const ghContributors: any[] = [];
 
-      for (const repo of githubRepos.slice(0, 3)) {
+      for (const repo of githubRepos) {
         try {
           const contribResp = await fetch(
-            `https://api.github.com/repos/${repo}/contributors?per_page=15`,
+            `https://api.github.com/repos/${repo}/contributors?per_page=100`,
             { headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0", Accept: "application/vnd.github.v3+json" } }
           );
           if (!contribResp.ok) { await contribResp.text(); continue; }
           const contributors = await contribResp.json();
           if (!Array.isArray(contributors)) continue;
 
-          for (const c of contributors.slice(0, 10)) {
+          for (const c of contributors) {
             if (!c.login || c.type === "Bot") continue;
             try {
               const userResp = await fetch(`https://api.github.com/users/${c.login}`, {
