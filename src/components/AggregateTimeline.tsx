@@ -79,7 +79,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     for (const summary of summaries) {
       const std = stdMap.get(summary.standard_id);
       if (!std) continue;
-      const events = summary.timeline_events as TimelineEvent[] | null;
+      const events = summary.timeline_events as unknown as TimelineEvent[] | null;
       if (!events || !Array.isArray(events)) continue;
 
       for (const ev of events) {
