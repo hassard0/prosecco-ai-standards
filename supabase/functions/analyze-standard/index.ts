@@ -28,22 +28,40 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the page content
-    let pageContent: string;
+    // Fetch the page content with fallback handling for docs hosts that move between domains
+    let pageContent: string | null = null;
     try {
-      const pageResp = await fetch(url, {
-        headers: { "User-Agent": "Prosecco.dev AI Standards Bot/1.0" },
-      });
-      if (!pageResp.ok) {
+      const candidateUrls = [url];
+
+      if (url.includes("docs.wild-card.ai/")) {
+        candidateUrls.push(url.replace("https://docs.wild-card.ai", "https://wildcard.mintlify.app"));
+      }
+
+      for (const candidateUrl of [...new Set(candidateUrls)]) {
+        const pageResp = await fetch(candidateUrl, {
+          headers: {
+            "User-Agent": "Prosecco.dev AI Standards Bot/1.0",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+          },
+        });
+
+        if (!pageResp.ok) {
+          await pageResp.text();
+          continue;
+        }
+
+        pageContent = await pageResp.text();
+        if (pageContent.length > 30000) {
+          pageContent = pageContent.substring(0, 30000);
+        }
+        break;
+      }
+
+      if (!pageContent) {
         return new Response(
-          JSON.stringify({ success: false, error: `Failed to fetch URL: ${pageResp.status}` }),
+          JSON.stringify({ success: false, error: "Failed to fetch URL: 404" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-      }
-      pageContent = await pageResp.text();
-      // Truncate to avoid token limits
-      if (pageContent.length > 30000) {
-        pageContent = pageContent.substring(0, 30000);
       }
     } catch (fetchErr) {
       return new Response(
