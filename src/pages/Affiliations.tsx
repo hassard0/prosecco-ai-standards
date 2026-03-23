@@ -384,7 +384,7 @@ export default function Affiliations() {
               width={900}
               height={Math.max(400, sankeyData.nodes.length * 28)}
               data={sankeyData}
-              node={<SankeyNodeRenderer />}
+              node={<SankeyNodeRenderer onStandardClick={(id: string) => navigate(`/standard/${id}`)} />}
               nodePadding={14}
               nodeWidth={8}
               linkCurvature={0.5}
