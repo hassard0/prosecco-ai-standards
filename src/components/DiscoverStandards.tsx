@@ -244,28 +244,38 @@ export function DiscoverStandards({ open, onOpenChange }: { open: boolean; onOpe
                       >
                         <Checkbox checked={checked} className="mt-0.5 pointer-events-none shrink-0" />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                            <span className="text-sm font-medium text-foreground">{s.title}</span>
-                            {s.acronym && (
-                              <span className="px-1 py-0.5 text-[9px] font-semibold uppercase rounded bg-primary/10 text-primary">
-                                {s.acronym}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{s.description}</p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <span className="text-[10px] text-muted-foreground">{s.organization}</span>
-                            {s.link && (
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                              <span className="text-sm font-medium text-foreground">{s.title}</span>
+                              {s.acronym && (
+                                <span className="px-1 py-0.5 text-[9px] font-semibold uppercase rounded bg-primary/10 text-primary">
+                                  {s.acronym}
+                                </span>
+                              )}
+                            </div>
+
+                            {s.link ? (
                               <a
                                 href={s.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+                                aria-label={`Open specification for ${s.title}`}
                               >
-                                View Spec <ExternalLink className="h-3 w-3" />
+                                Spec
+                                <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.25} />
                               </a>
+                            ) : (
+                              <span className="inline-flex shrink-0 items-center rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                                No verified spec link
+                              </span>
                             )}
+                          </div>
+
+                          <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{s.description}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[10px] text-muted-foreground">{s.organization}</span>
                             {s.tags && s.tags.length > 0 && (
                               <div className="flex gap-1">
                                 {s.tags.slice(0, 3).map((tag) => (
