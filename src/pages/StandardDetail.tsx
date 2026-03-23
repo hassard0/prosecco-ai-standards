@@ -175,6 +175,92 @@ export default function StandardDetail() {
               </div>
             )}
 
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              {standard.link && (
+                <Button asChild size="lg" className="active:scale-[0.97] transition-all">
+                  <a href={standard.link} target="_blank" rel="noopener noreferrer">
+                    View Specification
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
+            </div>
+
+            {/* Authors & Affiliations */}
+            {authors.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-sm font-semibold text-foreground">Authors & Affiliations</h2>
+                </div>
+
+                <MiniAuthorSankey standardTitle={standard.acronym || standard.title} authors={authors} />
+
+                {(() => {
+                  const byCompany = authors.reduce<Record<string, typeof authors>>((acc, a) => {
+                    const key = a.company || "Independent";
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(a);
+                    return acc;
+                  }, {});
+                  return (
+                    <div className="space-y-3 mt-4 pt-4 border-t">
+                      {Object.entries(byCompany).map(([company, people]) => (
+                        <div key={company}>
+                          <span className="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold rounded bg-muted text-muted-foreground mb-1.5">
+                            {company}
+                          </span>
+                          <div className="space-y-1 ml-1">
+                            {people.map((a, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                {a.url ? (
+                                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:text-primary transition-colors">
+                                    {a.name}
+                                  </a>
+                                ) : (
+                                  <span className="font-medium text-foreground">{a.name}</span>
+                                )}
+                                {a.role && (
+                                  <span className="text-xs text-muted-foreground">· {a.role}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Additional Resources */}
+            {resources.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 mb-6">
+                <h2 className="text-sm font-semibold text-foreground mb-3">Resources</h2>
+                <div className="space-y-2">
+                  {resources.map((res, i) => {
+                    const Icon = RESOURCE_ICONS[res.type] || Link2;
+                    return (
+                      <a
+                        key={i}
+                        href={res.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/60 transition-colors group"
+                      >
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                          {res.label || res.url}
+                        </span>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
 
             {/* What's New */}
