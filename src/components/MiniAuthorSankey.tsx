@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Sankey, Tooltip, Rectangle, Layer } from "recharts";
 import { normalizeCompany } from "@/lib/normalizeCompany";
 
