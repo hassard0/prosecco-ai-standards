@@ -86,6 +86,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
           allOrganizations={allOrganizations}
           selectedOrganizations={selectedOrgs}
           onOrganizationsChange={setSelectedOrgs}
+          searchQuery={localSearch}
+          onSearchChange={setLocalSearch}
         />
         <div className="flex items-center gap-1 p-1 rounded-md bg-muted shrink-0">
           <button
