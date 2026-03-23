@@ -66,6 +66,22 @@ export default function Affiliations() {
   const { data: standards, isLoading } = useStandards();
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [standardDropdownOpen, setStandardDropdownOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [standardSearch, setStandardSearch] = useState("");
+  const companyRef = useRef<HTMLDivElement>(null);
+  const standardRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (companyRef.current && !companyRef.current.contains(e.target as Node)) setCompanyDropdownOpen(false);
+      if (standardRef.current && !standardRef.current.contains(e.target as Node)) setStandardDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Extract all companies and standards that have author data
   const { allCompanies, allStandardNames } = useMemo(() => {
