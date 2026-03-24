@@ -353,8 +353,21 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
             <ScrollArea className="flex-1">
               <div className="space-y-1">
                 <div className="grid grid-cols-[120px_1fr_40px_1fr] gap-2 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10 border-b">
-                  <span>Field</span>
-                  <span>A — Keep</span>
+                  <div className="flex items-center gap-1">
+                    <span>Field</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span>A — Keep</span>
+                    {standardA.link && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); window.open(standardA.link!, '_blank', 'noopener'); }}
+                        className="inline-flex items-center gap-0.5 text-primary hover:text-primary/80 transition-colors normal-case font-medium"
+                        title="Open spec in new tab"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={handleSwap}
                     className="flex items-center justify-center hover:text-primary transition-colors"
@@ -362,7 +375,18 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" />
                   </button>
-                  <span>B — Remove</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>B — Remove</span>
+                    {standardB.link && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); window.open(standardB.link!, '_blank', 'noopener'); }}
+                        className="inline-flex items-center gap-0.5 text-primary hover:text-primary/80 transition-colors normal-case font-medium"
+                        title="Open spec in new tab"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {FIELDS.map((f) => {
