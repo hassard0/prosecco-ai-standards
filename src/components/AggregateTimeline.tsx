@@ -141,7 +141,7 @@ function SearchableStandardFilter({
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search standards…"
+              placeholder={searchPlaceholder}
               className="h-8 text-xs"
               autoFocus
             />
