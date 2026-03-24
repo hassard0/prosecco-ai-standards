@@ -237,7 +237,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={cn("max-h-[90vh] flex flex-col", dialogWidth)}>
+      <DialogContent className={cn("max-h-[90vh] flex flex-col min-h-0", dialogWidth)}>
         <DialogHeader>
           <DialogTitle>
             {step === "scan" && "De-duplicate Standards"}
@@ -275,7 +275,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
         {/* CLUSTERS STEP */}
         {step === "clusters" && scanResult && (
-          <div className="flex-1 overflow-hidden flex flex-col gap-3 pt-1">
+          <div className="flex-1 overflow-hidden flex flex-col gap-3 pt-1 min-h-0">
             {scanResult.clusters.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <Check className="h-8 w-8 text-primary" />
@@ -349,7 +349,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
         {/* COMPARE STEP */}
         {step === "compare" && standardA && standardB && (
-          <div className="flex-1 overflow-hidden flex flex-col gap-4 pt-2">
+          <div className="flex-1 overflow-hidden flex flex-col gap-4 pt-2 min-h-0">
             <ScrollArea className="flex-1">
               <div className="space-y-1">
                 <div className="grid grid-cols-[120px_1fr_40px_1fr] gap-2 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10 border-b">
