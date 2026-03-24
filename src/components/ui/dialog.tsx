@@ -36,8 +36,8 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       onFocusOutside={(e) => {
-        // Only prevent focus loss from tab switching, not from user clicks
-        if (!e.target || !(e.target as HTMLElement).closest?.('[role="dialog"]')) {
+        // Only prevent focus loss from browser tab switches, not user interactions
+        if (document.hidden) {
           e.preventDefault();
         }
       }}
