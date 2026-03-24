@@ -1,5 +1,5 @@
 export default function McpInfo() {
-  const mcpUrl = "https://prosecco.dev/mcp";
+  const mcpUrl = "https://mcp.prosecco.dev";
 
   return (
     <pre
