@@ -1,14 +1,5 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
 export default function McpInfo() {
-  const [toolCount, setToolCount] = useState<number | null>(null);
-  const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
-
-  useEffect(() => {
-    // We know we have 8 tools currently
-    setToolCount(8);
-  }, []);
+  const mcpUrl = "https://prosecco.dev/mcp";
 
   return (
     <pre

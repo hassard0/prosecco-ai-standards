@@ -202,16 +202,16 @@ mcpServer.tool({
       name: "Prosecco.dev — AI Standards Directory",
       description:
         "A curated, open directory of AI agent interoperability standards, protocols, and specifications.",
-      url: "https://prosecco-ai-standards.lovable.app",
+      url: "https://prosecco.dev",
       total_standards: standards?.length ?? 0,
       by_status: statusCounts,
       organizations: [...orgs].sort(),
       tags: [...tags].sort(),
       endpoints: {
-        mcp: "https://prosecco-ai-standards.lovable.app/mcp",
-        llms_txt: "https://prosecco-ai-standards.lovable.app/llms.txt",
-        llms_full_txt: "https://prosecco-ai-standards.lovable.app/llms-full.txt",
-        directory_json: "https://prosecco-ai-standards.lovable.app/directory.json",
+        mcp: "https://prosecco.dev/mcp",
+        llms_txt: "https://prosecco.dev/llms.txt",
+        llms_full_txt: "https://prosecco.dev/llms-full.txt",
+        directory_json: "https://prosecco.dev/directory.json",
       },
     };
 
