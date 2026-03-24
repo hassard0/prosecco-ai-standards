@@ -78,6 +78,20 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
     });
   }, [standards, searchB, standardA]);
 
+  const handleSwap = useCallback(() => {
+    setStandardA(standardB);
+    setStandardB(standardA);
+    // Flip all chosen sides
+    setChosen((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next) as FieldKey[]) {
+        if (next[key] === "a") next[key] = "b";
+        else if (next[key] === "b") next[key] = "a";
+      }
+      return next;
+    });
+  }, [standardA, standardB]);
+
   const startCompare = () => {
     if (!standardA || !standardB) return;
     const initial: Record<string, "a" | "b" | "merge"> = {};
