@@ -12,6 +12,18 @@ export default {
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/mcp";
     const url = new URL(request.url);
 
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "content-type, accept, mcp-session-id",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+          "Access-Control-Expose-Headers": "mcp-session-id",
+        },
+      });
+    }
+
     const headers = new Headers(request.headers);
     headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
 
@@ -26,12 +38,9 @@ export default {
 
     const respHeaders = new Headers(response.headers);
     respHeaders.set("Access-Control-Allow-Origin", "*");
-    respHeaders.set("Access-Control-Allow-Headers", "content-type, accept");
+    respHeaders.set("Access-Control-Allow-Headers", "content-type, accept, mcp-session-id");
     respHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: respHeaders });
-    }
+    respHeaders.set("Access-Control-Expose-Headers", "mcp-session-id");
 
     return new Response(response.body, {
       status: response.status,
@@ -42,6 +51,7 @@ export default {
 `;
 
 const WORKER_NAME = "prosecco-mcp-proxy";
+const CUSTOM_DOMAIN = "mcp.prosecco.dev";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,11 +66,6 @@ serve(async (req) => {
     if (!CF_TOKEN || !CF_ACCOUNT || !CF_ZONE) {
       throw new Error("Missing Cloudflare credentials");
     }
-
-    const cfHeaders = {
-      Authorization: `Bearer ${CF_TOKEN}`,
-      "Content-Type": "application/javascript",
-    };
 
     // Step 1: Upload the worker script as ES module
     console.log("Uploading worker script...");
@@ -96,66 +101,53 @@ serve(async (req) => {
     }
     console.log("Worker uploaded successfully");
 
-    // Step 2: Create route for prosecco.dev/mcp*
-    console.log("Creating route...");
-    const routePattern = "prosecco.dev/mcp*";
+    // Step 2: Set up custom domain for the worker
+    console.log("Setting up custom domain...");
 
-    // First check existing routes to avoid duplicates
-    const listRes = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes`,
-      {
-        headers: { Authorization: `Bearer ${CF_TOKEN}` },
-      }
+    // Check existing custom domains
+    const listDomainsRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/workers/domains`,
+      { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
     );
-    const listData = await listRes.json();
-    const existingRoute = listData.result?.find(
-      (r: { pattern: string }) => r.pattern === routePattern
+    const listDomainsData = await listDomainsRes.json();
+    const existingDomain = listDomainsData.result?.find(
+      (d: { hostname: string }) => d.hostname === CUSTOM_DOMAIN
     );
 
-    if (existingRoute) {
-      // Update existing route
-      const updateRes = await fetch(
-        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes/${existingRoute.id}`,
+    if (!existingDomain) {
+      // Create custom domain
+      const domainRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/workers/domains`,
         {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${CF_TOKEN}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ pattern: routePattern, script: WORKER_NAME }),
+          body: JSON.stringify({
+            hostname: CUSTOM_DOMAIN,
+            zone_id: CF_ZONE,
+            service: WORKER_NAME,
+            environment: "production",
+          }),
         }
       );
-      const updateData = await updateRes.json();
-      if (!updateRes.ok) {
-        throw new Error(`Failed to update route: ${JSON.stringify(updateData)}`);
+      const domainData = await domainRes.json();
+      if (!domainRes.ok) {
+        throw new Error(`Failed to set custom domain: ${JSON.stringify(domainData)}`);
       }
-      console.log("Route updated");
+      console.log("Custom domain created:", CUSTOM_DOMAIN);
     } else {
-      // Create new route
-      const routeRes = await fetch(
-        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${CF_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ pattern: routePattern, script: WORKER_NAME }),
-        }
-      );
-      const routeData = await routeRes.json();
-      if (!routeRes.ok) {
-        throw new Error(`Failed to create route: ${JSON.stringify(routeData)}`);
-      }
-      console.log("Route created");
+      console.log("Custom domain already exists:", CUSTOM_DOMAIN);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         worker: WORKER_NAME,
-        route: routePattern,
-        message: "MCP proxy worker deployed to prosecco.dev/mcp",
+        domain: CUSTOM_DOMAIN,
+        url: `https://${CUSTOM_DOMAIN}`,
+        message: `MCP proxy worker deployed to https://${CUSTOM_DOMAIN}`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
