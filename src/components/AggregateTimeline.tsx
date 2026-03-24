@@ -684,7 +684,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                   onClick={() => navigate(`/standard/${row.id}`)}
                   className="w-full truncate px-3 pt-3 pb-1 text-left text-sm font-semibold text-foreground hover:text-primary active:scale-[0.98]"
                 >
-                  {row.title}
+                  {row.label}
                 </button>
 
                 <div className="overflow-x-auto pb-3">
