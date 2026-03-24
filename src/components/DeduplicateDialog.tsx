@@ -272,7 +272,13 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
                 <div className="grid grid-cols-[120px_1fr_40px_1fr] gap-2 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10 border-b">
                   <span>Field</span>
                   <span>A — Keep</span>
-                  <span />
+                  <button
+                    onClick={handleSwap}
+                    className="flex items-center justify-center hover:text-primary transition-colors"
+                    title="Swap A and B"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                  </button>
                   <span>B — Remove</span>
                 </div>
 
