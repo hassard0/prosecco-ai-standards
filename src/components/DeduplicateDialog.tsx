@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowRight, Check, Loader2 } from "lucide-react";
+import { Search, ArrowRight, Check, Loader2, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
