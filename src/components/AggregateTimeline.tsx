@@ -55,7 +55,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; b
   other: { icon: Circle, colorClass: "text-zinc-600", bgClass: "bg-zinc-100" },
 };
 
-const LABEL_WIDTH = 192;
+const LABEL_WIDTH = 240;
 const TRACK_EDGE_PADDING = 24;
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
