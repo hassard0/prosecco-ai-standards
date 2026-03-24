@@ -82,13 +82,13 @@ const RING_RADII = [105, 210, 315, 420]; // 4 rings
 
 export default function Radar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: standards, isLoading } = useStandards();
+  const { data: standards, isLoading, isSuccess } = useStandards();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeQuadrant, setActiveQuadrant] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => {
-    if (!standards) return [];
+    if (!standards || !isSuccess) return [];
     const q = searchQuery.toLowerCase().trim();
     return standards.filter((s) => {
       if (!q) return true;
@@ -98,7 +98,7 @@ export default function Radar() {
         (s.acronym && s.acronym.toLowerCase().includes(q))
       );
     });
-  }, [standards, searchQuery]);
+  }, [standards, searchQuery, isSuccess]);
 
   const blips = useMemo(() => {
     const result: Blip[] = [];
@@ -108,8 +108,7 @@ export default function Radar() {
     const grouped: Record<string, Standard[]> = {};
     for (const s of filtered) {
       const qi = assignQuadrant(s);
-      // Expired standards → Hold ring
-      const ri = (s as any).is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
+      const ri = s.is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
       if (ri === -1) continue;
       const key = `${qi}-${ri}`;
       if (!grouped[key]) grouped[key] = [];
@@ -118,7 +117,7 @@ export default function Radar() {
 
     for (const s of filtered) {
       const qi = assignQuadrant(s);
-      const ri = (s as any).is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
+      const ri = s.is_expired ? 3 : RINGS.findIndex((r) => r.status === s.status);
       if (ri === -1) continue;
 
       const key = `${qi}-${ri}`;

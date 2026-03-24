@@ -16,6 +16,8 @@ export function useStandards() {
       if (error) throw error;
       return data as Standard[];
     },
+    staleTime: 1000 * 60 * 2,
+    refetchOnMount: "always",
   });
 }
 
