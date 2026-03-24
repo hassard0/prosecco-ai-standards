@@ -327,7 +327,9 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       if (!map.has(event.standardId)) {
         map.set(event.standardId, {
           id: event.standardId,
-          label: event.standardAcronym || event.standardTitle,
+          label: event.standardAcronym
+            ? `${event.standardAcronym} – ${event.standardTitle}`
+            : event.standardTitle,
           title: event.standardTitle,
           events: [],
         });
