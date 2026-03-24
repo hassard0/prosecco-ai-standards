@@ -569,8 +569,8 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
             onClick={() => {
               setSelectedStandards([]);
               setSelectedOrgs([]);
-              setDateFrom(undefined);
-              setDateTo(undefined);
+              setDateFrom(new Date(2025, 0, 1));
+              setDateTo(new Date());
             }}
             className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
           >
