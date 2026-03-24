@@ -97,7 +97,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <a href="/mcp" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                     MCP Server
                   </a>
                 </DropdownMenuItem>
