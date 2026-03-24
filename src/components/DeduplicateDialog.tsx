@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowRight, Check, Loader2 } from "lucide-react";
+import { Search, ArrowRight, Check, Loader2, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +77,20 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
       return s.title.toLowerCase().includes(q) || (s.acronym?.toLowerCase().includes(q));
     });
   }, [standards, searchB, standardA]);
+
+  const handleSwap = useCallback(() => {
+    setStandardA(standardB);
+    setStandardB(standardA);
+    // Flip all chosen sides
+    setChosen((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next) as FieldKey[]) {
+        if (next[key] === "a") next[key] = "b";
+        else if (next[key] === "b") next[key] = "a";
+      }
+      return next;
+    });
+  }, [standardA, standardB]);
 
   const startCompare = () => {
     if (!standardA || !standardB) return;
@@ -258,7 +272,13 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
                 <div className="grid grid-cols-[120px_1fr_40px_1fr] gap-2 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10 border-b">
                   <span>Field</span>
                   <span>A — Keep</span>
-                  <span />
+                  <button
+                    onClick={handleSwap}
+                    className="flex items-center justify-center hover:text-primary transition-colors"
+                    title="Swap A and B"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                  </button>
                   <span>B — Remove</span>
                 </div>
 
