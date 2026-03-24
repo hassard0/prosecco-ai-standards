@@ -8,7 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Plus, Trash2, ExternalLink } from "lucide-react";
+
+interface ResourceLink {
+  type: string;
+  label: string;
+  url: string;
+}
 
 interface ExtractedStandard {
   title: string;
@@ -18,8 +24,15 @@ interface ExtractedStandard {
   status: "Backlog" | "Emerging" | "Draft" | "Approved";
   tags: string[];
   link: string;
+  resources?: ResourceLink[];
   authors?: { name: string; company: string; role?: string; url?: string }[];
 }
+
+const RESOURCE_TYPES = [
+  "primary_spec", "mailing_list", "github", "working_group",
+  "reference_impl", "documentation", "blog", "video",
+  "discord", "slack", "other",
+];
 
 export function AiIngestion() {
   const [url, setUrl] = useState("");
@@ -30,10 +43,9 @@ export function AiIngestion() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  // Editable form state derived from AI extraction
   const [form, setForm] = useState<ExtractedStandard & { tagsStr: string }>({
     title: "", acronym: "", description: "", organization: "",
-    status: "Backlog", tags: [], link: "", tagsStr: "",
+    status: "Backlog", tags: [], link: "", tagsStr: "", resources: [],
   });
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -63,6 +75,7 @@ export function AiIngestion() {
       setForm({
         ...d,
         tagsStr: d.tags.join(", "),
+        resources: d.resources || [],
       });
       setDialogOpen(true);
     } catch (err) {
@@ -73,6 +86,7 @@ export function AiIngestion() {
 
   const handleSave = async () => {
     setSaving(true);
+    const resources = (form.resources || []).filter((r) => r.url.trim());
     const payload = {
       title: form.title,
       acronym: form.acronym || null,
@@ -82,22 +96,61 @@ export function AiIngestion() {
       organization: form.organization || null,
       tags: form.tagsStr ? form.tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : [],
       authors: (extracted?.authors || []).filter((a) => a.name?.trim()),
+      resources: resources as any,
     };
 
-    const { error } = await supabase.from("standards").insert(payload);
+    const { data: insertData, error } = await supabase.from("standards").insert(payload).select("id").single();
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Standard added!" });
-      qc.invalidateQueries({ queryKey: ["standards"] });
-      setDialogOpen(false);
-      setUrl("");
-      setExtracted(null);
+      setSaving(false);
+      return;
     }
+
+    toast({ title: "Standard added!", description: "Generating summary…" });
+    qc.invalidateQueries({ queryKey: ["standards"] });
+    setDialogOpen(false);
+    setUrl("");
+    setExtracted(null);
     setSaving(false);
+
+    // Auto-generate summary in the background
+    if (insertData?.id && resources.length > 0) {
+      try {
+        await supabase.functions.invoke("summarize-mailing-list", {
+          body: { standard_id: insertData.id },
+        });
+        toast({ title: "Summary generated", description: "AI summary is now available on the standard's detail page." });
+        qc.invalidateQueries({ queryKey: ["summaries"] });
+      } catch {
+        // Non-critical — don't block
+        toast({ title: "Summary generation failed", description: "You can generate it later from the detail page.", variant: "destructive" });
+      }
+    }
   };
 
   const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
+
+  const updateResource = (index: number, field: keyof ResourceLink, value: string) => {
+    setForm((f) => {
+      const resources = [...(f.resources || [])];
+      resources[index] = { ...resources[index], [field]: value };
+      return { ...f, resources };
+    });
+  };
+
+  const removeResource = (index: number) => {
+    setForm((f) => ({
+      ...f,
+      resources: (f.resources || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const addResource = () => {
+    setForm((f) => ({
+      ...f,
+      resources: [...(f.resources || []), { type: "other", label: "", url: "" }],
+    }));
+  };
 
   return (
     <>
@@ -122,7 +175,7 @@ export function AiIngestion() {
       </form>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> AI-Extracted Standard
@@ -172,6 +225,62 @@ export function AiIngestion() {
               <Label>Tags (comma-separated)</Label>
               <Input value={form.tagsStr} onChange={(e) => set("tagsStr", e.target.value)} />
             </div>
+
+            {/* Resources section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Resources ({(form.resources || []).length})</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addResource} className="h-7 text-xs gap-1">
+                  <Plus className="h-3 w-3" /> Add
+                </Button>
+              </div>
+              {(form.resources || []).length === 0 && (
+                <p className="text-xs text-muted-foreground">No resources extracted. Add some manually or they'll be picked up by AI enrichment.</p>
+              )}
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {(form.resources || []).map((resource, i) => (
+                  <div key={i} className="flex items-start gap-2 rounded-md border bg-muted/30 p-2">
+                    <Select value={resource.type} onValueChange={(v) => updateResource(i, "type", v)}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RESOURCE_TYPES.map((t) => (
+                          <SelectItem key={t} value={t} className="text-xs">
+                            {t.replace(/_/g, " ")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={resource.label}
+                      onChange={(e) => updateResource(i, "label", e.target.value)}
+                      placeholder="Label"
+                      className="h-8 text-xs flex-1 min-w-0"
+                    />
+                    <Input
+                      value={resource.url}
+                      onChange={(e) => updateResource(i, "url", e.target.value)}
+                      placeholder="URL"
+                      className="h-8 text-xs flex-1 min-w-0"
+                    />
+                    <div className="flex gap-1 shrink-0">
+                      {resource.url && (
+                        <a href={resource.url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-md border bg-background hover:bg-accent transition-colors">
+                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </a>
+                      )}
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeResource(i)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <Button onClick={handleSave} className="w-full" disabled={saving || !form.title || !form.description}>
               {saving ? "Saving…" : "Add to Directory"}
             </Button>
