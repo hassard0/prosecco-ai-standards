@@ -349,7 +349,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
         {/* COMPARE STEP */}
         {step === "compare" && standardA && standardB && (
-          <div className="flex-1 overflow-hidden flex flex-col gap-4 pt-2">
+          <div className="flex-1 overflow-hidden flex flex-col gap-4 pt-2 min-h-0">
             <ScrollArea className="flex-1">
               <div className="space-y-1">
                 <div className="grid grid-cols-[120px_1fr_40px_1fr] gap-2 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10 border-b">
