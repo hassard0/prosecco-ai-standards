@@ -250,6 +250,160 @@ mcpServer.tool({
   },
 });
 
+// Tool: Search authors/contributors
+mcpServer.tool({
+  name: "search_authors",
+  description:
+    "Search for authors and contributors across all standards. Returns matching people with their roles, companies, and which standards they contribute to.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      name: {
+        type: "string",
+        description: "Name (or partial name) of the author to search for",
+      },
+      company: {
+        type: "string",
+        description: "Filter by company/organization affiliation",
+      },
+    },
+  },
+  handler: async (params: { name?: string; company?: string }) => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("standards")
+      .select("id, title, acronym, authors")
+      .order("title");
+    if (error) throw new Error(`Database error: ${error.message}`);
+
+    const results: { name: string; company: string; role: string; url: string; standards: { id: string; title: string }[] }[] = [];
+    const seen = new Map<string, number>();
+
+    for (const s of data || []) {
+      const authors = Array.isArray(s.authors) ? s.authors as { name: string; company?: string; role?: string; url?: string }[] : [];
+      for (const a of authors) {
+        if (params.name && !a.name.toLowerCase().includes(params.name.toLowerCase())) continue;
+        if (params.company && !(a.company || "").toLowerCase().includes(params.company.toLowerCase())) continue;
+
+        const key = `${a.name}||${a.company || ""}`;
+        if (seen.has(key)) {
+          results[seen.get(key)!].standards.push({ id: s.id, title: s.title });
+        } else {
+          seen.set(key, results.length);
+          results.push({
+            name: a.name,
+            company: a.company || "Unknown",
+            role: a.role || "",
+            url: a.url || "",
+            standards: [{ id: s.id, title: s.title }],
+          });
+        }
+      }
+    }
+
+    results.sort((a, b) => b.standards.length - a.standards.length);
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Found ${results.length} authors${params.name ? ` matching "${params.name}"` : ""}${params.company ? ` at "${params.company}"` : ""}.\n\n${JSON.stringify(results, null, 2)}`,
+      }],
+    };
+  },
+});
+
+// Tool: List organizations
+mcpServer.tool({
+  name: "list_organizations",
+  description:
+    "List all organizations that publish or maintain standards in the directory, with counts and their standards.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      name: {
+        type: "string",
+        description: "Filter by organization name (partial match)",
+      },
+    },
+  },
+  handler: async (params: { name?: string }) => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("standards")
+      .select("id, title, acronym, organization, status")
+      .order("title");
+    if (error) throw new Error(`Database error: ${error.message}`);
+
+    const orgs = new Map<string, { standards: { id: string; title: string; status: string }[] }>();
+
+    for (const s of data || []) {
+      const org = s.organization || "Unknown";
+      if (params.name && !org.toLowerCase().includes(params.name.toLowerCase())) continue;
+      if (!orgs.has(org)) orgs.set(org, { standards: [] });
+      orgs.get(org)!.standards.push({ id: s.id, title: s.title, status: s.status });
+    }
+
+    const sorted = [...orgs.entries()]
+      .sort((a, b) => b[1].standards.length - a[1].standards.length)
+      .map(([name, data]) => ({ organization: name, count: data.standards.length, standards: data.standards }));
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Found ${sorted.length} organizations${params.name ? ` matching "${params.name}"` : ""}.\n\n${JSON.stringify(sorted, null, 2)}`,
+      }],
+    };
+  },
+});
+
+// Tool: List contributors by company
+mcpServer.tool({
+  name: "list_contributors_by_company",
+  description:
+    "List all companies/organizations that have contributors across standards, showing how many people and which standards each company is involved in.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {},
+  },
+  handler: async () => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("standards")
+      .select("id, title, authors")
+      .order("title");
+    if (error) throw new Error(`Database error: ${error.message}`);
+
+    const companies = new Map<string, { people: Set<string>; standards: Set<string> }>();
+
+    for (const s of data || []) {
+      const authors = Array.isArray(s.authors) ? s.authors as { name: string; company?: string }[] : [];
+      for (const a of authors) {
+        const co = a.company || "Unknown";
+        if (!companies.has(co)) companies.set(co, { people: new Set(), standards: new Set() });
+        companies.get(co)!.people.add(a.name);
+        companies.get(co)!.standards.add(s.title);
+      }
+    }
+
+    const sorted = [...companies.entries()]
+      .sort((a, b) => b[1].standards.size - a[1].standards.size)
+      .map(([company, d]) => ({
+        company,
+        contributor_count: d.people.size,
+        standard_count: d.standards.size,
+        contributors: [...d.people].sort(),
+        standards: [...d.standards].sort(),
+      }));
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Found ${sorted.length} companies with contributors.\n\n${JSON.stringify(sorted, null, 2)}`,
+      }],
+    };
+  },
+});
+
 const transport = new StreamableHttpTransport();
 
 app.all("/*", async (c) => {
