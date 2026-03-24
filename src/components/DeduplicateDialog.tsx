@@ -237,7 +237,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={cn("max-h-[90vh] flex flex-col", dialogWidth)}>
+      <DialogContent className={cn("max-h-[90vh] flex flex-col min-h-0", dialogWidth)}>
         <DialogHeader>
           <DialogTitle>
             {step === "scan" && "De-duplicate Standards"}
