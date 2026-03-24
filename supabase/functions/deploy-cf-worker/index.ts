@@ -62,14 +62,31 @@ serve(async (req) => {
       "Content-Type": "application/javascript",
     };
 
-    // Step 1: Upload the worker script
+    // Step 1: Upload the worker script as ES module
     console.log("Uploading worker script...");
+
+    const metadata = JSON.stringify({
+      main_module: "worker.js",
+      compatibility_date: "2024-01-01",
+    });
+
+    const formData = new FormData();
+    formData.append(
+      "metadata",
+      new Blob([metadata], { type: "application/json" })
+    );
+    formData.append(
+      "worker.js",
+      new Blob([WORKER_SCRIPT], { type: "application/javascript+module" }),
+      "worker.js"
+    );
+
     const uploadRes = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/workers/scripts/${WORKER_NAME}`,
       {
         method: "PUT",
-        headers: cfHeaders,
-        body: WORKER_SCRIPT,
+        headers: { Authorization: `Bearer ${CF_TOKEN}` },
+        body: formData,
       }
     );
 
