@@ -55,7 +55,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Calendar; colorClass: string; b
   other: { icon: Circle, colorClass: "text-zinc-600", bgClass: "bg-zinc-100" },
 };
 
-const LABEL_WIDTH = 192;
+const LABEL_WIDTH = 240;
 const TRACK_EDGE_PADDING = 24;
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -88,10 +88,14 @@ function SearchableStandardFilter({
   options,
   selected,
   onChange,
+  placeholder = "All standards",
+  searchPlaceholder = "Search standards…",
 }: {
   options: { id: string; label: string }[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -128,7 +132,7 @@ function SearchableStandardFilter({
         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <Search className="h-3.5 w-3.5" />
-        {selected.length === 0 ? "All standards" : `${selected.length} selected`}
+        {selected.length === 0 ? placeholder : `${selected.length} selected`}
       </button>
 
       {open && (
@@ -137,7 +141,7 @@ function SearchableStandardFilter({
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search standards…"
+              placeholder={searchPlaceholder}
               className="h-8 text-xs"
               autoFocus
             />
@@ -205,9 +209,14 @@ function SearchableStandardFilter({
   );
 }
 
+function formatStandardLabel(standard: { acronym?: string | null; title: string }) {
+  return standard.acronym ? `${standard.acronym} – ${standard.title}` : standard.title;
+}
+
 export function AggregateTimeline({ standards }: { standards: Standard[] | undefined }) {
   const navigate = useNavigate();
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [activeTooltip, setActiveTooltip] = useState<{
@@ -260,7 +269,9 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
 
     for (const event of allEvents) {
       if (!map.has(event.standardId)) {
-        map.set(event.standardId, event.standardAcronym || event.standardTitle);
+        map.set(event.standardId, event.standardAcronym
+          ? `${event.standardAcronym} – ${event.standardTitle}`
+          : event.standardTitle);
       }
     }
 
@@ -269,12 +280,35 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [allEvents]);
 
+  const orgOptions = useMemo(() => {
+    if (!standards) return [];
+    const orgs = new Set<string>();
+    const standardsWithEvents = new Set(allEvents.map((e) => e.standardId));
+    for (const s of standards) {
+      if (s.organization && standardsWithEvents.has(s.id)) {
+        orgs.add(s.organization);
+      }
+    }
+    return Array.from(orgs)
+      .sort()
+      .map((org) => ({ id: org, label: org }));
+  }, [standards, allEvents]);
+
   const filteredEvents = useMemo(() => {
     let next = allEvents;
 
     if (selectedStandards.length > 0) {
       const allowed = new Set(selectedStandards);
       next = next.filter((event) => allowed.has(event.standardId));
+    }
+
+    if (selectedOrgs.length > 0) {
+      const orgSet = new Set(selectedOrgs);
+      const standardMap = new Map(standards?.map((s) => [s.id, s]) || []);
+      next = next.filter((event) => {
+        const s = standardMap.get(event.standardId);
+        return s?.organization && orgSet.has(s.organization);
+      });
     }
 
     if (dateFrom) {
@@ -288,7 +322,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     }
 
     return next;
-  }, [allEvents, dateFrom, dateTo, selectedStandards]);
+  }, [allEvents, dateFrom, dateTo, selectedStandards, selectedOrgs, standards]);
 
   const rows = useMemo(() => {
     const map = new Map<string, TimelineRow>();
@@ -297,7 +331,9 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       if (!map.has(event.standardId)) {
         map.set(event.standardId, {
           id: event.standardId,
-          label: event.standardAcronym || event.standardTitle,
+          label: event.standardAcronym
+            ? `${event.standardAcronym} – ${event.standardTitle}`
+            : event.standardTitle,
           title: event.standardTitle,
           events: [],
         });
@@ -416,7 +452,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     );
   }
 
-  const hasActiveFilters = selectedStandards.length > 0 || !!dateFrom || !!dateTo;
+  const hasActiveFilters = selectedStandards.length > 0 || selectedOrgs.length > 0 || !!dateFrom || !!dateTo;
 
   return (
     <div className="space-y-4">
@@ -433,6 +469,14 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           options={standardOptions}
           selected={selectedStandards}
           onChange={setSelectedStandards}
+        />
+
+        <SearchableStandardFilter
+          options={orgOptions}
+          selected={selectedOrgs}
+          onChange={setSelectedOrgs}
+          placeholder="All organizations"
+          searchPlaceholder="Search organizations…"
         />
 
         <Popover>
@@ -506,11 +550,25 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           );
         })}
 
+        {selectedOrgs.map((org) => (
+          <Badge key={`org-${org}`} variant="outline" className="gap-1 px-2 py-1 text-[10px]">
+            <span className="max-w-[120px] truncate">{org}</span>
+            <button
+              type="button"
+              onClick={() => setSelectedOrgs(selectedOrgs.filter((v) => v !== org))}
+              className="transition-colors hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+
         {hasActiveFilters && (
           <button
             type="button"
             onClick={() => {
               setSelectedStandards([]);
+              setSelectedOrgs([]);
               setDateFrom(undefined);
               setDateTo(undefined);
             }}
@@ -569,7 +627,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                     className="shrink-0 truncate border-r px-4 py-4 text-left text-sm font-medium text-foreground transition-colors hover:text-primary active:scale-[0.98]"
                     style={{ width: LABEL_WIDTH }}
                   >
-                    {row.title}
+                    {row.label}
                   </button>
 
                   <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
@@ -626,7 +684,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                   onClick={() => navigate(`/standard/${row.id}`)}
                   className="w-full truncate px-3 pt-3 pb-1 text-left text-sm font-semibold text-foreground hover:text-primary active:scale-[0.98]"
                 >
-                  {row.title}
+                  {row.label}
                 </button>
 
                 <div className="overflow-x-auto pb-3">
