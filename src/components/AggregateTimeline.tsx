@@ -448,7 +448,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     );
   }
 
-  const hasActiveFilters = selectedStandards.length > 0 || !!dateFrom || !!dateTo;
+  const hasActiveFilters = selectedStandards.length > 0 || selectedOrgs.length > 0 || !!dateFrom || !!dateTo;
 
   return (
     <div className="space-y-4">
