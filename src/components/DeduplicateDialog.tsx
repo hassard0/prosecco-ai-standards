@@ -275,7 +275,7 @@ export function DeduplicateDialog({ open, onOpenChange, standards }: Deduplicate
 
         {/* CLUSTERS STEP */}
         {step === "clusters" && scanResult && (
-          <div className="flex-1 overflow-hidden flex flex-col gap-3 pt-1">
+          <div className="flex-1 overflow-hidden flex flex-col gap-3 pt-1 min-h-0">
             {scanResult.clusters.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <Check className="h-8 w-8 text-primary" />
