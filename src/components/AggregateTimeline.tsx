@@ -88,10 +88,14 @@ function SearchableStandardFilter({
   options,
   selected,
   onChange,
+  placeholder = "All standards",
+  searchPlaceholder = "Search standards…",
 }: {
   options: { id: string; label: string }[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
