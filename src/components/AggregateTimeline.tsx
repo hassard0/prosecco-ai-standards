@@ -467,6 +467,14 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           onChange={setSelectedStandards}
         />
 
+        <SearchableStandardFilter
+          options={orgOptions}
+          selected={selectedOrgs}
+          onChange={setSelectedOrgs}
+          placeholder="All organizations"
+          searchPlaceholder="Search organizations…"
+        />
+
         <Popover>
           <PopoverTrigger asChild>
             <Button
