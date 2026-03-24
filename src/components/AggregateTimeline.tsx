@@ -464,7 +464,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 sticky top-0 z-20 bg-background/95 backdrop-blur-sm py-2 -mx-1 px-1">
+      <div className="flex flex-wrap items-center gap-2 sticky top-16 z-20 bg-background/95 backdrop-blur-sm py-2 -mx-1 px-1">
         <SearchableStandardFilter
           options={standardOptions}
           selected={selectedStandards}
