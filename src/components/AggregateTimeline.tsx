@@ -627,7 +627,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
                     className="shrink-0 truncate border-r px-4 py-4 text-left text-sm font-medium text-foreground transition-colors hover:text-primary active:scale-[0.98]"
                     style={{ width: LABEL_WIDTH }}
                   >
-                    {row.title}
+                    {row.label}
                   </button>
 
                   <div className="relative" style={{ width: timelineMetrics.trackWidth, height: 76 }}>
