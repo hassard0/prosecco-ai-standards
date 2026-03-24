@@ -550,11 +550,25 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
           );
         })}
 
+        {selectedOrgs.map((org) => (
+          <Badge key={`org-${org}`} variant="outline" className="gap-1 px-2 py-1 text-[10px]">
+            <span className="max-w-[120px] truncate">{org}</span>
+            <button
+              type="button"
+              onClick={() => setSelectedOrgs(selectedOrgs.filter((v) => v !== org))}
+              className="transition-colors hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+
         {hasActiveFilters && (
           <button
             type="button"
             onClick={() => {
               setSelectedStandards([]);
+              setSelectedOrgs([]);
               setDateFrom(undefined);
               setDateTo(undefined);
             }}
