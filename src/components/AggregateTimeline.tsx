@@ -132,7 +132,7 @@ function SearchableStandardFilter({
         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <Search className="h-3.5 w-3.5" />
-        {selected.length === 0 ? "All standards" : `${selected.length} selected`}
+        {selected.length === 0 ? placeholder : `${selected.length} selected`}
       </button>
 
       {open && (
