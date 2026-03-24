@@ -16,9 +16,8 @@ const mcpServer = new McpServer({
   version: "1.0.0",
 });
 
-// Tool: List all standards (with optional status/tag filters)
-mcpServer.tool({
-  name: "list_standards",
+// Tool: List all standards
+mcpServer.tool("list_standards", {
   description:
     "List AI interoperability standards tracked by Prosecco.dev. Optionally filter by status (Backlog, Emerging, Draft, Approved) or tag.",
   inputSchema: {
@@ -58,28 +57,19 @@ mcpServer.tool({
     const summary = `Found ${data?.length ?? 0} standards${params.status ? ` with status "${params.status}"` : ""}${params.tag ? ` tagged "${params.tag}"` : ""}.`;
 
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: `${summary}\n\n${JSON.stringify(data, null, 2)}`,
-        },
-      ],
+      content: [{ type: "text" as const, text: `${summary}\n\n${JSON.stringify(data, null, 2)}` }],
     };
   },
 });
 
-// Tool: Get a single standard by ID with full details
-mcpServer.tool({
-  name: "get_standard",
+// Tool: Get a single standard by ID
+mcpServer.tool("get_standard", {
   description:
     "Get full details of a specific AI standard by its ID, including authors, resources, and the latest discussion summary.",
   inputSchema: {
     type: "object" as const,
     properties: {
-      id: {
-        type: "string",
-        description: "The UUID of the standard",
-      },
+      id: { type: "string", description: "The UUID of the standard" },
     },
     required: ["id"],
   },
@@ -99,7 +89,6 @@ mcpServer.tool({
       };
     }
 
-    // Fetch latest summary
     const { data: summaries } = await supabase
       .from("standard_summaries")
       .select("summary, whats_new, generated_at")
@@ -109,7 +98,7 @@ mcpServer.tool({
 
     const result: Record<string, unknown> = {
       ...standard,
-      prosecco_url: `https://prosecco-ai-standards.lovable.app/standard/${standard.id}`,
+      prosecco_url: `https://prosecco.dev/standard/${standard.id}`,
     };
 
     if (summaries && summaries.length > 0) {
@@ -125,17 +114,13 @@ mcpServer.tool({
 });
 
 // Tool: Search standards by keyword
-mcpServer.tool({
-  name: "search_standards",
+mcpServer.tool("search_standards", {
   description:
     "Search AI standards by keyword across titles, descriptions, acronyms, and organizations.",
   inputSchema: {
     type: "object" as const,
     properties: {
-      query: {
-        type: "string",
-        description: "Search keyword or phrase",
-      },
+      query: { type: "string", description: "Search keyword or phrase" },
     },
     required: ["query"],
   },
@@ -170,8 +155,7 @@ mcpServer.tool({
 });
 
 // Tool: Get directory overview / stats
-mcpServer.tool({
-  name: "get_directory_overview",
+mcpServer.tool("get_directory_overview", {
   description:
     "Get an overview of the Prosecco.dev AI standards directory including counts by status, list of organizations, and available tags.",
   inputSchema: {
@@ -222,8 +206,7 @@ mcpServer.tool({
 });
 
 // Tool: List available tags
-mcpServer.tool({
-  name: "list_tags",
+mcpServer.tool("list_tags", {
   description: "List all topic tags used across standards in the directory, with counts.",
   inputSchema: {
     type: "object" as const,
@@ -251,21 +234,14 @@ mcpServer.tool({
 });
 
 // Tool: Search authors/contributors
-mcpServer.tool({
-  name: "search_authors",
+mcpServer.tool("search_authors", {
   description:
     "Search for authors and contributors across all standards. Returns matching people with their roles, companies, and which standards they contribute to.",
   inputSchema: {
     type: "object" as const,
     properties: {
-      name: {
-        type: "string",
-        description: "Name (or partial name) of the author to search for",
-      },
-      company: {
-        type: "string",
-        description: "Filter by company/organization affiliation",
-      },
+      name: { type: "string", description: "Name (or partial name) of the author to search for" },
+      company: { type: "string", description: "Filter by company/organization affiliation" },
     },
   },
   handler: async (params: { name?: string; company?: string }) => {
@@ -313,17 +289,13 @@ mcpServer.tool({
 });
 
 // Tool: List organizations
-mcpServer.tool({
-  name: "list_organizations",
+mcpServer.tool("list_organizations", {
   description:
     "List all organizations that publish or maintain standards in the directory, with counts and their standards.",
   inputSchema: {
     type: "object" as const,
     properties: {
-      name: {
-        type: "string",
-        description: "Filter by organization name (partial match)",
-      },
+      name: { type: "string", description: "Filter by organization name (partial match)" },
     },
   },
   handler: async (params: { name?: string }) => {
@@ -357,8 +329,7 @@ mcpServer.tool({
 });
 
 // Tool: List contributors by company
-mcpServer.tool({
-  name: "list_contributors_by_company",
+mcpServer.tool("list_contributors_by_company", {
   description:
     "List all companies/organizations that have contributors across standards, showing how many people and which standards each company is involved in.",
   inputSchema: {
