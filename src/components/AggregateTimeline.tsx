@@ -265,7 +265,9 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
 
     for (const event of allEvents) {
       if (!map.has(event.standardId)) {
-        map.set(event.standardId, event.standardAcronym || event.standardTitle);
+        map.set(event.standardId, event.standardAcronym
+          ? `${event.standardAcronym} – ${event.standardTitle}`
+          : event.standardTitle);
       }
     }
 
@@ -273,6 +275,20 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [allEvents]);
+
+  const orgOptions = useMemo(() => {
+    if (!standards) return [];
+    const orgs = new Set<string>();
+    const standardsWithEvents = new Set(allEvents.map((e) => e.standardId));
+    for (const s of standards) {
+      if (s.organization && standardsWithEvents.has(s.id)) {
+        orgs.add(s.organization);
+      }
+    }
+    return Array.from(orgs)
+      .sort()
+      .map((org) => ({ id: org, label: org }));
+  }, [standards, allEvents]);
 
   const filteredEvents = useMemo(() => {
     let next = allEvents;
