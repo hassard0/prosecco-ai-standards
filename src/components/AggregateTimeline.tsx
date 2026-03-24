@@ -205,9 +205,14 @@ function SearchableStandardFilter({
   );
 }
 
+function formatStandardLabel(standard: { acronym?: string | null; title: string }) {
+  return standard.acronym ? `${standard.acronym} – ${standard.title}` : standard.title;
+}
+
 export function AggregateTimeline({ standards }: { standards: Standard[] | undefined }) {
   const navigate = useNavigate();
   const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [activeTooltip, setActiveTooltip] = useState<{
