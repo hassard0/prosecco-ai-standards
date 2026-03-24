@@ -97,7 +97,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href="/mcp" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <a href="https://mcp.prosecco.dev" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                     MCP Server
                   </a>
                 </DropdownMenuItem>
