@@ -298,6 +298,15 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
       next = next.filter((event) => allowed.has(event.standardId));
     }
 
+    if (selectedOrgs.length > 0) {
+      const orgSet = new Set(selectedOrgs);
+      const standardMap = new Map(standards?.map((s) => [s.id, s]) || []);
+      next = next.filter((event) => {
+        const s = standardMap.get(event.standardId);
+        return s?.organization && orgSet.has(s.organization);
+      });
+    }
+
     if (dateFrom) {
       next = next.filter((event) => parseDate(event.date).getTime() >= dateFrom.getTime());
     }
@@ -309,7 +318,7 @@ export function AggregateTimeline({ standards }: { standards: Standard[] | undef
     }
 
     return next;
-  }, [allEvents, dateFrom, dateTo, selectedStandards]);
+  }, [allEvents, dateFrom, dateTo, selectedStandards, selectedOrgs, standards]);
 
   const rows = useMemo(() => {
     const map = new Map<string, TimelineRow>();
