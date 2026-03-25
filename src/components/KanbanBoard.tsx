@@ -5,15 +5,18 @@ import type { Standard } from "@/hooks/useStandards";
 import { KanbanColumn } from "./KanbanColumn";
 import { StandardsFilterBar } from "./StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StandardsTable } from "./StandardsTable";
 import { cn } from "@/lib/utils";
-import { LayoutList, Rows3 } from "lucide-react";
+import { LayoutList, Rows3, TableProperties } from "lucide-react";
 
-function getViewModeCookie(): "compact" | "detailed" {
-  const match = document.cookie.match(/(?:^|; )viewMode=(compact|detailed)/);
-  return (match?.[1] as "compact" | "detailed") ?? "detailed";
+type ViewMode = "compact" | "detailed" | "table";
+
+function getViewModeCookie(): ViewMode {
+  const match = document.cookie.match(/(?:^|; )viewMode=(compact|detailed|table)/);
+  return (match?.[1] as ViewMode) ?? "detailed";
 }
 
-function setViewModeCookie(mode: "compact" | "detailed") {
+function setViewModeCookie(mode: ViewMode) {
   document.cookie = `viewMode=${mode}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
 
@@ -34,8 +37,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [localSearch, setLocalSearch] = useState("");
   const [showExpired, setShowExpired] = useState(false);
-  const [viewMode, setViewModeState] = useState<"compact" | "detailed">(getViewModeCookie);
-  const setViewMode = useCallback((mode: "compact" | "detailed") => {
+  const [viewMode, setViewModeState] = useState<ViewMode>(getViewModeCookie);
+  const setViewMode = useCallback((mode: ViewMode) => {
     setViewModeState(mode);
     setViewModeCookie(mode);
   }, []);
@@ -140,6 +143,16 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
           >
             <LayoutList className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => setViewMode("table")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "table" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Table view"
+          >
+            <TableProperties className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -154,6 +167,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
             </div>
           ))}
         </div>
+      ) : viewMode === "table" ? (
+        <StandardsTable standards={filtered} />
       ) : (
         <>
           {/* Mobile tabs */}
@@ -185,7 +200,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
-                viewMode={viewMode}
+                viewMode={viewMode as "compact" | "detailed"}
               />
             </div>
           </div>
@@ -199,7 +214,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={col.color}
                 standards={col.standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
-                viewMode={viewMode}
+                viewMode={viewMode as "compact" | "detailed"}
               />
             ))}
           </div>
