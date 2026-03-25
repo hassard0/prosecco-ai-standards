@@ -167,6 +167,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
             </div>
           ))}
         </div>
+      ) : viewMode === "table" ? (
+        <StandardsTable standards={filtered} />
       ) : (
         <>
           {/* Mobile tabs */}
@@ -198,7 +200,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
-                viewMode={viewMode}
+                viewMode={viewMode === "table" ? "detailed" : viewMode}
               />
             </div>
           </div>
@@ -212,7 +214,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={col.color}
                 standards={col.standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
-                viewMode={viewMode}
+                viewMode={viewMode === "table" ? "detailed" : viewMode}
               />
             ))}
           </div>
