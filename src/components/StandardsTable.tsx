@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StandardsTableProps {
