@@ -48,10 +48,10 @@ function parseEvents(timeline_events: Json | null): TimelineEvent[] {
 }
 
 function latestEventDate(events: TimelineEvent[]): string | null {
-  if (events.length === 0) return null;
-  let latest = events[0].date;
+  const today = new Date().toISOString().slice(0, 10);
+  let latest: string | null = null;
   for (const e of events) {
-    if (e.date > latest) latest = e.date;
+    if (e.date <= today && (!latest || e.date > latest)) latest = e.date;
   }
   return latest;
 }
