@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StandardsTableProps {
@@ -57,8 +58,8 @@ function latestEventDate(events: TimelineEvent[]): string | null {
 
 export function StandardsTable({ standards }: StandardsTableProps) {
   const navigate = useNavigate();
-  const [sortKey, setSortKey] = useState<SortKey>("title");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("last_event");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   // Fetch summaries for event counts and latest event dates
   const { data: summaries } = useQuery({
@@ -155,8 +156,43 @@ export function StandardsTable({ standards }: StandardsTableProps) {
     ["last_event", "Last Activity"],
   ];
 
+  const exportCsv = useCallback(() => {
+    const header = ["Standard", "Acronym", "Status", "Organization", "Categories", "Contributors", "Events", "Last Activity", "Link"];
+    const rows = sorted.map((s) => {
+      const info = summaryMap.get(s.id);
+      const lastDate = info?.latestDate;
+      return [
+        s.title,
+        s.acronym ?? "",
+        s.status,
+        s.organization ?? "",
+        (s.tags ?? []).join("; "),
+        String(countAuthors(s.authors)),
+        String(info?.eventCount ?? 0),
+        lastDate ? new Date(lastDate).toLocaleDateString() : "",
+        s.link ?? "",
+      ];
+    });
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [header.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ai-standards-directory.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [sorted, summaryMap]);
+
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={exportCsv}>
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </Button>
+      </div>
+      <div className="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -262,6 +298,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
