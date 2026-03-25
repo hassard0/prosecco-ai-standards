@@ -156,8 +156,43 @@ export function StandardsTable({ standards }: StandardsTableProps) {
     ["last_event", "Last Activity"],
   ];
 
+  const exportCsv = useCallback(() => {
+    const header = ["Standard", "Acronym", "Status", "Organization", "Categories", "Contributors", "Events", "Last Activity", "Link"];
+    const rows = sorted.map((s) => {
+      const info = summaryMap.get(s.id);
+      const lastDate = info?.latestDate;
+      return [
+        s.title,
+        s.acronym ?? "",
+        s.status,
+        s.organization ?? "",
+        (s.tags ?? []).join("; "),
+        String(countAuthors(s.authors)),
+        String(info?.eventCount ?? 0),
+        lastDate ? new Date(lastDate).toLocaleDateString() : "",
+        s.link ?? "",
+      ];
+    });
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [header.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ai-standards-directory.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [sorted, summaryMap]);
+
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={exportCsv}>
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </Button>
+      </div>
+      <div className="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
