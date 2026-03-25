@@ -6,7 +6,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <a
-            href="https://github.com/ai-standards-lab/prosecco"
+            href="https://github.com/hassard0/prosecco-ai-standards"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
