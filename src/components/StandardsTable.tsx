@@ -298,6 +298,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
