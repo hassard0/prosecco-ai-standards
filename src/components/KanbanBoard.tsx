@@ -37,8 +37,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [localSearch, setLocalSearch] = useState("");
   const [showExpired, setShowExpired] = useState(false);
-  const [viewMode, setViewModeState] = useState<"compact" | "detailed">(getViewModeCookie);
-  const setViewMode = useCallback((mode: "compact" | "detailed") => {
+  const [viewMode, setViewModeState] = useState<ViewMode>(getViewModeCookie);
+  const setViewMode = useCallback((mode: ViewMode) => {
     setViewModeState(mode);
     setViewModeCookie(mode);
   }, []);
