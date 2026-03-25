@@ -58,8 +58,8 @@ function latestEventDate(events: TimelineEvent[]): string | null {
 
 export function StandardsTable({ standards }: StandardsTableProps) {
   const navigate = useNavigate();
-  const [sortKey, setSortKey] = useState<SortKey>("title");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("last_event");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   // Fetch summaries for event counts and latest event dates
   const { data: summaries } = useQuery({
