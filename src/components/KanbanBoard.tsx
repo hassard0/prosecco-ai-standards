@@ -200,7 +200,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 accentColor={columnData[mobileTab].color}
                 standards={columnData[mobileTab].standards}
                 onSelectStandard={(s) => navigate(`/standard/${s.id}`)}
-                viewMode={viewMode === "table" ? "detailed" : viewMode}
+                viewMode={viewMode as "compact" | "detailed"}
               />
             </div>
           </div>
