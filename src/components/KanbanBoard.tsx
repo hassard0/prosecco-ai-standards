@@ -5,15 +5,18 @@ import type { Standard } from "@/hooks/useStandards";
 import { KanbanColumn } from "./KanbanColumn";
 import { StandardsFilterBar } from "./StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StandardsTable } from "./StandardsTable";
 import { cn } from "@/lib/utils";
-import { LayoutList, Rows3 } from "lucide-react";
+import { LayoutList, Rows3, TableProperties } from "lucide-react";
 
-function getViewModeCookie(): "compact" | "detailed" {
-  const match = document.cookie.match(/(?:^|; )viewMode=(compact|detailed)/);
-  return (match?.[1] as "compact" | "detailed") ?? "detailed";
+type ViewMode = "compact" | "detailed" | "table";
+
+function getViewModeCookie(): ViewMode {
+  const match = document.cookie.match(/(?:^|; )viewMode=(compact|detailed|table)/);
+  return (match?.[1] as ViewMode) ?? "detailed";
 }
 
-function setViewModeCookie(mode: "compact" | "detailed") {
+function setViewModeCookie(mode: ViewMode) {
   document.cookie = `viewMode=${mode}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
 
