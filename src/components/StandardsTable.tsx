@@ -1,6 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { Standard } from "@/hooks/useStandards";
+import type { Json } from "@/integrations/supabase/types";
 import {
   Table,
   TableBody,
@@ -17,7 +20,7 @@ interface StandardsTableProps {
   standards: Standard[];
 }
 
-type SortKey = "title" | "status" | "organization" | "updated_at";
+type SortKey = "title" | "status" | "organization" | "last_event" | "contributors" | "events" | "tags";
 type SortDir = "asc" | "desc";
 
 const STATUS_ORDER: Record<string, number> = { Emerging: 0, Draft: 1, Approved: 2 };
@@ -27,17 +30,75 @@ const STATUS_COLOR: Record<string, string> = {
   Approved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
 };
 
+interface TimelineEvent {
+  date: string;
+  title: string;
+  type?: string;
+}
+
+function countAuthors(authors: Json | null): number {
+  if (!Array.isArray(authors)) return 0;
+  return authors.length;
+}
+
+function parseEvents(timeline_events: Json | null): TimelineEvent[] {
+  if (!Array.isArray(timeline_events)) return [];
+  return timeline_events as unknown as TimelineEvent[];
+}
+
+function latestEventDate(events: TimelineEvent[]): string | null {
+  if (events.length === 0) return null;
+  let latest = events[0].date;
+  for (const e of events) {
+    if (e.date > latest) latest = e.date;
+  }
+  return latest;
+}
+
 export function StandardsTable({ standards }: StandardsTableProps) {
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Fetch summaries for event counts and latest event dates
+  const { data: summaries } = useQuery({
+    queryKey: ["standard_summaries_table"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("standard_summaries")
+        .select("standard_id, timeline_events");
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Build lookup: standard_id -> { eventCount, latestDate }
+  const summaryMap = useMemo(() => {
+    const map = new Map<string, { eventCount: number; latestDate: string | null }>();
+    if (!summaries) return map;
+    for (const s of summaries) {
+      const events = parseEvents(s.timeline_events);
+      const existing = map.get(s.standard_id);
+      const latest = latestEventDate(events);
+      if (existing) {
+        existing.eventCount += events.length;
+        if (latest && (!existing.latestDate || latest > existing.latestDate)) {
+          existing.latestDate = latest;
+        }
+      } else {
+        map.set(s.standard_id, { eventCount: events.length, latestDate: latest });
+      }
+    }
+    return map;
+  }, [summaries]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir("asc");
+      setSortDir(key === "last_event" || key === "contributors" || key === "events" ? "desc" : "asc");
     }
   };
 
@@ -55,31 +116,51 @@ export function StandardsTable({ standards }: StandardsTableProps) {
         case "organization":
           cmp = (a.organization ?? "").localeCompare(b.organization ?? "");
           break;
-        case "updated_at":
-          cmp = a.updated_at.localeCompare(b.updated_at);
+        case "contributors":
+          cmp = countAuthors(a.authors) - countAuthors(b.authors);
+          break;
+        case "events": {
+          const aE = summaryMap.get(a.id)?.eventCount ?? 0;
+          const bE = summaryMap.get(b.id)?.eventCount ?? 0;
+          cmp = aE - bE;
+          break;
+        }
+        case "last_event": {
+          const aD = summaryMap.get(a.id)?.latestDate ?? "";
+          const bD = summaryMap.get(b.id)?.latestDate ?? "";
+          cmp = aD.localeCompare(bD);
+          break;
+        }
+        case "tags":
+          cmp = (a.tags?.length ?? 0) - (b.tags?.length ?? 0);
           break;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
-  }, [standards, sortKey, sortDir]);
+  }, [standards, sortKey, sortDir, summaryMap]);
 
   const SortIcon = ({ col }: { col: SortKey }) => {
     if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
     return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
   };
 
+  const columns: [SortKey, string][] = [
+    ["title", "Standard"],
+    ["status", "Status"],
+    ["organization", "Organization"],
+    ["tags", "Categories"],
+    ["contributors", "Contributors"],
+    ["events", "Events"],
+    ["last_event", "Last Activity"],
+  ];
+
   return (
     <div className="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {([
-              ["title", "Standard"],
-              ["status", "Status"],
-              ["organization", "Organization"],
-              ["updated_at", "Updated"],
-            ] as [SortKey, string][]).map(([key, label]) => (
+            {columns.map(([key, label]) => (
               <TableHead key={key}>
                 <button
                   onClick={() => toggleSort(key)}
@@ -90,80 +171,94 @@ export function StandardsTable({ standards }: StandardsTableProps) {
                 </button>
               </TableHead>
             ))}
-            <TableHead className="text-xs font-semibold">Tags</TableHead>
             <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+              <TableCell colSpan={columns.length + 1} className="text-center py-12 text-muted-foreground text-sm">
                 No standards match your filters.
               </TableCell>
             </TableRow>
           ) : (
-            sorted.map((s) => (
-              <TableRow
-                key={s.id}
-                className="cursor-pointer"
-                onClick={() => navigate(`/standard/${s.id}`)}
-              >
-                <TableCell className="font-medium max-w-xs">
-                  <div className="flex items-center gap-2">
-                    {s.is_expired && (
-                      <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                    )}
-                    <span className="truncate">{s.title}</span>
-                    {s.acronym && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                        {s.acronym}
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={cn("text-[10px] px-1.5 py-0 font-medium", STATUS_COLOR[s.status])}
-                  >
-                    {s.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground truncate max-w-[160px]">
-                  {s.organization ?? "—"}
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-                  {new Date(s.updated_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {(s.tags ?? []).slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {(s.tags ?? []).length > 3 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        +{(s.tags ?? []).length - 3}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {s.link && (
-                    <a
-                      href={s.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+            sorted.map((s) => {
+              const info = summaryMap.get(s.id);
+              const authorCount = countAuthors(s.authors);
+              const eventCount = info?.eventCount ?? 0;
+              const lastDate = info?.latestDate;
+
+              return (
+                <TableRow
+                  key={s.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/standard/${s.id}`)}
+                >
+                  <TableCell className="font-medium max-w-xs">
+                    <div className="flex items-center gap-2">
+                      {s.is_expired && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                      )}
+                      <span className="truncate">{s.title}</span>
+                      {s.acronym && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                          {s.acronym}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-[10px] px-1.5 py-0 font-medium", STATUS_COLOR[s.status])}
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
+                      {s.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground truncate max-w-[160px]">
+                    {s.organization ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {(s.tags ?? []).slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {(s.tags ?? []).length > 3 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          +{(s.tags ?? []).length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm tabular-nums text-center text-muted-foreground">
+                    {authorCount || "—"}
+                  </TableCell>
+                  <TableCell className="text-sm tabular-nums text-center text-muted-foreground">
+                    {eventCount || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                    {lastDate
+                      ? new Date(lastDate).toLocaleDateString()
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {s.link && (
+                      <a
+                        href={s.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>
