@@ -91,6 +91,7 @@ export default function Radar() {
     if (!standards || !isSuccess) return [];
     const q = searchQuery.toLowerCase().trim();
     return standards.filter((s) => {
+      if (s.status === "Backlog") return false;
       if (!q) return true;
       return (
         s.title.toLowerCase().includes(q) ||

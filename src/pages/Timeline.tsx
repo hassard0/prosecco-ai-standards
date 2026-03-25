@@ -42,7 +42,7 @@ export default function TimelinePage() {
           </div>
         ) : (
           <div className="rounded-lg border bg-card p-5">
-            <AggregateTimeline standards={standards} />
+            <AggregateTimeline standards={standards?.filter(s => s.status !== "Backlog")} />
           </div>
         )}
       </main>
