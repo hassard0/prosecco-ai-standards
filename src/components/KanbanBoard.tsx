@@ -143,6 +143,16 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
           >
             <LayoutList className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => setViewMode("table")}
+            className={cn(
+              "p-1.5 rounded transition-colors active:scale-95",
+              viewMode === "table" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Table view"
+          >
+            <TableProperties className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
