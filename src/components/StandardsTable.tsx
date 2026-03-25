@@ -99,7 +99,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir(key === "last_event" || key === "contributors" || key === "events" ? "desc" : "asc");
+      setSortDir(key === "title" || key === "organization" ? "asc" : "desc");
     }
   };
 
