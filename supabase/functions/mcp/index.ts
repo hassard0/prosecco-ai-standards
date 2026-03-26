@@ -500,6 +500,22 @@ mcpServer.tool("report_issue", {
   }) => {
     const supabase = getSupabase();
 
+    // Check feedback queue cap
+    const { count: feedbackCount, error: countError } = await supabase
+      .from("standard_flags")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+
+    if (countError) throw new Error(`Database error: ${countError.message}`);
+
+    if ((feedbackCount ?? 0) >= 500) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: "Thank you for wanting to help improve the directory! Our feedback queue is currently full and we need to work through existing reports before accepting new ones. Please try again soon — we really appreciate your patience!",
+        }],
+      };
+    }
     if (!params.standard_id && !params.standard_name) {
       return {
         content: [{ type: "text" as const, text: "Please provide either standard_id or standard_name to identify the standard." }],
