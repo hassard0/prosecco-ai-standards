@@ -18,6 +18,7 @@ import TimelinePage from "./pages/Timeline.tsx";
 import LlmsTxt from "./pages/LlmsTxt.tsx";
 import McpInfo from "./pages/McpInfo.tsx";
 import AdminMcpAuthorize from "./pages/AdminMcpAuthorize.tsx";
+import AdminApiClients from "./pages/AdminApiClients.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
