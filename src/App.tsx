@@ -45,6 +45,7 @@ const App = () => (
               <Route path="/llms-full.txt" element={<LlmsTxt />} />
               <Route path="/directory.json" element={<LlmsTxt />} />
               <Route path="/mcp" element={<McpInfo />} />
+              <Route path="/oauth/admin-mcp/authorize" element={<AdminMcpAuthorize />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
