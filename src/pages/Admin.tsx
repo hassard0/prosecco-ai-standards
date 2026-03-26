@@ -165,6 +165,40 @@ export default function Admin() {
     });
   };
 
+  const handleClearCommunitySubmissions = async () => {
+    setClearing(true);
+    const { error } = await supabase
+      .from("standards")
+      .delete()
+      .eq("status", "Backlog")
+      .contains("tags", ["community-submission"]);
+    setClearing(false);
+    setConfirmClearSubmissions(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Cleared", description: "All community submissions have been removed from the Backlog." });
+      qc.invalidateQueries({ queryKey: ["standards"] });
+    }
+  };
+
+  const handleClearFeedback = async () => {
+    setClearing(true);
+    const { error } = await supabase
+      .from("standard_flags")
+      .delete()
+      .eq("status", "pending");
+    setClearing(false);
+    setConfirmClearFeedback(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Cleared", description: "All pending feedback has been removed." });
+      qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
+      qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) return (
