@@ -159,7 +159,7 @@ export function ApiClientManager() {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md" onFocusOutside={(e) => { if (document.hidden) e.preventDefault(); }}>
+        <DialogContent className="sm:max-w-lg" onFocusOutside={(e) => { if (document.hidden) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle>{newCredentials ? "Client Created" : "New API Client"}</DialogTitle>
             <DialogDescription>
@@ -196,10 +196,18 @@ export function ApiClientManager() {
               </div>
               <div className="rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
                 <p className="font-medium text-foreground">Usage:</p>
-                <p>1. Get a token: <code>POST https://admin.prosecco.dev/token</code></p>
-                <p className="ml-3">Body: <code>{`grant_type=client_credentials&client_id=...&client_secret=...`}</code></p>
-                <p>2. Use the MCP server: <code>POST https://admin.prosecco.dev</code></p>
-                <p className="ml-3">Header: <code>Authorization: Bearer &lt;token&gt;</code></p>
+                <p>1. Get a token:</p>
+                <code className="block bg-background rounded px-2 py-1.5 text-[11px] break-all whitespace-pre-wrap">
+{`curl -X POST https://admin.prosecco.dev/token \\
+  -d "grant_type=client_credentials&client_id=${newCredentials.client_id}&client_secret=YOUR_SECRET"`}
+                </code>
+                <p>2. Call the admin MCP server:</p>
+                <code className="block bg-background rounded px-2 py-1.5 text-[11px] break-all whitespace-pre-wrap">
+{`curl -X POST https://admin.prosecco.dev \\
+  -H "Authorization: Bearer <access_token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'`}
+                </code>
               </div>
             </div>
           ) : (
