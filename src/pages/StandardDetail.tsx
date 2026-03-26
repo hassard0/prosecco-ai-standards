@@ -3,7 +3,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users, RefreshCw, AlertTriangle } from "lucide-react";
 import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAuthorSankey } from "@/components/MiniAuthorSankey";
@@ -148,6 +148,12 @@ export default function StandardDetail() {
               >
                 {standard.status}
               </span>
+              {standard.is_expired && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-destructive/10 text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Expired
+                </span>
+              )}
               {standard.organization && (
                 <span className="text-sm text-muted-foreground">
                   by <span className="font-medium text-foreground">{standard.organization}</span>

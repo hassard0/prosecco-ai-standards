@@ -18,6 +18,7 @@ import TimelinePage from "./pages/Timeline.tsx";
 import LlmsTxt from "./pages/LlmsTxt.tsx";
 import McpInfo from "./pages/McpInfo.tsx";
 import AdminMcpAuthorize from "./pages/AdminMcpAuthorize.tsx";
+import AdminApiClients from "./pages/AdminApiClients.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/admin/edit/:id" element={<AdminEdit />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
+              <Route path="/admin/api-clients" element={<AdminApiClients />} />
               <Route path="/llms.txt" element={<LlmsTxt />} />
               <Route path="/llms-full.txt" element={<LlmsTxt />} />
               <Route path="/directory.json" element={<LlmsTxt />} />
