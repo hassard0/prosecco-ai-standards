@@ -19,7 +19,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the caller is an admin
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,7 +35,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check caller is admin
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -52,7 +50,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email } = await req.json();
+    const { email, role: requestedRole } = await req.json();
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "Email is required" }), {
         status: 400,
@@ -60,31 +58,45 @@ Deno.serve(async (req) => {
       });
     }
 
+    const assignRole = requestedRole === "admin" ? "admin" : "contributor";
+    const roleLabel = assignRole === "admin" ? "admin" : "contributor";
+
     // Check if user already exists
     const { data: { users } } = await adminClient.auth.admin.listUsers();
     const existingUser = users?.find((u) => u.email === email.toLowerCase());
 
     if (existingUser) {
-      // Check if already admin
+      // Check if already has a role
       const { data: existingRole } = await adminClient
         .from("user_roles")
         .select("role")
         .eq("user_id", existingUser.id)
-        .eq("role", "admin")
         .maybeSingle();
 
       if (existingRole) {
+        if (existingRole.role === assignRole) {
+          return new Response(
+            JSON.stringify({ success: false, error: `User is already a ${roleLabel}.` }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Update existing role
+        await adminClient
+          .from("user_roles")
+          .update({ role: assignRole })
+          .eq("user_id", existingUser.id);
+
         return new Response(
-          JSON.stringify({ success: false, error: "User is already an admin." }),
+          JSON.stringify({ success: true, invited: false, message: `${email} role updated to ${roleLabel}.` }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Grant admin role
-      await adminClient.from("user_roles").insert({ user_id: existingUser.id, role: "admin" });
+      // Grant role
+      await adminClient.from("user_roles").insert({ user_id: existingUser.id, role: assignRole });
 
       return new Response(
-        JSON.stringify({ success: true, invited: false, message: `${email} is now an admin.` }),
+        JSON.stringify({ success: true, invited: false, message: `${email} is now a ${roleLabel}.` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -99,13 +111,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Grant admin role to the invited user
     if (inviteData?.user) {
-      await adminClient.from("user_roles").insert({ user_id: inviteData.user.id, role: "admin" });
+      await adminClient.from("user_roles").insert({ user_id: inviteData.user.id, role: assignRole });
     }
 
     return new Response(
-      JSON.stringify({ success: true, invited: true, message: `Invitation sent to ${email}. They'll be an admin once they accept.` }),
+      JSON.stringify({ success: true, invited: true, message: `Invitation sent to ${email}. They'll be a ${roleLabel} once they accept.` }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
