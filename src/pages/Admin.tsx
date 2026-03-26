@@ -71,6 +71,9 @@ export default function Admin() {
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [deduplicateOpen, setDeduplicateOpen] = useState(false);
+  const [confirmClearSubmissions, setConfirmClearSubmissions] = useState(false);
+  const [confirmClearFeedback, setConfirmClearFeedback] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
     if (!standards) return [];
