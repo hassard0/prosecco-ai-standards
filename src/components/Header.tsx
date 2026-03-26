@@ -67,7 +67,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 <span className="hidden sm:inline text-xs">Affiliations</span>
               </Link>
             </Button>
-            {isAdmin && (
+            {hasTeamAccess && (
               <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
                 <Link to="/admin" aria-label="Admin dashboard">
                   <Settings className="h-4 w-4" />
