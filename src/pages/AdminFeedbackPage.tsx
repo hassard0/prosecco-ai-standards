@@ -7,11 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import AdminFeedback from "@/components/AdminFeedback";
 
 export default function AdminFeedbackPage() {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, hasTeamAccess, loading, signOut } = useAuth();
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!hasTeamAccess) return <Navigate to="/" replace />;
 
   return (
     <div className="min-h-screen bg-background">
