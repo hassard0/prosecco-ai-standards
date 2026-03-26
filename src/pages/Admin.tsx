@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2, Merge, MessageSquareX, PackageX } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2, Merge, MessageSquareX, PackageX, HardDrive } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { StandardsFilterBar } from "@/components/StandardsFilterBar";
@@ -199,6 +199,23 @@ export default function Admin() {
     }
   };
 
+  const handleManualBackup = async () => {
+    setBulkEnriching(true);
+    setBulkAction("backup");
+    try {
+      const { data, error } = await supabase.functions.invoke("backup-database");
+      if (error) throw error;
+      toast({
+        title: "Backup complete",
+        description: `Saved ${Object.entries(data.row_counts || {}).map(([k, v]) => `${k}: ${v}`).join(", ")}`,
+      });
+    } catch (err: any) {
+      toast({ title: "Backup failed", description: err.message, variant: "destructive" });
+    }
+    setBulkEnriching(false);
+    setBulkAction(null);
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) return (
@@ -301,7 +318,7 @@ export default function Admin() {
                 <Button variant="outline" size="sm" disabled={bulkEnriching} className="gap-1.5">
                   <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
                   {bulkEnriching
-                    ? bulkAction === "summaries" ? "Generating…" : "Enriching…"
+                    ? bulkAction === "summaries" ? "Generating…" : bulkAction === "backup" ? "Backing up…" : "Enriching…"
                     : "Bulk Actions"}
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
@@ -315,6 +332,9 @@ export default function Admin() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setDeduplicateOpen(true)} className="gap-2">
                   <Merge className="h-3.5 w-3.5" /> De-duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleManualBackup} disabled={bulkEnriching} className="gap-2">
+                  <HardDrive className="h-3.5 w-3.5" /> Run Backup Now
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
                   <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
