@@ -4,9 +4,14 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function getSupabase() {
   return createClient(supabaseUrl, supabaseKey);
+}
+
+function getServiceSupabase() {
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 const app = new Hono();
@@ -370,6 +375,189 @@ mcpServer.tool("list_contributors_by_company", {
       content: [{
         type: "text" as const,
         text: `Found ${sorted.length} companies with contributors.\n\n${JSON.stringify(sorted, null, 2)}`,
+      }],
+    };
+  },
+});
+
+// Tool: Suggest a new standard for the directory
+mcpServer.tool("suggest_standard", {
+  description:
+    "Submit a community suggestion for a new AI standard to be added to the Prosecco.dev directory. The standard will be added to the Backlog with a 'community-submission' tag for admin review.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      name: { type: "string", description: "The name/title of the standard or protocol" },
+      url: { type: "string", description: "URL to the standard's specification or homepage" },
+      description: {
+        type: "string",
+        description: "Brief description of what the standard does (optional, will use a placeholder if not provided)",
+      },
+      organization: {
+        type: "string",
+        description: "The organization or group behind the standard (optional)",
+      },
+    },
+    required: ["name", "url"],
+  },
+  handler: async (params: { name: string; url: string; description?: string; organization?: string }) => {
+    const supabase = getServiceSupabase();
+
+    // Check if a standard with the same title already exists
+    const { data: existing } = await supabase
+      .from("standards")
+      .select("id, title, status")
+      .ilike("title", params.name)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `A standard with a similar name already exists: "${existing[0].title}" (status: ${existing[0].status}, id: ${existing[0].id}). If you believe this is different, please contact the maintainers.`,
+        }],
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("standards")
+      .insert({
+        title: params.name,
+        link: params.url,
+        description: params.description || `Community-submitted standard. See: ${params.url}`,
+        organization: params.organization || null,
+        status: "Backlog",
+        tags: ["community-submission"],
+      })
+      .select("id, title")
+      .single();
+
+    if (error) throw new Error(`Failed to submit standard: ${error.message}`);
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Successfully submitted "${data.title}" (id: ${data.id}) for review. It has been added to the Backlog with a "community-submission" tag. The Prosecco.dev team will review and curate it.`,
+      }],
+    };
+  },
+});
+
+// Tool: Report an issue with a standard
+mcpServer.tool("report_issue", {
+  description:
+    "Report an issue with an existing standard in the Prosecco.dev directory — such as outdated information, incorrect details, or a duplicate entry. This feeds into the admin review queue.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      standard_id: {
+        type: "string",
+        description: "UUID of the standard to report an issue for. Provide this OR standard_name.",
+      },
+      standard_name: {
+        type: "string",
+        description: "Name of the standard to report an issue for. Provide this OR standard_id.",
+      },
+      issue: {
+        type: "string",
+        description: "Description of the issue (e.g. 'Status should be Approved', 'Description is outdated')",
+      },
+      is_duplicate: {
+        type: "boolean",
+        description: "Set to true if reporting this standard as a duplicate of another",
+      },
+      duplicate_of_id: {
+        type: "string",
+        description: "UUID of the standard this is a duplicate of (required when is_duplicate is true)",
+      },
+    },
+    required: ["issue"],
+  },
+  handler: async (params: {
+    standard_id?: string;
+    standard_name?: string;
+    issue: string;
+    is_duplicate?: boolean;
+    duplicate_of_id?: string;
+  }) => {
+    const supabase = getSupabase();
+
+    if (!params.standard_id && !params.standard_name) {
+      return {
+        content: [{ type: "text" as const, text: "Please provide either standard_id or standard_name to identify the standard." }],
+        isError: true,
+      };
+    }
+
+    // Resolve the standard
+    let standardId = params.standard_id;
+    let standardTitle = "";
+
+    if (standardId) {
+      const { data, error } = await supabase
+        .from("standards")
+        .select("id, title")
+        .eq("id", standardId)
+        .single();
+      if (error || !data) {
+        return {
+          content: [{ type: "text" as const, text: `Standard not found with id: ${standardId}` }],
+          isError: true,
+        };
+      }
+      standardTitle = data.title;
+    } else {
+      const { data, error } = await supabase
+        .from("standards")
+        .select("id, title")
+        .ilike("title", `%${params.standard_name}%`)
+        .limit(1);
+      if (error || !data || data.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: `No standard found matching name: "${params.standard_name}"` }],
+          isError: true,
+        };
+      }
+      standardId = data[0].id;
+      standardTitle = data[0].title;
+    }
+
+    // Build feedback text
+    let feedback = params.issue;
+    if (params.is_duplicate && params.duplicate_of_id) {
+      // Verify the duplicate target exists
+      const { data: dupTarget } = await supabase
+        .from("standards")
+        .select("id, title")
+        .eq("id", params.duplicate_of_id)
+        .single();
+
+      if (dupTarget) {
+        feedback = `[DUPLICATE REPORT] This standard appears to be a duplicate of "${dupTarget.title}" (${dupTarget.id}).\n\n${params.issue}`;
+      } else {
+        feedback = `[DUPLICATE REPORT] Reported as duplicate of id: ${params.duplicate_of_id} (not found in directory).\n\n${params.issue}`;
+      }
+    } else if (params.is_duplicate) {
+      return {
+        content: [{ type: "text" as const, text: "When reporting a duplicate, please provide the duplicate_of_id — the UUID of the standard this is a duplicate of." }],
+        isError: true,
+      };
+    }
+
+    const { error: insertError } = await supabase
+      .from("standard_flags")
+      .insert({
+        standard_id: standardId,
+        feedback,
+        user_email: null,
+      });
+
+    if (insertError) throw new Error(`Failed to submit issue: ${insertError.message}`);
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Issue reported for "${standardTitle}" (${standardId}). The Prosecco.dev team will review it. Thank you for helping improve the directory.`,
       }],
     };
   },
