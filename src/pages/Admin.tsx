@@ -29,7 +29,7 @@ const COLUMNS: { status: StatusType; label: string; color: string; description: 
 ];
 
 export default function Admin() {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, hasTeamAccess, loading, signOut } = useAuth();
   const { data: standards, isLoading, error } = useStandards();
   const { data: tags } = useTags();
   const { toast } = useToast();
@@ -218,9 +218,9 @@ export default function Admin() {
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return (
+  if (!hasTeamAccess) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-      <p className="text-muted-foreground text-center">You don't have admin access.</p>
+      <p className="text-muted-foreground text-center">You don't have team access.</p>
       <Button variant="outline" onClick={signOut}>Sign Out</Button>
     </div>
   );
@@ -299,9 +299,11 @@ export default function Admin() {
             <h1 className="font-semibold text-foreground">Standards Board</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Team
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Team
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5 relative">
               <Flag className="h-3.5 w-3.5" /> Feedback
               {!!pendingFlagCount && pendingFlagCount > 0 && (
@@ -336,12 +338,16 @@ export default function Admin() {
                 <DropdownMenuItem onClick={handleManualBackup} disabled={bulkEnriching} className="gap-2">
                   <HardDrive className="h-3.5 w-3.5" /> Run Backup Now
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
-                  <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setConfirmClearFeedback(true)} className="gap-2 text-destructive focus:text-destructive">
-                  <MessageSquareX className="h-3.5 w-3.5" /> Clear Pending Feedback
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
+                      <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setConfirmClearFeedback(true)} className="gap-2 text-destructive focus:text-destructive">
+                      <MessageSquareX className="h-3.5 w-3.5" /> Clear Pending Feedback
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">

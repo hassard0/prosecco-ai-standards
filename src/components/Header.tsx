@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
-  const { isAdmin } = useAuth();
+  const { hasTeamAccess } = useAuth();
 
   return (
     <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-30">
@@ -67,7 +67,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 <span className="hidden sm:inline text-xs">Affiliations</span>
               </Link>
             </Button>
-            {isAdmin && (
+            {hasTeamAccess && (
               <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
                 <Link to="/admin" aria-label="Admin dashboard">
                   <Settings className="h-4 w-4" />

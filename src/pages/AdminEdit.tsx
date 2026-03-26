@@ -25,7 +25,7 @@ export default function AdminEdit() {
   const [searchParams] = useSearchParams();
   const isNew = !id || id === "new";
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, hasTeamAccess, loading: authLoading } = useAuth();
   const { data: standards, isLoading } = useStandards();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -63,7 +63,7 @@ export default function AdminEdit() {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!hasTeamAccess) return <Navigate to="/" replace />;
 
   const handleSave = async () => {
     if (!title.trim() || !description.trim()) return;
