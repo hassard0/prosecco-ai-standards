@@ -218,9 +218,9 @@ export default function Admin() {
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return (
+  if (!hasTeamAccess) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-      <p className="text-muted-foreground text-center">You don't have admin access.</p>
+      <p className="text-muted-foreground text-center">You don't have team access.</p>
       <Button variant="outline" onClick={signOut}>Sign Out</Button>
     </div>
   );
