@@ -18,6 +18,7 @@ import { StandardsFilterBar } from "@/components/StandardsFilterBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { DeduplicateDialog } from "@/components/DeduplicateDialog";
+import { ApiClientManager } from "@/components/ApiClientManager";
 
 type StatusType = "Backlog" | "Emerging" | "Draft" | "Approved";
 
@@ -473,6 +474,9 @@ export default function Admin() {
             })}
           </div>
         )}
+
+        {/* API Clients — visible to all team members */}
+        <ApiClientManager />
       </main>
 
       {/* Create New Standard Modal */}
