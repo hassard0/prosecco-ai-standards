@@ -397,6 +397,30 @@ app.all("/*", async (c) => {
     });
   }
 
+  // Check that the client still exists (hasn't been deleted/revoked)
+  const clientId = typeof payload.sub === "string" ? payload.sub : "";
+  if (clientId) {
+    const sb = getServiceSupabase();
+    const { data: client } = await sb
+      .from("api_clients")
+      .select("id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    if (!client) {
+      return new Response(JSON.stringify({ error: "invalid_token", error_description: "Client has been revoked" }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "content-type, accept, authorization, mcp-session-id",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+          "Access-Control-Expose-Headers": "mcp-session-id",
+          "WWW-Authenticate": 'Bearer error="invalid_token"',
+        },
+      });
+    }
+  }
+
   return await httpHandler(c.req.raw);
 });
 
