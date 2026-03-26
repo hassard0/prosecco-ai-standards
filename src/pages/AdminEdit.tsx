@@ -25,7 +25,7 @@ export default function AdminEdit() {
   const [searchParams] = useSearchParams();
   const isNew = !id || id === "new";
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, hasTeamAccess, loading: authLoading } = useAuth();
   const { data: standards, isLoading } = useStandards();
   const { toast } = useToast();
   const qc = useQueryClient();
