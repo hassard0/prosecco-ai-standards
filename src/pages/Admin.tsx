@@ -75,6 +75,7 @@ export default function Admin() {
   const [confirmClearSubmissions, setConfirmClearSubmissions] = useState(false);
   const [confirmClearFeedback, setConfirmClearFeedback] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
     if (!standards) return [];
@@ -226,14 +227,16 @@ export default function Admin() {
     </div>
   );
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("standards").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    const { error } = await supabase.from("standards").delete().eq("id", deleteTargetId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Deleted" });
       qc.invalidateQueries({ queryKey: ["standards"] });
     }
+    setDeleteTargetId(null);
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -460,7 +463,7 @@ export default function Admin() {
                               <button onClick={() => navigate(`/admin/edit/${s.id}`)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted transition-colors">
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                               </button>
-                              <button onClick={() => handleDelete(s.id)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-destructive/10 transition-colors">
+                              <button onClick={() => setDeleteTargetId(s.id)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-destructive/10 transition-colors">
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </button>
                             </div>
@@ -546,6 +549,23 @@ export default function Admin() {
             <AlertDialogCancel disabled={clearing}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleClearFeedback} disabled={clearing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {clearing ? "Clearing…" : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this standard?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the standard and all associated summaries and feedback. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
