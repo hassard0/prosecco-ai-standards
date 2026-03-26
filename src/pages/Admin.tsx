@@ -227,14 +227,16 @@ export default function Admin() {
     </div>
   );
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("standards").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    const { error } = await supabase.from("standards").delete().eq("id", deleteTargetId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Deleted" });
       qc.invalidateQueries({ queryKey: ["standards"] });
     }
+    setDeleteTargetId(null);
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
