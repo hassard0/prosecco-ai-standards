@@ -300,7 +300,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
               variant="ghost"
               size="sm"
               className="h-7 text-xs gap-1 text-muted-foreground"
-              onClick={() => { setTitleFilter(""); setStatusFilter([]); setOrgFilter([]); setTagFilter([]); }}
+              onClick={() => { setTitleFilter([]); setStatusFilter([]); setOrgFilter([]); setTagFilter([]); }}
             >
               <X className="h-3 w-3" /> Clear column filters
             </Button>
