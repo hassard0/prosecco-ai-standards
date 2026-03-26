@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const APP_URL = "https://prosecco-ai-standards.lovable.app";
+
 // Two workers: public MCP proxy + admin MCP proxy
 const PUBLIC_WORKER_SCRIPT = `
 export default {
@@ -48,6 +50,8 @@ export default {
 `;
 
 const ADMIN_WORKER_SCRIPT = `
+const APP_URL = ${JSON.stringify(APP_URL)};
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -65,7 +69,6 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // OAuth 2.1 Authorization Server Metadata (RFC 8414)
     if (
       path === "/.well-known/oauth-authorization-server" ||
       path === "/.well-known/openid-configuration" ||
@@ -74,11 +77,13 @@ export default {
     ) {
       return new Response(JSON.stringify({
         issuer: origin,
+        authorization_endpoint: origin + "/authorize",
         token_endpoint: origin + "/token",
         registration_endpoint: origin + "/register",
-        grant_types_supported: ["client_credentials"],
+        grant_types_supported: ["authorization_code", "client_credentials"],
+        response_types_supported: ["code"],
         token_endpoint_auth_methods_supported: ["client_secret_post"],
-        response_types_supported: ["token"],
+        code_challenge_methods_supported: ["S256"],
         scopes_supported: ["mcp"],
         service_documentation: "https://prosecco.dev/mcp",
       }), {
@@ -86,7 +91,6 @@ export default {
       });
     }
 
-    // OAuth protected resource metadata for MCP clients
     if (
       path === "/.well-known/oauth-protected-resource" ||
       path === "/.well-known/oauth-protected-resource/mcp"
@@ -101,23 +105,24 @@ export default {
       });
     }
 
-    // Dynamic client registration stub — returns instructions
-    if (path === "/register" || path === "/register/") {
-      return new Response(JSON.stringify({
-        error: "registration_not_supported",
-        error_description: "Dynamic client registration is not supported. Please create API clients at https://prosecco.dev/admin/users",
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (path === "/authorize" || path === "/authorize/") {
+      if (request.method !== "GET") {
+        return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+          status: 405,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const redirectUrl = new URL(APP_URL + "/oauth/admin-mcp/authorize");
+      redirectUrl.search = url.search;
+      return Response.redirect(redirectUrl.toString(), 302);
     }
 
-    // Route /token to the auth endpoint
-    if (path === "/token" || path === "/token/") {
+    if (path === "/register" || path === "/register/") {
       const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
-
       const headers = new Headers(request.headers);
       headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
+      headers.set("x-oauth-path", "/register");
 
       const upstreamReq = new Request(UPSTREAM, {
         method: request.method,
@@ -132,9 +137,45 @@ export default {
       return new Response(response.body, { status: response.status, headers: respHeaders });
     }
 
-    // Support both / and /mcp as the MCP endpoint
-    const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp";
+    if (path === "/token" || path === "/token/") {
+      const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
+      const headers = new Headers(request.headers);
+      headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
+      headers.set("x-oauth-path", "/token");
 
+      const upstreamReq = new Request(UPSTREAM, {
+        method: request.method,
+        headers,
+        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
+        duplex: "half",
+      });
+
+      const response = await fetch(upstreamReq);
+      const respHeaders = new Headers(response.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
+      return new Response(response.body, { status: response.status, headers: respHeaders });
+    }
+
+    if (path === "/approve" || path === "/approve/") {
+      const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
+      const headers = new Headers(request.headers);
+      headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
+      headers.set("x-oauth-path", "/approve");
+
+      const upstreamReq = new Request(UPSTREAM, {
+        method: request.method,
+        headers,
+        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
+        duplex: "half",
+      });
+
+      const response = await fetch(upstreamReq);
+      const respHeaders = new Headers(response.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
+      return new Response(response.body, { status: response.status, headers: respHeaders });
+    }
+
+    const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp";
     const headers = new Headers(request.headers);
     headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
 
@@ -174,7 +215,6 @@ async function deployWorker(
   const uploadData = await uploadRes.json();
   if (!uploadRes.ok) throw new Error(`Failed to upload ${workerName}: ${JSON.stringify(uploadData)}`);
 
-  // Set up custom domain
   const listRes = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
     { headers: { Authorization: `Bearer ${cfToken}` } }
@@ -211,11 +251,7 @@ serve(async (req) => {
     if (!CF_TOKEN || !CF_ACCOUNT || !CF_ZONE) throw new Error("Missing Cloudflare credentials");
 
     const results = [];
-
-    // Deploy public MCP proxy
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
-
-    // Deploy admin MCP proxy
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
 
     return new Response(JSON.stringify({ success: true, workers: results }), {
