@@ -6,11 +6,12 @@ import { useStandards, useTags } from "@/hooks/useStandards";
 import type { Standard } from "@/hooks/useStandards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2, Merge } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, ArrowLeft, GripVertical, Sparkles, Users, Search, Flag, RefreshCw, ChevronDown, FileText, Link2, Merge, MessageSquareX, PackageX } from "lucide-react";
 import { AiIngestion } from "@/components/AiIngestion";
 import { DiscoverStandards } from "@/components/DiscoverStandards";
 import { StandardsFilterBar } from "@/components/StandardsFilterBar";
@@ -70,6 +71,9 @@ export default function Admin() {
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [deduplicateOpen, setDeduplicateOpen] = useState(false);
+  const [confirmClearSubmissions, setConfirmClearSubmissions] = useState(false);
+  const [confirmClearFeedback, setConfirmClearFeedback] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
     if (!standards) return [];
@@ -159,6 +163,40 @@ export default function Admin() {
       title: "Bulk summaries complete",
       description: `${generated} generated, ${failed} failed out of ${needsSummary.length}.`,
     });
+  };
+
+  const handleClearCommunitySubmissions = async () => {
+    setClearing(true);
+    const { error } = await supabase
+      .from("standards")
+      .delete()
+      .eq("status", "Backlog")
+      .contains("tags", ["community-submission"]);
+    setClearing(false);
+    setConfirmClearSubmissions(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Cleared", description: "All community submissions have been removed from the Backlog." });
+      qc.invalidateQueries({ queryKey: ["standards"] });
+    }
+  };
+
+  const handleClearFeedback = async () => {
+    setClearing(true);
+    const { error } = await supabase
+      .from("standard_flags")
+      .delete()
+      .eq("status", "pending");
+    setClearing(false);
+    setConfirmClearFeedback(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Cleared", description: "All pending feedback has been removed." });
+      qc.invalidateQueries({ queryKey: ["standard-flags-count"] });
+      qc.invalidateQueries({ queryKey: ["standard-flags"] });
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
@@ -277,6 +315,12 @@ export default function Admin() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setDeduplicateOpen(true)} className="gap-2">
                   <Merge className="h-3.5 w-3.5" /> De-duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
+                  <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setConfirmClearFeedback(true)} className="gap-2 text-destructive focus:text-destructive">
+                  <MessageSquareX className="h-3.5 w-3.5" /> Clear Pending Feedback
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -442,6 +486,40 @@ export default function Admin() {
 
       <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
       <DeduplicateDialog open={deduplicateOpen} onOpenChange={setDeduplicateOpen} standards={standards || []} />
+
+      <AlertDialog open={confirmClearSubmissions} onOpenChange={setConfirmClearSubmissions}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all community submissions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all Backlog standards tagged "community-submission". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearCommunitySubmissions} disabled={clearing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {clearing ? "Clearing…" : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmClearFeedback} onOpenChange={setConfirmClearFeedback}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all pending feedback?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all pending feedback reports. Reviewed or dismissed feedback will not be affected. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearFeedback} disabled={clearing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {clearing ? "Clearing…" : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
