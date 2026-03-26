@@ -89,7 +89,7 @@ export function ApiClientManager() {
     setRevokingId(id);
     const { error } = await supabase
       .from("api_clients")
-      .update({ revoked_at: new Date().toISOString() } as any)
+      .delete()
       .eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
