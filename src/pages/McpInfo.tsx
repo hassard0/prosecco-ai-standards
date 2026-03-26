@@ -59,6 +59,22 @@ export default function McpInfo() {
   - llms-full.txt:  https://prosecco.dev/llms-full.txt
   - directory.json: https://prosecco.dev/directory.json
 
+## Admin MCP Server (Authenticated)
+
+  Endpoint:  https://admin.prosecco.dev
+  Token:     https://admin.prosecco.dev/token
+  Transport: Streamable HTTP (POST) with Bearer auth
+  Auth:      OAuth 2.1 client_credentials
+
+  Additional tools: create_standard, update_standard, delete_standard,
+  enrich_standard, generate_summary, list_feedback, dismiss_feedback,
+  delete_feedback, list_backlog
+
+  To get a token:
+    POST https://admin.prosecco.dev/token
+    Content-Type: application/x-www-form-urlencoded
+    grant_type=client_credentials&client_id=...&client_secret=...
+
 ## About
 
 Prosecco.dev is a curated, open directory of AI agent interoperability

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, LogOut, Trash2, Shield, UserCog } from "lucide-react";
 import { AdminInvite } from "@/components/AdminInvite";
+import { ApiClientManager } from "@/components/ApiClientManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -199,6 +200,9 @@ export default function AdminUsers() {
           </div>
           <AdminInvite onInvited={fetchAdmins} />
         </section>
+
+        {/* API Clients */}
+        <ApiClientManager />
       </main>
     </div>
   );
