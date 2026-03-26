@@ -66,7 +66,12 @@ export default {
     }
 
     // OAuth 2.1 Authorization Server Metadata (RFC 8414)
-    if (path === "/.well-known/oauth-authorization-server" || path === "/.well-known/openid-configuration") {
+    if (
+      path === "/.well-known/oauth-authorization-server" ||
+      path === "/.well-known/openid-configuration" ||
+      path === "/.well-known/oauth-authorization-server/mcp" ||
+      path === "/.well-known/openid-configuration/mcp"
+    ) {
       return new Response(JSON.stringify({
         issuer: origin,
         token_endpoint: origin + "/token",
@@ -76,6 +81,21 @@ export default {
         response_types_supported: ["token"],
         scopes_supported: ["mcp"],
         service_documentation: "https://prosecco.dev/mcp",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
+      });
+    }
+
+    // OAuth protected resource metadata for MCP clients
+    if (
+      path === "/.well-known/oauth-protected-resource" ||
+      path === "/.well-known/oauth-protected-resource/mcp"
+    ) {
+      return new Response(JSON.stringify({
+        resource: origin + "/mcp",
+        authorization_servers: [origin],
+        bearer_methods_supported: ["header"],
+        scopes_supported: ["mcp"],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
       });
@@ -112,7 +132,7 @@ export default {
       return new Response(response.body, { status: response.status, headers: respHeaders });
     }
 
-    // Everything else goes to the admin MCP server
+    // Support both / and /mcp as the MCP endpoint
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp";
 
     const headers = new Headers(request.headers);
