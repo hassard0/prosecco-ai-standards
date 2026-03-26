@@ -473,6 +473,9 @@ export default function Admin() {
             })}
           </div>
         )}
+
+        {/* API Clients — visible to all team members */}
+        <ApiClientManager />
       </main>
 
       {/* Create New Standard Modal */}
