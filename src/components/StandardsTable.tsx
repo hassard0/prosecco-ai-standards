@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, AlertTriangle, Download, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StandardsTableProps {
@@ -56,10 +59,88 @@ function latestEventDate(events: TimelineEvent[]): string | null {
   return latest;
 }
 
+/* ── Multi-select filter popover for column headers ── */
+function ColumnFilterPopover({
+  options,
+  selected,
+  onChange,
+  label,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  label: string;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(
+    () => options.filter((o) => o.toLowerCase().includes(search.toLowerCase())),
+    [options, search]
+  );
+  const toggle = (val: string) => {
+    onChange(selected.includes(val) ? selected.filter((s) => s !== val) : [...selected, val]);
+  };
+  const isActive = selected.length > 0;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "p-0.5 rounded transition-colors",
+            isActive ? "text-primary" : "text-muted-foreground/40 hover:text-muted-foreground"
+          )}
+          title={`Filter ${label}`}
+        >
+          <Filter className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-0" align="start">
+        <div className="p-2 border-b">
+          <Input
+            placeholder={`Search…`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="max-h-48 overflow-y-auto p-1">
+          {filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No matches</p>
+          ) : (
+            filtered.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => toggle(opt)}
+                className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-xs hover:bg-accent transition-colors text-left"
+              >
+                <Checkbox checked={selected.includes(opt)} className="h-3.5 w-3.5 pointer-events-none" />
+                <span className="truncate">{opt}</span>
+              </button>
+            ))
+          )}
+        </div>
+        {selected.length > 0 && (
+          <div className="border-t p-1.5">
+            <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => onChange([])}>
+              Clear all
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function StandardsTable({ standards }: StandardsTableProps) {
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("last_event");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Column filters
+  const [titleFilter, setTitleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [orgFilter, setOrgFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
 
   // Fetch summaries for event counts and latest event dates
   const { data: summaries } = useQuery({
@@ -94,6 +175,35 @@ export function StandardsTable({ standards }: StandardsTableProps) {
     return map;
   }, [summaries]);
 
+  // Derive unique values for filter dropdowns
+  const allStatuses = useMemo(() => {
+    const set = new Set(standards.map((s) => s.status));
+    return [...set].sort();
+  }, [standards]);
+
+  const allOrgs = useMemo(() => {
+    const set = new Set(standards.filter((s) => s.organization).map((s) => s.organization!));
+    return [...set].sort();
+  }, [standards]);
+
+  const allTags = useMemo(() => {
+    const set = new Set(standards.flatMap((s) => s.tags ?? []));
+    return [...set].sort();
+  }, [standards]);
+
+  // Apply column filters
+  const columnFiltered = useMemo(() => {
+    return standards.filter((s) => {
+      if (titleFilter && !s.title.toLowerCase().includes(titleFilter.toLowerCase()) && !(s.acronym && s.acronym.toLowerCase().includes(titleFilter.toLowerCase()))) return false;
+      if (statusFilter.length > 0 && !statusFilter.includes(s.status)) return false;
+      if (orgFilter.length > 0 && (!s.organization || !orgFilter.includes(s.organization))) return false;
+      if (tagFilter.length > 0 && !tagFilter.some((t) => s.tags?.includes(t))) return false;
+      return true;
+    });
+  }, [standards, titleFilter, statusFilter, orgFilter, tagFilter]);
+
+  const hasColumnFilters = titleFilter || statusFilter.length > 0 || orgFilter.length > 0 || tagFilter.length > 0;
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -104,7 +214,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
   };
 
   const sorted = useMemo(() => {
-    const copy = [...standards];
+    const copy = [...columnFiltered];
     copy.sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
@@ -139,22 +249,12 @@ export function StandardsTable({ standards }: StandardsTableProps) {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
-  }, [standards, sortKey, sortDir, summaryMap]);
+  }, [columnFiltered, sortKey, sortDir, summaryMap]);
 
   const SortIcon = ({ col }: { col: SortKey }) => {
     if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
     return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
   };
-
-  const columns: [SortKey, string][] = [
-    ["title", "Standard"],
-    ["status", "Status"],
-    ["organization", "Organization"],
-    ["tags", "Categories"],
-    ["contributors", "Contributors"],
-    ["events", "Events"],
-    ["last_event", "Last Activity"],
-  ];
 
   const exportCsv = useCallback(() => {
     const header = ["Standard", "Acronym", "Status", "Organization", "Categories", "Contributors", "Events", "Last Activity", "Link"];
@@ -186,7 +286,22 @@ export function StandardsTable({ standards }: StandardsTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {hasColumnFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 text-muted-foreground"
+              onClick={() => { setTitleFilter(""); setStatusFilter([]); setOrgFilter([]); setTagFilter([]); }}
+            >
+              <X className="h-3 w-3" /> Clear column filters
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {sorted.length} of {standards.length}
+          </span>
+        </div>
         <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={exportCsv}>
           <Download className="h-3.5 w-3.5" />
           Export CSV
@@ -196,24 +311,101 @@ export function StandardsTable({ standards }: StandardsTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {columns.map(([key, label]) => (
-              <TableHead key={key}>
+            {/* Standard */}
+            <TableHead>
+              <div className="space-y-1.5">
                 <button
-                  onClick={() => toggleSort(key)}
+                  onClick={() => toggleSort("title")}
                   className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
                 >
-                  {label}
-                  <SortIcon col={key} />
+                  Standard
+                  <SortIcon col="title" />
                 </button>
-              </TableHead>
-            ))}
+                <Input
+                  placeholder="Filter…"
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                  className="h-6 text-[11px] px-1.5 w-full max-w-[180px]"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </TableHead>
+            {/* Status */}
+            <TableHead>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => toggleSort("status")}
+                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+                >
+                  Status
+                  <SortIcon col="status" />
+                </button>
+                <ColumnFilterPopover options={allStatuses} selected={statusFilter} onChange={setStatusFilter} label="Status" />
+              </div>
+            </TableHead>
+            {/* Organization */}
+            <TableHead>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => toggleSort("organization")}
+                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+                >
+                  Organization
+                  <SortIcon col="organization" />
+                </button>
+                <ColumnFilterPopover options={allOrgs} selected={orgFilter} onChange={setOrgFilter} label="Organization" />
+              </div>
+            </TableHead>
+            {/* Categories */}
+            <TableHead>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => toggleSort("tags")}
+                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+                >
+                  Categories
+                  <SortIcon col="tags" />
+                </button>
+                <ColumnFilterPopover options={allTags} selected={tagFilter} onChange={setTagFilter} label="Categories" />
+              </div>
+            </TableHead>
+            {/* Contributors */}
+            <TableHead>
+              <button
+                onClick={() => toggleSort("contributors")}
+                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+              >
+                Contributors
+                <SortIcon col="contributors" />
+              </button>
+            </TableHead>
+            {/* Events */}
+            <TableHead>
+              <button
+                onClick={() => toggleSort("events")}
+                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+              >
+                Events
+                <SortIcon col="events" />
+              </button>
+            </TableHead>
+            {/* Last Activity */}
+            <TableHead>
+              <button
+                onClick={() => toggleSort("last_event")}
+                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
+              >
+                Last Activity
+                <SortIcon col="last_event" />
+              </button>
+            </TableHead>
             <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length + 1} className="text-center py-12 text-muted-foreground text-sm">
+              <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
                 No standards match your filters.
               </TableCell>
             </TableRow>
