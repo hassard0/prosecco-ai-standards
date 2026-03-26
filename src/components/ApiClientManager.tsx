@@ -31,6 +31,7 @@ export function ApiClientManager() {
     const { data, error } = await supabase
       .from("api_clients")
       .select("id, client_id, name, created_at, revoked_at")
+      .is("revoked_at", null)
       .order("created_at", { ascending: false });
     if (!error && data) setClients(data as ApiClient[]);
     setLoading(false);
