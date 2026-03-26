@@ -308,6 +308,9 @@ export default function Admin() {
                 <Users className="h-3.5 w-3.5" /> Team
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/api-clients")} className="gap-1.5">
+              <Key className="h-3.5 w-3.5" /> API Clients
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5 relative">
               <Flag className="h-3.5 w-3.5" /> Feedback
               {!!pendingFlagCount && pendingFlagCount > 0 && (

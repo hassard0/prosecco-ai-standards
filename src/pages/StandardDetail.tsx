@@ -148,6 +148,12 @@ export default function StandardDetail() {
               >
                 {standard.status}
               </span>
+              {standard.is_expired && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-destructive/10 text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Expired
+                </span>
+              )}
               {standard.organization && (
                 <span className="text-sm text-muted-foreground">
                   by <span className="font-medium text-foreground">{standard.organization}</span>
