@@ -318,7 +318,7 @@ export default function Admin() {
                 <Button variant="outline" size="sm" disabled={bulkEnriching} className="gap-1.5">
                   <RefreshCw className={cn("h-3.5 w-3.5", bulkEnriching && "animate-spin")} />
                   {bulkEnriching
-                    ? bulkAction === "summaries" ? "Generating…" : "Enriching…"
+                    ? bulkAction === "summaries" ? "Generating…" : bulkAction === "backup" ? "Backing up…" : "Enriching…"
                     : "Bulk Actions"}
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
