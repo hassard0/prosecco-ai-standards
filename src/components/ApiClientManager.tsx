@@ -130,8 +130,8 @@ export function ApiClientManager() {
           {clients.map((c) => (
             <div key={c.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
               <div className="flex items-center gap-3">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${c.revoked_at ? "bg-destructive/10" : "bg-primary/10"}`}>
-                  <Key className={`h-4 w-4 ${c.revoked_at ? "text-destructive" : "text-primary"}`} />
+                <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
+                  <Key className="h-4 w-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">
