@@ -339,12 +339,16 @@ export default function Admin() {
                 <DropdownMenuItem onClick={handleManualBackup} disabled={bulkEnriching} className="gap-2">
                   <HardDrive className="h-3.5 w-3.5" /> Run Backup Now
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
-                  <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setConfirmClearFeedback(true)} className="gap-2 text-destructive focus:text-destructive">
-                  <MessageSquareX className="h-3.5 w-3.5" /> Clear Pending Feedback
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
+                      <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setConfirmClearFeedback(true)} className="gap-2 text-destructive focus:text-destructive">
+                      <MessageSquareX className="h-3.5 w-3.5" /> Clear Pending Feedback
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
