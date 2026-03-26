@@ -199,6 +199,23 @@ export default function Admin() {
     }
   };
 
+  const handleManualBackup = async () => {
+    setBulkEnriching(true);
+    setBulkAction("backup");
+    try {
+      const { data, error } = await supabase.functions.invoke("backup-database");
+      if (error) throw error;
+      toast({
+        title: "Backup complete",
+        description: `Saved ${Object.entries(data.row_counts || {}).map(([k, v]) => `${k}: ${v}`).join(", ")}`,
+      });
+    } catch (err: any) {
+      toast({ title: "Backup failed", description: err.message, variant: "destructive" });
+    }
+    setBulkEnriching(false);
+    setBulkAction(null);
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-8 w-48" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) return (
