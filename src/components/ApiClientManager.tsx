@@ -140,7 +140,7 @@ export function ApiClientManager() {
                   <p className="text-xs text-muted-foreground font-mono">{c.client_id}</p>
                 </div>
               </div>
-              {!c.revoked_at && (
+              {(
                 <Button
                   variant="ghost"
                   size="sm"
