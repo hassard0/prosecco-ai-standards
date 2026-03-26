@@ -422,7 +422,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
                   <TableCell>
                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                       {(s.tags ?? []).slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
                           {tag}
                         </Badge>
                       ))}
