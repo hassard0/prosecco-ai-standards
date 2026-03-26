@@ -398,7 +398,10 @@ export function StandardsTable({ standards }: StandardsTableProps) {
                   <TableCell className="font-medium max-w-xs">
                     <div className="flex items-center gap-2">
                       {s.is_expired && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-destructive/40 text-destructive gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Expired
+                        </Badge>
                       )}
                       <span className="truncate">{s.title}</span>
                       {s.acronym && (
