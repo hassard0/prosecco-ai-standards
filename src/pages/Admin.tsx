@@ -299,8 +299,11 @@ export default function Admin() {
             <h1 className="font-semibold text-foreground">Standards Board</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Team
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Team
+              </Button>
+            )}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/feedback")} className="gap-1.5 relative">
               <Flag className="h-3.5 w-3.5" /> Feedback
