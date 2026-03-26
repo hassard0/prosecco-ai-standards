@@ -94,7 +94,7 @@ export function ApiClientManager() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Client revoked" });
+      toast({ title: "Client deleted" });
       fetchClients();
     }
     setRevokingId(null);
