@@ -136,7 +136,6 @@ export function ApiClientManager() {
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {c.name}
-                    {c.revoked_at && <span className="text-xs text-destructive ml-2">(revoked)</span>}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono">{c.client_id}</p>
                 </div>
