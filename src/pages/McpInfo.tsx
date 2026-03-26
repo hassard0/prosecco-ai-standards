@@ -36,8 +36,9 @@ export default function McpInfo() {
   - get_directory_overview — Stats, organizations, tags, and endpoint URLs
   - list_tags             — All topic tags with counts
   - search_authors        — Find contributors by name or company
-  - list_organizations    — Organizations that publish standards
   - list_contributors_by_company — Company-level contributor map
+  - suggest_standard      — Submit a new standard for review (adds to Backlog)
+  - report_issue           — Report an issue or duplicate for admin review
 
 ## Connection Example
 
