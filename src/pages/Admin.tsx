@@ -316,6 +316,9 @@ export default function Admin() {
                 <DropdownMenuItem onClick={() => setDeduplicateOpen(true)} className="gap-2">
                   <Merge className="h-3.5 w-3.5" /> De-duplicate
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleManualBackup} disabled={bulkEnriching} className="gap-2">
+                  <HardDrive className="h-3.5 w-3.5" /> Run Backup Now
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setConfirmClearSubmissions(true)} className="gap-2 text-destructive focus:text-destructive">
                   <PackageX className="h-3.5 w-3.5" /> Clear Community Submissions
                 </DropdownMenuItem>
