@@ -75,6 +75,7 @@ export default function Admin() {
   const [confirmClearSubmissions, setConfirmClearSubmissions] = useState(false);
   const [confirmClearFeedback, setConfirmClearFeedback] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const allTags = useMemo(() => tags?.map((t) => t.name) || [], [tags]);
   const allOrganizations = useMemo(() => {
     if (!standards) return [];
