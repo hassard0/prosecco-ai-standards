@@ -200,6 +200,9 @@ export default function AdminUsers() {
           </div>
           <AdminInvite onInvited={fetchAdmins} />
         </section>
+
+        {/* API Clients */}
+        <ApiClientManager />
       </main>
     </div>
   );
