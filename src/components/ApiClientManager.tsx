@@ -31,6 +31,7 @@ export function ApiClientManager() {
     const { data, error } = await supabase
       .from("api_clients")
       .select("id, client_id, name, created_at, revoked_at")
+      .is("revoked_at", null)
       .order("created_at", { ascending: false });
     if (!error && data) setClients(data as ApiClient[]);
     setLoading(false);
@@ -89,12 +90,12 @@ export function ApiClientManager() {
     setRevokingId(id);
     const { error } = await supabase
       .from("api_clients")
-      .update({ revoked_at: new Date().toISOString() } as any)
+      .delete()
       .eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Client revoked" });
+      toast({ title: "Client deleted" });
       fetchClients();
     }
     setRevokingId(null);
@@ -130,18 +131,17 @@ export function ApiClientManager() {
           {clients.map((c) => (
             <div key={c.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
               <div className="flex items-center gap-3">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${c.revoked_at ? "bg-destructive/10" : "bg-primary/10"}`}>
-                  <Key className={`h-4 w-4 ${c.revoked_at ? "text-destructive" : "text-primary"}`} />
+                <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
+                  <Key className="h-4 w-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {c.name}
-                    {c.revoked_at && <span className="text-xs text-destructive ml-2">(revoked)</span>}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono">{c.client_id}</p>
                 </div>
               </div>
-              {!c.revoked_at && (
+              {(
                 <Button
                   variant="ghost"
                   size="sm"
