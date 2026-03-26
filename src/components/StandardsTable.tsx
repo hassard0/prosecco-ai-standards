@@ -137,7 +137,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   // Column filters
-  const [titleFilter, setTitleFilter] = useState("");
+  const [titleFilter, setTitleFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [orgFilter, setOrgFilter] = useState<string[]>([]);
   const [tagFilter, setTagFilter] = useState<string[]>([]);
