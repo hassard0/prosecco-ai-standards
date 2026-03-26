@@ -486,6 +486,39 @@ export default function Admin() {
 
       <DiscoverStandards open={discoverOpen} onOpenChange={setDiscoverOpen} />
       <DeduplicateDialog open={deduplicateOpen} onOpenChange={setDeduplicateOpen} standards={standards || []} />
+
+      <AlertDialog open={confirmClearSubmissions} onOpenChange={setConfirmClearSubmissions}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all community submissions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all Backlog standards tagged "community-submission". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearCommunitySubmissions} disabled={clearing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {clearing ? "Clearing…" : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmClearFeedback} onOpenChange={setConfirmClearFeedback}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all pending feedback?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all pending feedback reports. Reviewed or dismissed feedback will not be affected. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearFeedback} disabled={clearing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {clearing ? "Clearing…" : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  );
 }
