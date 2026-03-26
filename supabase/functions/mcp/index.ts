@@ -403,6 +403,24 @@ mcpServer.tool("suggest_standard", {
   handler: async (params: { name: string; url: string; description?: string; organization?: string }) => {
     const supabase = getServiceSupabase();
 
+    // Check community submission cap
+    const { count, error: countError } = await supabase
+      .from("standards")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "Backlog")
+      .contains("tags", ["community-submission"]);
+
+    if (countError) throw new Error(`Database error: ${countError.message}`);
+
+    if ((count ?? 0) >= 200) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: "Thank you for your interest in contributing! We currently have a large number of community submissions in our review queue and need to process them before accepting new ones. Please try again later — we appreciate your patience!",
+        }],
+      };
+    }
+
     // Check if a standard with the same title already exists
     const { data: existing } = await supabase
       .from("standards")
