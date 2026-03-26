@@ -463,7 +463,7 @@ export default function Admin() {
                               <button onClick={() => navigate(`/admin/edit/${s.id}`)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted transition-colors">
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                               </button>
-                              <button onClick={() => handleDelete(s.id)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-destructive/10 transition-colors">
+                              <button onClick={() => setDeleteTargetId(s.id)} className="h-6 w-6 rounded flex items-center justify-center hover:bg-destructive/10 transition-colors">
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </button>
                             </div>
