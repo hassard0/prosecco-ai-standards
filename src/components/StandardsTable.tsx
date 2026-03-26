@@ -198,7 +198,10 @@ export function StandardsTable({ standards }: StandardsTableProps) {
   // Apply column filters
   const columnFiltered = useMemo(() => {
     return standards.filter((s) => {
-      if (titleFilter && !s.title.toLowerCase().includes(titleFilter.toLowerCase()) && !(s.acronym && s.acronym.toLowerCase().includes(titleFilter.toLowerCase()))) return false;
+      if (titleFilter.length > 0) {
+        const label = s.acronym ? `${s.title} (${s.acronym})` : s.title;
+        if (!titleFilter.includes(label)) return false;
+      }
       if (statusFilter.length > 0 && !statusFilter.includes(s.status)) return false;
       if (orgFilter.length > 0 && (!s.organization || !orgFilter.includes(s.organization))) return false;
       if (tagFilter.length > 0 && !tagFilter.some((t) => s.tags?.includes(t))) return false;
@@ -206,7 +209,7 @@ export function StandardsTable({ standards }: StandardsTableProps) {
     });
   }, [standards, titleFilter, statusFilter, orgFilter, tagFilter]);
 
-  const hasColumnFilters = titleFilter || statusFilter.length > 0 || orgFilter.length > 0 || tagFilter.length > 0;
+  const hasColumnFilters = titleFilter.length > 0 || statusFilter.length > 0 || orgFilter.length > 0 || tagFilter.length > 0;
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
