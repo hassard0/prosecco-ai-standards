@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
-  const { isAdmin } = useAuth();
+  const { hasTeamAccess } = useAuth();
 
   return (
     <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-30">
