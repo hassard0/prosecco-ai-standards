@@ -23,7 +23,7 @@ export function StandardCard({ standard, onClick, index, viewMode = "detailed" }
         "animate-in fade-in slide-in-from-bottom-2",
         isCompact ? "px-3 py-2" : "p-4"
       )}
-      style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both", animationDuration: "500ms" }}
+      style={{ animationDelay: `${Math.min(index * 60, 300)}ms`, animationFillMode: "both", animationDuration: "300ms" }}
     >
       <div className={cn("flex items-start justify-between gap-2", !isCompact && "mb-2")}>
         <div className="flex items-center gap-2 min-w-0">
