@@ -4,9 +4,14 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function getSupabase() {
   return createClient(supabaseUrl, supabaseKey);
+}
+
+function getServiceSupabase() {
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 const app = new Hono();
