@@ -159,7 +159,7 @@ export function ApiClientManager() {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md" onFocusOutside={(e) => { if (document.hidden) e.preventDefault(); }}>
+        <DialogContent className="sm:max-w-lg" onFocusOutside={(e) => { if (document.hidden) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle>{newCredentials ? "Client Created" : "New API Client"}</DialogTitle>
             <DialogDescription>
