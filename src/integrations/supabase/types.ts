@@ -20,27 +20,81 @@ export type Database = {
           client_secret_hash: string
           created_at: string
           created_by: string
+          grant_types: string[]
           id: string
+          is_dynamic: boolean
           name: string
+          redirect_uris: string[]
           revoked_at: string | null
+          token_endpoint_auth_method: string
         }
         Insert: {
           client_id: string
           client_secret_hash: string
           created_at?: string
           created_by: string
+          grant_types?: string[]
           id?: string
+          is_dynamic?: boolean
           name: string
+          redirect_uris?: string[]
           revoked_at?: string | null
+          token_endpoint_auth_method?: string
         }
         Update: {
           client_id?: string
           client_secret_hash?: string
           created_at?: string
           created_by?: string
+          grant_types?: string[]
           id?: string
+          is_dynamic?: boolean
           name?: string
+          redirect_uris?: string[]
           revoked_at?: string | null
+          token_endpoint_auth_method?: string
+        }
+        Relationships: []
+      }
+      oauth_authorization_codes: {
+        Row: {
+          client_id: string
+          code: string
+          code_challenge: string
+          code_challenge_method: string
+          created_at: string
+          expires_at: string
+          id: string
+          redirect_uri: string
+          scope: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          code: string
+          code_challenge: string
+          code_challenge_method?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          redirect_uri: string
+          scope?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          code?: string
+          code_challenge?: string
+          code_challenge_method?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          redirect_uri?: string
+          scope?: string
+          used_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
