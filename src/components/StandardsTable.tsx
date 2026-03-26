@@ -176,6 +176,10 @@ export function StandardsTable({ standards }: StandardsTableProps) {
   }, [summaries]);
 
   // Derive unique values for filter dropdowns
+  const allTitles = useMemo(() => {
+    return standards.map((s) => s.acronym ? `${s.title} (${s.acronym})` : s.title).sort();
+  }, [standards]);
+
   const allStatuses = useMemo(() => {
     const set = new Set(standards.map((s) => s.status));
     return [...set].sort();
