@@ -320,90 +320,56 @@ export function StandardsTable({ standards }: StandardsTableProps) {
           <TableRow className="hover:bg-transparent">
             {/* Standard */}
             <TableHead>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => toggleSort("title")}
-                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-                >
-                  Standard
-                  <SortIcon col="title" />
+              <div className="flex items-center gap-1">
+                <button onClick={() => toggleSort("title")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                  Standard <SortIcon col="title" />
                 </button>
-                <Input
-                  placeholder="Filter…"
-                  value={titleFilter}
-                  onChange={(e) => setTitleFilter(e.target.value)}
-                  className="h-6 text-[11px] px-1.5 w-full max-w-[180px]"
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <ColumnFilterPopover options={allTitles} selected={titleFilter} onChange={setTitleFilter} label="Standard" />
               </div>
             </TableHead>
             {/* Status */}
             <TableHead>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => toggleSort("status")}
-                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-                >
-                  Status
-                  <SortIcon col="status" />
+              <div className="flex items-center gap-1">
+                <button onClick={() => toggleSort("status")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                  Status <SortIcon col="status" />
                 </button>
                 <ColumnFilterPopover options={allStatuses} selected={statusFilter} onChange={setStatusFilter} label="Status" />
               </div>
             </TableHead>
             {/* Organization */}
             <TableHead>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => toggleSort("organization")}
-                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-                >
-                  Organization
-                  <SortIcon col="organization" />
+              <div className="flex items-center gap-1">
+                <button onClick={() => toggleSort("organization")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                  Organization <SortIcon col="organization" />
                 </button>
                 <ColumnFilterPopover options={allOrgs} selected={orgFilter} onChange={setOrgFilter} label="Organization" />
               </div>
             </TableHead>
             {/* Categories */}
             <TableHead>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => toggleSort("tags")}
-                  className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-                >
-                  Categories
-                  <SortIcon col="tags" />
+              <div className="flex items-center gap-1">
+                <button onClick={() => toggleSort("tags")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                  Categories <SortIcon col="tags" />
                 </button>
                 <ColumnFilterPopover options={allTags} selected={tagFilter} onChange={setTagFilter} label="Categories" />
               </div>
             </TableHead>
             {/* Contributors */}
             <TableHead>
-              <button
-                onClick={() => toggleSort("contributors")}
-                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-              >
-                Contributors
-                <SortIcon col="contributors" />
+              <button onClick={() => toggleSort("contributors")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                Contributors <SortIcon col="contributors" />
               </button>
             </TableHead>
             {/* Events */}
             <TableHead>
-              <button
-                onClick={() => toggleSort("events")}
-                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-              >
-                Events
-                <SortIcon col="events" />
+              <button onClick={() => toggleSort("events")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                Events <SortIcon col="events" />
               </button>
             </TableHead>
             {/* Last Activity */}
             <TableHead>
-              <button
-                onClick={() => toggleSort("last_event")}
-                className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors"
-              >
-                Last Activity
-                <SortIcon col="last_event" />
+              <button onClick={() => toggleSort("last_event")} className="flex items-center gap-1.5 text-xs font-semibold hover:text-foreground transition-colors">
+                Last Activity <SortIcon col="last_event" />
               </button>
             </TableHead>
             <TableHead className="w-10" />
