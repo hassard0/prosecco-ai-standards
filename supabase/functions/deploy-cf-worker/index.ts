@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const APP_URL = "https://prosecco-ai-standards.lovable.app";
+const APP_URL = "https://id-preview--477feacf-8b45-4c31-ba59-3c1bb9613fad.lovable.app";
 
 // Two workers: public MCP proxy + admin MCP proxy
 const PUBLIC_WORKER_SCRIPT = `
