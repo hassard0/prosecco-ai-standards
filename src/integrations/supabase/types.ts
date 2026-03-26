@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_clients: {
+        Row: {
+          client_id: string
+          client_secret_hash: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          revoked_at: string | null
+        }
+        Insert: {
+          client_id: string
+          client_secret_hash: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          revoked_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          client_secret_hash?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
       standard_flags: {
         Row: {
           admin_notes: string | null
