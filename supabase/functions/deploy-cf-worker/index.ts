@@ -52,21 +52,49 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const origin = url.origin;
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "content-type, accept, authorization, mcp-session-id",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+      "Access-Control-Expose-Headers": "mcp-session-id",
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    // OAuth 2.1 Authorization Server Metadata (RFC 8414)
+    if (path === "/.well-known/oauth-authorization-server" || path === "/.well-known/openid-configuration") {
+      return new Response(JSON.stringify({
+        issuer: origin,
+        token_endpoint: origin + "/token",
+        registration_endpoint: origin + "/register",
+        grant_types_supported: ["client_credentials"],
+        token_endpoint_auth_methods_supported: ["client_secret_post"],
+        response_types_supported: ["token"],
+        scopes_supported: ["mcp"],
+        service_documentation: "https://prosecco.dev/mcp",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
+      });
+    }
+
+    // Dynamic client registration stub — returns instructions
+    if (path === "/register" || path === "/register/") {
+      return new Response(JSON.stringify({
+        error: "registration_not_supported",
+        error_description: "Dynamic client registration is not supported. Please create API clients at https://prosecco.dev/admin/users",
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Route /token to the auth endpoint
     if (path === "/token" || path === "/token/") {
       const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
-
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "content-type, authorization",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-          },
-        });
-      }
 
       const headers = new Headers(request.headers);
       headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
@@ -80,24 +108,12 @@ export default {
 
       const response = await fetch(upstreamReq);
       const respHeaders = new Headers(response.headers);
-      respHeaders.set("Access-Control-Allow-Origin", "*");
+      Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
       return new Response(response.body, { status: response.status, headers: respHeaders });
     }
 
     // Everything else goes to the admin MCP server
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp";
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "content-type, accept, authorization, mcp-session-id",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-          "Access-Control-Expose-Headers": "mcp-session-id",
-        },
-      });
-    }
 
     const headers = new Headers(request.headers);
     headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
@@ -111,10 +127,7 @@ export default {
 
     const response = await fetch(upstreamReq);
     const respHeaders = new Headers(response.headers);
-    respHeaders.set("Access-Control-Allow-Origin", "*");
-    respHeaders.set("Access-Control-Allow-Headers", "content-type, accept, authorization, mcp-session-id");
-    respHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
-    respHeaders.set("Access-Control-Expose-Headers", "mcp-session-id");
+    Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
 
     return new Response(response.body, { status: response.status, headers: respHeaders });
   },

@@ -75,10 +75,24 @@ Deno.serve(async (req) => {
       clientSecret = form.get("client_secret");
       grantType = form.get("grant_type");
     } else {
-      const body = await req.json();
-      clientId = body.client_id;
-      clientSecret = body.client_secret;
-      grantType = body.grant_type;
+      const text = await req.text();
+      if (!text || text.trim().length === 0) {
+        return new Response(
+          JSON.stringify({ error: "invalid_request", error_description: "Request body is empty. Send grant_type, client_id, and client_secret as form-urlencoded or JSON." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      try {
+        const body = JSON.parse(text);
+        clientId = body.client_id;
+        clientSecret = body.client_secret;
+        grantType = body.grant_type;
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "invalid_request", error_description: "Could not parse request body. Use application/x-www-form-urlencoded or valid JSON." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     if (grantType !== "client_credentials") {
