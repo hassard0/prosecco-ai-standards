@@ -50,8 +50,8 @@ export default function AdminMcpAuthorize() {
     setSubmitting(true);
 
     const { data, error } = await supabase.functions.invoke("admin-mcp-auth", {
+      headers: { "x-oauth-path": "/approve" },
       body: {
-        action: "approve_authorization",
         client_id: clientId,
         redirect_uri: redirectUri,
         state,
