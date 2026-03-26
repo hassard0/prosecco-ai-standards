@@ -371,7 +371,14 @@ app.all("/*", async (c) => {
   if (!token) {
     return new Response(JSON.stringify({ error: "unauthorized", error_description: "Bearer token required" }), {
       status: 401,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "content-type, accept, authorization, mcp-session-id",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+        "Access-Control-Expose-Headers": "mcp-session-id",
+        "WWW-Authenticate": `Bearer realm="admin.prosecco.dev", resource_metadata="https://admin.prosecco.dev/.well-known/oauth-protected-resource/mcp"`,
+      },
     });
   }
 
@@ -379,7 +386,14 @@ app.all("/*", async (c) => {
   if (!payload) {
     return new Response(JSON.stringify({ error: "invalid_token", error_description: "Token is invalid or expired" }), {
       status: 401,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "content-type, accept, authorization, mcp-session-id",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+        "Access-Control-Expose-Headers": "mcp-session-id",
+        "WWW-Authenticate": 'Bearer error="invalid_token"',
+      },
     });
   }
 
