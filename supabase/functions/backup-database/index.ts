@@ -150,11 +150,16 @@ async function exportToGitHub(
   const apiBase = `https://api.github.com/repos/${githubRepo}`;
 
   try {
-    // 1. Get current commit SHA for main
-    const refRes = await fetch(`${apiBase}/git/ref/heads/main`, { headers });
+    // 1. Get current commit SHA — try main, then master
+    let branch = "main";
+    let refRes = await fetch(`${apiBase}/git/ref/heads/main`, { headers });
+    if (!refRes.ok) {
+      branch = "master";
+      refRes = await fetch(`${apiBase}/git/ref/heads/master`, { headers });
+    }
     if (!refRes.ok) {
       const text = await refRes.text();
-      return { success: false, error: `Failed to get ref: ${refRes.status} ${text}` };
+      return { success: false, error: `Failed to get ref (tried main & master): ${refRes.status} ${text}` };
     }
     const refData = await refRes.json();
     const currentCommitSha = refData.object.sha;
@@ -213,7 +218,7 @@ async function exportToGitHub(
     const newCommitData = await newCommitRes.json();
 
     // 6. Update ref
-    const updateRefRes = await fetch(`${apiBase}/git/refs/heads/main`, {
+    const updateRefRes = await fetch(`${apiBase}/git/refs/heads/${branch}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ sha: newCommitData.sha }),
