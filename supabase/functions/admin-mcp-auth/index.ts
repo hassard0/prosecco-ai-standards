@@ -84,6 +84,18 @@ async function registerDynamicClient(req: Request) {
   }
 
   const sb = getServiceSupabase();
+
+  // Rate-limit dynamic registrations: max 50 active dynamic clients
+  const { count } = await sb
+    .from("api_clients")
+    .select("id", { count: "exact", head: true })
+    .eq("is_dynamic", true)
+    .is("revoked_at", null);
+
+  if ((count ?? 0) >= 50) {
+    return json({ error: "too_many_clients", error_description: "Dynamic client registration limit reached" }, 429);
+  }
+
   const { data: owner, error: ownerError } = await sb
     .from("user_roles")
     .select("user_id")
@@ -92,7 +104,7 @@ async function registerDynamicClient(req: Request) {
     .maybeSingle();
 
   if (ownerError || !owner) {
-    return json({ error: "server_error", error_description: "No admin account is available to register clients" }, 500);
+    return json({ error: "server_error", error_description: "Registration unavailable" }, 500);
   }
 
   const clientId = `prs_dyn_${randomToken(15).toLowerCase()}`;
@@ -112,7 +124,7 @@ async function registerDynamicClient(req: Request) {
   } as never);
 
   if (error) {
-    return json({ error: "server_error", error_description: error.message }, 500);
+    return json({ error: "server_error", error_description: "Client registration failed" }, 500);
   }
 
   return json({
