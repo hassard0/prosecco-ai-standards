@@ -22,7 +22,7 @@ const SITE = "https://prosecco-ai-standards.lovable.app";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -253,7 +253,7 @@ serve(async (req) => {
     console.error("llms-txt error:", err);
     return new Response("Internal server error", {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "text/plain" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "text/plain" },
     });
   }
 });

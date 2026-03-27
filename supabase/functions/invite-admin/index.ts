@@ -18,7 +18,7 @@ function getCorsHeaders(req: Request) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     if (!caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Only admins can invite" }), {
         status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "Email is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         if (existingRole.role === assignRole) {
           return new Response(
             JSON.stringify({ success: false, error: `User is already a ${roleLabel}.` }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
           );
         }
         // Update existing role
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
         return new Response(
           JSON.stringify({ success: true, invited: false, message: `${email} role updated to ${roleLabel}.` }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
 
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, invited: false, message: `${email} is now a ${roleLabel}.` }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     if (inviteError) {
       return new Response(
         JSON.stringify({ success: false, error: inviteError.message }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -128,12 +128,12 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, invited: true, message: `Invitation sent to ${email}. They'll be a ${roleLabel} once they accept.` }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

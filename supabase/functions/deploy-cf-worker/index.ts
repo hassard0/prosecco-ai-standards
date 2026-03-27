@@ -77,7 +77,7 @@ export default {
     };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      return new Response(null, { status: 204, headers: getCorsHeaders(req) });
     }
 
     if (
@@ -98,7 +98,7 @@ export default {
         scopes_supported: ["mcp"],
         service_documentation: "https://prosecco.dev/mcp",
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
       });
     }
 
@@ -112,7 +112,7 @@ export default {
         bearer_methods_supported: ["header"],
         scopes_supported: ["mcp"],
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
       });
     }
 
@@ -120,7 +120,7 @@ export default {
       if (request.method !== "GET") {
         return new Response(JSON.stringify({ error: "method_not_allowed" }), {
           status: 405,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -251,7 +251,7 @@ async function deployWorker(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -266,13 +266,13 @@ serve(async (req) => {
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
 
     return new Response(JSON.stringify({ success: true, workers: results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("deploy-cf-worker error:", err);
     return new Response(JSON.stringify({ success: false, error: String(err) }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
