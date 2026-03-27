@@ -105,7 +105,7 @@ async function parseBody(req: Request): Promise<Record<string, unknown>> {
   return JSON.parse(text);
 }
 
-function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
+function json(req: Request, data: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json", ...headers },
