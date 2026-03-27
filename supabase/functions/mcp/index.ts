@@ -569,6 +569,27 @@ mcpServer.tool("report_issue", {
     is_duplicate?: boolean;
     duplicate_of_id?: string;
   }) => {
+    // Rate limit write operations
+    if (!checkWriteRateLimit(_currentRequestIp)) {
+      return {
+        content: [{ type: "text" as const, text: "Rate limit exceeded. Please wait a moment before submitting again." }],
+        isError: true,
+      };
+    }
+
+    // Validate and sanitize inputs
+    const issue = sanitizeText(params.issue, 2000);
+    if (!issue || issue.length < 5) {
+      return { content: [{ type: "text" as const, text: "Issue description must be at least 5 characters." }], isError: true };
+    }
+    if (params.standard_id && !isValidUuid(params.standard_id)) {
+      return { content: [{ type: "text" as const, text: "Invalid standard_id format. Must be a valid UUID." }], isError: true };
+    }
+    if (params.duplicate_of_id && !isValidUuid(params.duplicate_of_id)) {
+      return { content: [{ type: "text" as const, text: "Invalid duplicate_of_id format. Must be a valid UUID." }], isError: true };
+    }
+    const standardName = params.standard_name ? sanitizeText(params.standard_name, 200) : undefined;
+
     const supabase = getSupabase();
 
     // Check feedback queue cap
