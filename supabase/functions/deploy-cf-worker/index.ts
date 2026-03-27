@@ -20,7 +20,27 @@ function getCorsHeaders(req: Request) {
 const APP_URL = "https://id-preview--477feacf-8b45-4c31-ba59-3c1bb9613fad.lovable.app";
 
 // Two workers: public MCP proxy + admin MCP proxy
+const SECURITY_HEADERS_SNIPPET = `
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+};
+
+function addSecurityHeaders(headers) {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(k, v);
+  }
+  return headers;
+}
+`;
+
 const PUBLIC_WORKER_SCRIPT = `
+${SECURITY_HEADERS_SNIPPET}
+
 export default {
   async fetch(request) {
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/mcp";
@@ -29,12 +49,12 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: {
+        headers: addSecurityHeaders(new Headers({
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "content-type, accept, mcp-session-id",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
           "Access-Control-Expose-Headers": "mcp-session-id",
-        },
+        })),
       });
     }
 
@@ -54,6 +74,7 @@ export default {
     respHeaders.set("Access-Control-Allow-Headers", "content-type, accept, mcp-session-id");
     respHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
     respHeaders.set("Access-Control-Expose-Headers", "mcp-session-id");
+    addSecurityHeaders(respHeaders);
 
     return new Response(response.body, { status: response.status, headers: respHeaders });
   },
