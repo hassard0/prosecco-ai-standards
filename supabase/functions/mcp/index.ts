@@ -693,6 +693,8 @@ const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcpServer);
 
 app.all("/*", async (c) => {
+  // Capture client IP for rate limiting in tool handlers
+  _currentRequestIp = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   return await httpHandler(c.req.raw);
 });
 
