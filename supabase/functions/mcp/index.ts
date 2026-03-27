@@ -6,6 +6,56 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// ── Input Sanitization ────────────────────────────────────────
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, "").trim();
+}
+
+function sanitizeText(input: string, maxLength: number): string {
+  const stripped = stripHtml(input);
+  return stripped.slice(0, maxLength);
+}
+
+function isValidUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function isValidUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+// ── Rate Limiting for Write Tools ─────────────────────────────
+const writeRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const WRITE_RATE_WINDOW = 60_000; // 1 minute
+const WRITE_RATE_LIMIT = 5; // max 5 write operations per IP per minute
+
+function checkWriteRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = writeRateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    writeRateLimitMap.set(ip, { count: 1, resetAt: now + WRITE_RATE_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= WRITE_RATE_LIMIT;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of writeRateLimitMap) {
+    if (now > entry.resetAt) writeRateLimitMap.delete(key);
+  }
+}, 5 * 60_000);
+
+// Track client IP from latest request for use in tool handlers
+let _currentRequestIp = "unknown";
+
 function getSupabase() {
   return createClient(supabaseUrl, supabaseKey);
 }
