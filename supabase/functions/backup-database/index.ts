@@ -224,7 +224,7 @@ async function exportToGitHub(
       method: "POST",
       headers,
       body: JSON.stringify({
-        ...(currentCommitSha ? { base_tree: preservedEntries[0]?.sha ? undefined : undefined } : {}),
+        ...(baseTreeSha ? { base_tree: baseTreeSha } : {}),
         tree: [...preservedEntries, ...markdownEntries],
       }),
     });
