@@ -1,9 +1,51 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-oauth-path",
+const ALLOWED_ORIGINS = [
+  "https://prosecco.dev",
+  "https://www.prosecco.dev",
+  "https://admin.prosecco.dev",
+  "https://prosecco-ai-standards.lovable.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-oauth-path",
+    "Vary": "Origin",
+  };
+}
+
+// ── Rate Limiting ──────────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMITS: Record<string, number> = {
+  "/register": 5,
+  "/token": 20,
+  "/approve": 10,
 };
+
+function checkRateLimit(ip: string, path: string): boolean {
+  const limit = RATE_LIMITS[path] || 30;
+  const key = `${ip}:${path}`;
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 5 * 60_000);
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,15 +105,15 @@ async function parseBody(req: Request): Promise<Record<string, unknown>> {
   return JSON.parse(text);
 }
 
-function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
+function json(req: Request, data: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json", ...headers },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json", ...headers },
   });
 }
 
 async function registerDynamicClient(req: Request) {
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
 
   const body = await parseBody(req);
   const redirectUris = Array.isArray(body.redirect_uris)
@@ -80,7 +122,7 @@ async function registerDynamicClient(req: Request) {
   const clientName = typeof body.client_name === "string" && body.client_name.trim() ? body.client_name.trim().slice(0, 120) : "ChatGPT MCP Client";
 
   if (!redirectUris.length) {
-    return json({ error: "invalid_client_metadata", error_description: "redirect_uris is required" }, 400);
+    return json(req, { error: "invalid_client_metadata", error_description: "redirect_uris is required" }, 400);
   }
 
   const sb = getServiceSupabase();
@@ -93,7 +135,7 @@ async function registerDynamicClient(req: Request) {
     .is("revoked_at", null);
 
   if ((count ?? 0) >= 50) {
-    return json({ error: "too_many_clients", error_description: "Dynamic client registration limit reached" }, 429);
+    return json(req, { error: "too_many_clients", error_description: "Dynamic client registration limit reached" }, 429);
   }
 
   const { data: owner, error: ownerError } = await sb
@@ -104,7 +146,7 @@ async function registerDynamicClient(req: Request) {
     .maybeSingle();
 
   if (ownerError || !owner) {
-    return json({ error: "server_error", error_description: "Registration unavailable" }, 500);
+    return json(req, { error: "server_error", error_description: "Registration unavailable" }, 500);
   }
 
   const clientId = `prs_dyn_${randomToken(15).toLowerCase()}`;
@@ -124,10 +166,10 @@ async function registerDynamicClient(req: Request) {
   } as never);
 
   if (error) {
-    return json({ error: "server_error", error_description: "Client registration failed" }, 500);
+    return json(req, { error: "server_error", error_description: "Client registration failed" }, 500);
   }
 
-  return json({
+  return json(req, {
     client_id: clientId,
     client_secret: clientSecret,
     client_id_issued_at: now,
@@ -142,11 +184,11 @@ async function registerDynamicClient(req: Request) {
 }
 
 async function approveAuthorization(req: Request) {
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return json({ error: "unauthorized", error_description: "Sign in required" }, 401);
+    return json(req, { error: "unauthorized", error_description: "Sign in required" }, 401);
   }
 
   const authClient = createClient(supabaseUrl, anonKey, {
@@ -156,16 +198,16 @@ async function approveAuthorization(req: Request) {
   const user = authData.user;
 
   if (authError || !user) {
-    return json({ error: "unauthorized", error_description: "Could not verify your session" }, 401);
+    return json(req, { error: "unauthorized", error_description: "Could not verify your session" }, 401);
   }
 
   const sb = getServiceSupabase();
   const { data: roles, error: rolesError } = await sb.from("user_roles").select("role").eq("user_id", user.id);
-  if (rolesError) return json({ error: "server_error", error_description: rolesError.message }, 500);
+  if (rolesError) return json(req, { error: "server_error", error_description: rolesError.message }, 500);
 
   const allowed = (roles || []).some((row) => row.role === "admin" || row.role === "contributor");
   if (!allowed) {
-    return json({ error: "forbidden", error_description: "You do not have access to authorize the admin MCP server" }, 403);
+    return json(req, { error: "forbidden", error_description: "You do not have access to authorize the admin MCP server" }, 403);
   }
 
   const body = await parseBody(req);
@@ -177,7 +219,7 @@ async function approveAuthorization(req: Request) {
   const scope = typeof body.scope === "string" && body.scope.trim() ? body.scope.trim() : "mcp";
 
   if (!clientId || !redirectUri || !codeChallenge || codeChallengeMethod !== "S256") {
-    return json({ error: "invalid_request", error_description: "Missing OAuth authorization parameters" }, 400);
+    return json(req, { error: "invalid_request", error_description: "Missing OAuth authorization parameters" }, 400);
   }
 
   const { data: client, error: clientError } = await sb
@@ -186,10 +228,10 @@ async function approveAuthorization(req: Request) {
     .eq("client_id", clientId)
     .maybeSingle();
 
-  if (clientError || !client) return json({ error: "invalid_client", error_description: "Client not found" }, 400);
-  if (client.revoked_at) return json({ error: "invalid_client", error_description: "Client has been revoked" }, 400);
+  if (clientError || !client) return json(req, { error: "invalid_client", error_description: "Client not found" }, 400);
+  if (client.revoked_at) return json(req, { error: "invalid_client", error_description: "Client has been revoked" }, 400);
   if (!client.redirect_uris.includes(redirectUri)) {
-    return json({ error: "invalid_request", error_description: "redirect_uri is not registered for this client" }, 400);
+    return json(req, { error: "invalid_request", error_description: "redirect_uri is not registered for this client" }, 400);
   }
 
   const code = randomToken(32);
@@ -206,7 +248,7 @@ async function approveAuthorization(req: Request) {
     expires_at: expiresAt,
   } as never);
 
-  if (codeError) return json({ error: "server_error", error_description: codeError.message }, 500);
+  if (codeError) return json(req, { error: "server_error", error_description: codeError.message }, 500);
 
   if (client.is_dynamic) {
     await sb.from("api_clients").update({ created_by: user.id } as never).eq("client_id", clientId);
@@ -216,11 +258,11 @@ async function approveAuthorization(req: Request) {
   callbackUrl.searchParams.set("code", code);
   if (state) callbackUrl.searchParams.set("state", state);
 
-  return json({ redirect_to: callbackUrl.toString() });
+  return json(req, { redirect_to: callbackUrl.toString() });
 }
 
 async function issueToken(req: Request) {
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
 
   const body = await parseBody(req);
   const grantType = typeof body.grant_type === "string" ? body.grant_type : null;
@@ -228,7 +270,7 @@ async function issueToken(req: Request) {
   const clientSecret = typeof body.client_secret === "string" ? body.client_secret : null;
 
   if (!grantType) {
-    return json({ error: "invalid_request", error_description: "grant_type is required" }, 400);
+    return json(req, { error: "invalid_request", error_description: "grant_type is required" }, 400);
   }
 
   const sb = getServiceSupabase();
@@ -240,7 +282,7 @@ async function issueToken(req: Request) {
     const resource = typeof body.resource === "string" ? body.resource : undefined;
 
     if (!clientId || !clientSecret || !code || !redirectUri || !codeVerifier) {
-      return json({ error: "invalid_request", error_description: "client_id, client_secret, code, redirect_uri, and code_verifier are required" }, 400);
+      return json(req, { error: "invalid_request", error_description: "client_id, client_secret, code, redirect_uri, and code_verifier are required" }, 400);
     }
 
     const { data: client, error: clientError } = await sb
@@ -249,12 +291,12 @@ async function issueToken(req: Request) {
       .eq("client_id", clientId)
       .maybeSingle();
 
-    if (clientError || !client) return json({ error: "invalid_client", error_description: "Client not found" }, 401);
-    if (client.revoked_at) return json({ error: "invalid_client", error_description: "Client has been revoked" }, 401);
+    if (clientError || !client) return json(req, { error: "invalid_client", error_description: "Client not found" }, 401);
+    if (client.revoked_at) return json(req, { error: "invalid_client", error_description: "Client has been revoked" }, 401);
 
     const secretHash = await hashSecret(clientSecret);
     if (secretHash !== client.client_secret_hash) {
-      return json({ error: "invalid_client", error_description: "Invalid client secret" }, 401);
+      return json(req, { error: "invalid_client", error_description: "Invalid client secret" }, 401);
     }
 
     const { data: authCode, error: codeError } = await sb
@@ -264,16 +306,16 @@ async function issueToken(req: Request) {
       .eq("client_id", clientId)
       .maybeSingle();
 
-    if (codeError || !authCode) return json({ error: "invalid_grant", error_description: "Authorization code not found" }, 400);
-    if (authCode.used_at) return json({ error: "invalid_grant", error_description: "Authorization code has already been used" }, 400);
-    if (authCode.redirect_uri !== redirectUri) return json({ error: "invalid_grant", error_description: "redirect_uri does not match" }, 400);
+    if (codeError || !authCode) return json(req, { error: "invalid_grant", error_description: "Authorization code not found" }, 400);
+    if (authCode.used_at) return json(req, { error: "invalid_grant", error_description: "Authorization code has already been used" }, 400);
+    if (authCode.redirect_uri !== redirectUri) return json(req, { error: "invalid_grant", error_description: "redirect_uri does not match" }, 400);
     if (new Date(authCode.expires_at).getTime() <= Date.now()) {
-      return json({ error: "invalid_grant", error_description: "Authorization code has expired" }, 400);
+      return json(req, { error: "invalid_grant", error_description: "Authorization code has expired" }, 400);
     }
 
     const expectedChallenge = await sha256Base64Url(codeVerifier);
     if (authCode.code_challenge_method !== "S256" || expectedChallenge !== authCode.code_challenge) {
-      return json({ error: "invalid_grant", error_description: "PKCE verification failed" }, 400);
+      return json(req, { error: "invalid_grant", error_description: "PKCE verification failed" }, 400);
     }
 
     await sb.from("oauth_authorization_codes").update({ used_at: new Date().toISOString() } as never).eq("id", authCode.id);
@@ -291,7 +333,7 @@ async function issueToken(req: Request) {
       iss: "prosecco-admin-mcp",
     }, signingSecret);
 
-    return json({
+    return json(req, {
       access_token: token,
       token_type: "Bearer",
       expires_in: expiresIn,
@@ -301,11 +343,11 @@ async function issueToken(req: Request) {
   }
 
   if (grantType !== "client_credentials") {
-    return json({ error: "unsupported_grant_type", error_description: "Supported grants: authorization_code, client_credentials" }, 400);
+    return json(req, { error: "unsupported_grant_type", error_description: "Supported grants: authorization_code, client_credentials" }, 400);
   }
 
   if (!clientId || !clientSecret) {
-    return json({ error: "invalid_request", error_description: "client_id and client_secret are required" }, 400);
+    return json(req, { error: "invalid_request", error_description: "client_id and client_secret are required" }, 400);
   }
 
   const { data: client, error: dbError } = await sb
@@ -314,18 +356,18 @@ async function issueToken(req: Request) {
     .eq("client_id", clientId)
     .maybeSingle();
 
-  if (dbError || !client) return json({ error: "invalid_client", error_description: "Client not found" }, 401);
-  if (client.revoked_at) return json({ error: "invalid_client", error_description: "Client has been revoked" }, 401);
+  if (dbError || !client) return json(req, { error: "invalid_client", error_description: "Client not found" }, 401);
+  if (client.revoked_at) return json(req, { error: "invalid_client", error_description: "Client has been revoked" }, 401);
 
   // SECURITY: Dynamic clients MUST NOT use client_credentials grant.
   // They must go through the authorization_code flow with explicit user approval.
   if (client.is_dynamic) {
-    return json({ error: "unauthorized_client", error_description: "Dynamic clients must use authorization_code grant with user approval" }, 400);
+    return json(req, { error: "unauthorized_client", error_description: "Dynamic clients must use authorization_code grant with user approval" }, 400);
   }
 
   const secretHash = await hashSecret(clientSecret);
   if (secretHash !== client.client_secret_hash) {
-    return json({ error: "invalid_client", error_description: "Invalid client secret" }, 401);
+    return json(req, { error: "invalid_client", error_description: "Invalid client secret" }, 401);
   }
 
   // Verify the client creator actually has admin/contributor role
@@ -336,7 +378,7 @@ async function issueToken(req: Request) {
 
   const creatorAllowed = (creatorRoles || []).some((r) => r.role === "admin" || r.role === "contributor");
   if (!creatorAllowed) {
-    return json({ error: "invalid_client", error_description: "Client owner no longer has access" }, 403);
+    return json(req, { error: "invalid_client", error_description: "Client owner no longer has access" }, 403);
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -352,18 +394,23 @@ async function issueToken(req: Request) {
     iss: "prosecco-admin-mcp",
   }, signingSecret);
 
-  return json({ access_token: token, token_type: "Bearer", expires_in: expiresIn, scope: "mcp" }, 200, {
+  return json(req, { access_token: token, token_type: "Bearer", expires_in: expiresIn, scope: "mcp" }, 200, {
     "Cache-Control": "no-store",
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
     const oauthPath = req.headers.get("x-oauth-path") || "/token";
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+    if (!checkRateLimit(clientIp, oauthPath)) {
+      return json(req, { error: "too_many_requests", error_description: "Rate limit exceeded. Try again later." }, 429);
+    }
 
     if (oauthPath === "/register" || oauthPath === "/register/") {
       return await registerDynamicClient(req);
@@ -376,6 +423,6 @@ Deno.serve(async (req) => {
     return await issueToken(req);
   } catch (err) {
     console.error("OAuth endpoint error:", err);
-    return json({ error: "server_error", error_description: String(err) }, 500);
+    return json(req, { error: "server_error", error_description: String(err) }, 500);
   }
 });

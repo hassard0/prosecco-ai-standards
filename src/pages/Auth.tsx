@@ -11,7 +11,6 @@ import { useAuth } from "@/hooks/useAuth";
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -25,24 +24,11 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Check your email", description: "We sent you a confirmation link." });
-      }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        navigate("/admin", { replace: true });
-      }
+      navigate("/admin", { replace: true });
     }
     setLoading(false);
   };
@@ -54,7 +40,7 @@ export default function Auth() {
           <span className="text-3xl" aria-hidden>🥂</span>
           <h1 className="text-xl font-semibold mt-2">Prosecco.dev Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {isSignUp ? "Create an account" : "Sign in to manage standards"}
+            Sign in to manage standards
           </p>
         </div>
 
@@ -68,7 +54,7 @@ export default function Auth() {
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading…" : isSignUp ? "Sign Up" : "Sign In"}
+            {loading ? "Loading…" : "Sign In"}
           </Button>
         </form>
 
@@ -98,11 +84,8 @@ export default function Auth() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-sm text-muted-foreground">
-          {isSignUp ? "Already have an account?" : "Need an account?"}{" "}
-          <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary underline underline-offset-2">
-            {isSignUp ? "Sign in" : "Sign up"}
-          </button>
+        <p className="text-center text-xs text-muted-foreground">
+          This is an invite-only application. Contact an admin for access.
         </p>
       </div>
     </div>
