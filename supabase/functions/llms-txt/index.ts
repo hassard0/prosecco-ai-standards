@@ -233,7 +233,7 @@ serve(async (req) => {
 
       return new Response(JSON.stringify(jsonOutput, null, 2), {
         headers: {
-          ...corsHeaders,
+          ...getCorsHeaders(req),
           "Content-Type": "application/json; charset=utf-8",
           "Cache-Control": "public, max-age=3600",
         },
@@ -244,7 +244,7 @@ serve(async (req) => {
 
     return new Response(text, {
       headers: {
-        ...corsHeaders,
+        ...getCorsHeaders(req),
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "public, max-age=3600",
       },
