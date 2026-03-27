@@ -636,7 +636,7 @@ mcpServer.tool("report_issue", {
       const { data, error } = await supabase
         .from("standards")
         .select("id, title")
-        .ilike("title", `%${params.standard_name}%`)
+        .ilike("title", `%${standardName}%`)
         .limit(1);
       if (error || !data || data.length === 0) {
         return {
