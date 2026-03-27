@@ -649,7 +649,7 @@ mcpServer.tool("report_issue", {
     }
 
     // Build feedback text
-    let feedback = params.issue;
+    let feedback = issue;
     if (params.is_duplicate && params.duplicate_of_id) {
       // Verify the duplicate target exists
       const { data: dupTarget } = await supabase
