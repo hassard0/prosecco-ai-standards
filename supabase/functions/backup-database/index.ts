@@ -143,8 +143,10 @@ async function exportToGitHub(
   githubRepo: string
 ): Promise<{ success: boolean; error?: string; files_exported?: number }> {
   const headers = {
-    Authorization: `Bearer ${githubToken}`,
+    Authorization: `token ${githubToken}`,
     Accept: "application/vnd.github.v3+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "prosecco-backup-export",
     "Content-Type": "application/json",
   };
   const apiBase = `https://api.github.com/repos/${githubRepo}`;
