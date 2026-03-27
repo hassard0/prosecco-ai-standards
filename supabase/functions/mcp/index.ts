@@ -659,9 +659,9 @@ mcpServer.tool("report_issue", {
         .single();
 
       if (dupTarget) {
-        feedback = `[DUPLICATE REPORT] This standard appears to be a duplicate of "${dupTarget.title}" (${dupTarget.id}).\n\n${params.issue}`;
+      feedback = `[DUPLICATE REPORT] This standard appears to be a duplicate of "${dupTarget.title}" (${dupTarget.id}).\n\n${issue}`;
       } else {
-        feedback = `[DUPLICATE REPORT] Reported as duplicate of id: ${params.duplicate_of_id} (not found in directory).\n\n${params.issue}`;
+        feedback = `[DUPLICATE REPORT] Reported as duplicate of id: ${params.duplicate_of_id} (not found in directory).\n\n${issue}`;
       }
     } else if (params.is_duplicate) {
       return {
