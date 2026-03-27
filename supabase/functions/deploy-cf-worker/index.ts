@@ -20,7 +20,27 @@ function getCorsHeaders(req: Request) {
 const APP_URL = "https://id-preview--477feacf-8b45-4c31-ba59-3c1bb9613fad.lovable.app";
 
 // Two workers: public MCP proxy + admin MCP proxy
+const SECURITY_HEADERS_SNIPPET = `
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+};
+
+function addSecurityHeaders(headers) {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(k, v);
+  }
+  return headers;
+}
+`;
+
 const PUBLIC_WORKER_SCRIPT = `
+${SECURITY_HEADERS_SNIPPET}
+
 export default {
   async fetch(request) {
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/mcp";
@@ -29,12 +49,12 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: {
+        headers: addSecurityHeaders(new Headers({
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "content-type, accept, mcp-session-id",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
           "Access-Control-Expose-Headers": "mcp-session-id",
-        },
+        })),
       });
     }
 
@@ -54,6 +74,7 @@ export default {
     respHeaders.set("Access-Control-Allow-Headers", "content-type, accept, mcp-session-id");
     respHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
     respHeaders.set("Access-Control-Expose-Headers", "mcp-session-id");
+    addSecurityHeaders(respHeaders);
 
     return new Response(response.body, { status: response.status, headers: respHeaders });
   },
@@ -61,6 +82,26 @@ export default {
 `;
 
 const ADMIN_WORKER_SCRIPT = `
+${SECURITY_HEADERS_SNIPPET}
+
+// ── Rate Limiting (per-IP, in-memory per isolate) ────────────
+const rateBuckets = new Map();
+const RATE_LIMITS = { "/register": { max: 5, window: 60 }, "/token": { max: 20, window: 60 }, "/approve": { max: 10, window: 60 } };
+
+function checkRate(ip, path) {
+  const config = RATE_LIMITS[path];
+  if (!config) return true;
+  const key = ip + ":" + path;
+  const now = Date.now();
+  const entry = rateBuckets.get(key);
+  if (!entry || now > entry.reset) {
+    rateBuckets.set(key, { count: 1, reset: now + config.window * 1000 });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= config.max;
+}
+
 const APP_URL = ${JSON.stringify(APP_URL)};
 
 export default {
@@ -68,6 +109,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const origin = url.origin;
+    const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
@@ -76,8 +118,23 @@ export default {
       "Access-Control-Expose-Headers": "mcp-session-id",
     };
 
+    function jsonResp(data, status = 200) {
+      const h = new Headers(corsHeaders);
+      h.set("Content-Type", "application/json");
+      addSecurityHeaders(h);
+      return new Response(JSON.stringify(data), { status, headers: h });
+    }
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: getCorsHeaders(req) });
+      const h = new Headers(corsHeaders);
+      addSecurityHeaders(h);
+      return new Response(null, { status: 204, headers: h });
+    }
+
+    // Rate limit sensitive endpoints at the edge
+    const rateLimitPath = ["/register", "/token", "/approve"].find(p => path === p || path === p + "/");
+    if (rateLimitPath && !checkRate(clientIp, rateLimitPath)) {
+      return jsonResp({ error: "too_many_requests", error_description: "Rate limit exceeded. Try again later." }, 429);
     }
 
     if (
@@ -86,6 +143,10 @@ export default {
       path === "/.well-known/oauth-authorization-server/mcp" ||
       path === "/.well-known/openid-configuration/mcp"
     ) {
+      const h = new Headers(corsHeaders);
+      h.set("Content-Type", "application/json");
+      h.set("Cache-Control", "public, max-age=3600");
+      addSecurityHeaders(h);
       return new Response(JSON.stringify({
         issuer: origin,
         authorization_endpoint: origin + "/authorize",
@@ -97,43 +158,41 @@ export default {
         code_challenge_methods_supported: ["S256"],
         scopes_supported: ["mcp"],
         service_documentation: "https://prosecco.dev/mcp",
-      }), {
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
-      });
+      }), { headers: h });
     }
 
     if (
       path === "/.well-known/oauth-protected-resource" ||
       path === "/.well-known/oauth-protected-resource/mcp"
     ) {
+      const h = new Headers(corsHeaders);
+      h.set("Content-Type", "application/json");
+      h.set("Cache-Control", "public, max-age=3600");
+      addSecurityHeaders(h);
       return new Response(JSON.stringify({
         resource: origin + "/mcp",
         authorization_servers: [origin],
         bearer_methods_supported: ["header"],
         scopes_supported: ["mcp"],
-      }), {
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
-      });
+      }), { headers: h });
     }
 
     if (path === "/authorize" || path === "/authorize/") {
       if (request.method !== "GET") {
-        return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-          status: 405,
-          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-        });
+        return jsonResp({ error: "method_not_allowed" }, 405);
       }
-
       const redirectUrl = new URL(APP_URL + "/oauth/admin-mcp/authorize");
       redirectUrl.search = url.search;
       return Response.redirect(redirectUrl.toString(), 302);
     }
 
-    if (path === "/register" || path === "/register/") {
+    // Proxy helper for auth endpoints
+    async function proxyToAuth(oauthPath) {
       const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
       const headers = new Headers(request.headers);
       headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
-      headers.set("x-oauth-path", "/register");
+      headers.set("x-oauth-path", oauthPath);
+      headers.set("x-forwarded-for", clientIp);
 
       const upstreamReq = new Request(UPSTREAM, {
         method: request.method,
@@ -145,47 +204,15 @@ export default {
       const response = await fetch(upstreamReq);
       const respHeaders = new Headers(response.headers);
       Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
+      addSecurityHeaders(respHeaders);
       return new Response(response.body, { status: response.status, headers: respHeaders });
     }
 
-    if (path === "/token" || path === "/token/") {
-      const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
-      const headers = new Headers(request.headers);
-      headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
-      headers.set("x-oauth-path", "/token");
+    if (path === "/register" || path === "/register/") return proxyToAuth("/register");
+    if (path === "/token" || path === "/token/") return proxyToAuth("/token");
+    if (path === "/approve" || path === "/approve/") return proxyToAuth("/approve");
 
-      const upstreamReq = new Request(UPSTREAM, {
-        method: request.method,
-        headers,
-        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
-        duplex: "half",
-      });
-
-      const response = await fetch(upstreamReq);
-      const respHeaders = new Headers(response.headers);
-      Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
-      return new Response(response.body, { status: response.status, headers: respHeaders });
-    }
-
-    if (path === "/approve" || path === "/approve/") {
-      const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp-auth";
-      const headers = new Headers(request.headers);
-      headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
-      headers.set("x-oauth-path", "/approve");
-
-      const upstreamReq = new Request(UPSTREAM, {
-        method: request.method,
-        headers,
-        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
-        duplex: "half",
-      });
-
-      const response = await fetch(upstreamReq);
-      const respHeaders = new Headers(response.headers);
-      Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
-      return new Response(response.body, { status: response.status, headers: respHeaders });
-    }
-
+    // Default: proxy to admin MCP
     const UPSTREAM = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/admin-mcp";
     const headers = new Headers(request.headers);
     headers.set("Host", "accdhfumccsrxmzdmpfi.supabase.co");
@@ -200,6 +227,7 @@ export default {
     const response = await fetch(upstreamReq);
     const respHeaders = new Headers(response.headers);
     Object.entries(corsHeaders).forEach(([k, v]) => respHeaders.set(k, v));
+    addSecurityHeaders(respHeaders);
 
     return new Response(response.body, { status: response.status, headers: respHeaders });
   },
