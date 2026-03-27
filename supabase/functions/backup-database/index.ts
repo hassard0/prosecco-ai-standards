@@ -172,7 +172,7 @@ async function exportToGitHub(
 
     let currentCommitSha: string | null = null;
     let baseTreeSha: string | null = null;
-    let preservedEntries: { path: string; mode: string; type: string; sha: string }[] = [];
+    let existingStandardPaths: string[] = [];
 
     const refRes = await fetch(`${apiBase}/git/ref/heads/${branch}`, { headers });
     if (refRes.ok) {
@@ -194,17 +194,9 @@ async function exportToGitHub(
       }
 
       const baseTreeData = await baseTreeRes.json();
-      preservedEntries = ((baseTreeData.tree as Array<Record<string, unknown>>) || [])
-        .filter((entry) => {
-          const path = String(entry.path || "");
-          return entry.type === "blob" && !path.startsWith("data/standards/");
-        })
-        .map((entry) => ({
-          path: String(entry.path),
-          mode: String(entry.mode || "100644"),
-          type: "blob",
-          sha: String(entry.sha),
-        }));
+      existingStandardPaths = ((baseTreeData.tree as Array<Record<string, unknown>>) || [])
+        .filter((entry) => entry.type === "blob" && String(entry.path || "").startsWith("data/standards/"))
+        .map((entry) => String(entry.path));
     } else if (refRes.status !== 404) {
       const text = await refRes.text();
       return { success: false, error: `Failed to get branch ref: ${refRes.status} ${text}` };
