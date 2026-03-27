@@ -11,7 +11,13 @@ function sanitizeFilename(title: string, acronym?: string | null): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return acronym ? `${slug}_${acronym}` : slug;
+  const acronymSlug = acronym
+    ? acronym
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+    : "";
+  return acronymSlug ? `${slug}_${acronymSlug}` : slug;
 }
 
 interface Author {
