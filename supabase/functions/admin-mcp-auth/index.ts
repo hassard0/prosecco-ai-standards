@@ -84,6 +84,18 @@ async function registerDynamicClient(req: Request) {
   }
 
   const sb = getServiceSupabase();
+
+  // Rate-limit dynamic registrations: max 50 active dynamic clients
+  const { count } = await sb
+    .from("api_clients")
+    .select("id", { count: "exact", head: true })
+    .eq("is_dynamic", true)
+    .is("revoked_at", null);
+
+  if ((count ?? 0) >= 50) {
+    return json({ error: "too_many_clients", error_description: "Dynamic client registration limit reached" }, 429);
+  }
+
   const { data: owner, error: ownerError } = await sb
     .from("user_roles")
     .select("user_id")
@@ -92,7 +104,7 @@ async function registerDynamicClient(req: Request) {
     .maybeSingle();
 
   if (ownerError || !owner) {
-    return json({ error: "server_error", error_description: "No admin account is available to register clients" }, 500);
+    return json({ error: "server_error", error_description: "Registration unavailable" }, 500);
   }
 
   const clientId = `prs_dyn_${randomToken(15).toLowerCase()}`;
@@ -112,7 +124,7 @@ async function registerDynamicClient(req: Request) {
   } as never);
 
   if (error) {
-    return json({ error: "server_error", error_description: error.message }, 500);
+    return json({ error: "server_error", error_description: "Client registration failed" }, 500);
   }
 
   return json({
@@ -298,16 +310,33 @@ async function issueToken(req: Request) {
 
   const { data: client, error: dbError } = await sb
     .from("api_clients")
-    .select("client_id, client_secret_hash, name, created_by, revoked_at")
+    .select("client_id, client_secret_hash, name, created_by, revoked_at, is_dynamic")
     .eq("client_id", clientId)
     .maybeSingle();
 
   if (dbError || !client) return json({ error: "invalid_client", error_description: "Client not found" }, 401);
   if (client.revoked_at) return json({ error: "invalid_client", error_description: "Client has been revoked" }, 401);
 
+  // SECURITY: Dynamic clients MUST NOT use client_credentials grant.
+  // They must go through the authorization_code flow with explicit user approval.
+  if (client.is_dynamic) {
+    return json({ error: "unauthorized_client", error_description: "Dynamic clients must use authorization_code grant with user approval" }, 400);
+  }
+
   const secretHash = await hashSecret(clientSecret);
   if (secretHash !== client.client_secret_hash) {
     return json({ error: "invalid_client", error_description: "Invalid client secret" }, 401);
+  }
+
+  // Verify the client creator actually has admin/contributor role
+  const { data: creatorRoles } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", client.created_by);
+
+  const creatorAllowed = (creatorRoles || []).some((r) => r.role === "admin" || r.role === "contributor");
+  if (!creatorAllowed) {
+    return json({ error: "invalid_client", error_description: "Client owner no longer has access" }, 403);
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -316,6 +345,7 @@ async function issueToken(req: Request) {
     sub: client.client_id,
     client_name: client.name,
     created_by: client.created_by,
+    authorized_user_id: client.created_by,
     scope: "mcp",
     iat: now,
     exp: now + expiresIn,
