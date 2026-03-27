@@ -253,21 +253,6 @@ async function exportToGitHub(
     return { success: false, error: String(err) };
   }
 }
-            ref: `refs/heads/${branch}`,
-            sha: newCommitData.sha,
-          }),
-        });
-
-    if (!refUpdateRes.ok) {
-      const text = await refUpdateRes.text();
-      return { success: false, error: `Failed to update branch ref: ${refUpdateRes.status} ${text}` };
-    }
-
-    return { success: true, files_exported: markdownEntries.length };
-  } catch (err) {
-    return { success: false, error: String(err) };
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
