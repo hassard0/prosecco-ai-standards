@@ -218,7 +218,7 @@ async function exportToGitHub(
     const newCommitData = await newCommitRes.json();
 
     // 6. Update ref
-    const updateRefRes = await fetch(`${apiBase}/git/refs/heads/main`, {
+    const updateRefRes = await fetch(`${apiBase}/git/refs/heads/${branch}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ sha: newCommitData.sha }),
