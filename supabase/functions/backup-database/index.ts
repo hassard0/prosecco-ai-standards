@@ -218,12 +218,17 @@ async function exportToGitHub(
       };
     });
 
+    const nextPaths = new Set(markdownEntries.map((entry) => entry.path));
+    const deleteEntries = existingStandardPaths
+      .filter((path) => !nextPaths.has(path))
+      .map((path) => ({ path, mode: "100644", type: "blob", sha: null }));
+
     const treeRes = await fetch(`${apiBase}/git/trees`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         ...(baseTreeSha ? { base_tree: baseTreeSha } : {}),
-        tree: [...preservedEntries, ...markdownEntries],
+        tree: [...markdownEntries, ...deleteEntries],
       }),
     });
     if (!treeRes.ok) {
