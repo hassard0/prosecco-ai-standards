@@ -150,29 +150,58 @@ async function exportToGitHub(
   const apiBase = `https://api.github.com/repos/${githubRepo}`;
 
   try {
-    // 1. Get current commit SHA — try main, then master
-    let branch = "main";
-    let refRes = await fetch(`${apiBase}/git/ref/heads/main`, { headers });
-    if (!refRes.ok) {
-      branch = "master";
-      refRes = await fetch(`${apiBase}/git/ref/heads/master`, { headers });
+    const repoRes = await fetch(apiBase, { headers });
+    if (!repoRes.ok) {
+      const text = await repoRes.text();
+      return {
+        success: false,
+        error: `Failed to access repo metadata: ${repoRes.status} ${text}`,
+      };
     }
-    if (!refRes.ok) {
+
+    const repoData = await repoRes.json();
+    const branch = (repoData.default_branch as string | undefined) || "main";
+
+    let currentCommitSha: string | null = null;
+    let preservedEntries: { path: string; mode: string; type: string; sha: string }[] = [];
+
+    const refRes = await fetch(`${apiBase}/git/ref/heads/${branch}`, { headers });
+    if (refRes.ok) {
+      const refData = await refRes.json();
+      currentCommitSha = refData.object.sha;
+
+      const commitRes = await fetch(`${apiBase}/git/commits/${currentCommitSha}`, { headers });
+      if (!commitRes.ok) {
+        const text = await commitRes.text();
+        return { success: false, error: `Failed to get commit: ${commitRes.status} ${text}` };
+      }
+
+      const commitData = await commitRes.json();
+      const baseTreeSha = commitData.tree.sha as string;
+      const baseTreeRes = await fetch(`${apiBase}/git/trees/${baseTreeSha}?recursive=1`, { headers });
+      if (!baseTreeRes.ok) {
+        const text = await baseTreeRes.text();
+        return { success: false, error: `Failed to read repo tree: ${baseTreeRes.status} ${text}` };
+      }
+
+      const baseTreeData = await baseTreeRes.json();
+      preservedEntries = ((baseTreeData.tree as Array<Record<string, unknown>>) || [])
+        .filter((entry) => {
+          const path = String(entry.path || "");
+          return entry.type === "blob" && !path.startsWith("data/standards/");
+        })
+        .map((entry) => ({
+          path: String(entry.path),
+          mode: String(entry.mode || "100644"),
+          type: "blob",
+          sha: String(entry.sha),
+        }));
+    } else if (refRes.status !== 404) {
       const text = await refRes.text();
-      return { success: false, error: `Failed to get ref (tried main & master): ${refRes.status} ${text}` };
+      return { success: false, error: `Failed to get branch ref: ${refRes.status} ${text}` };
     }
-    const refData = await refRes.json();
-    const currentCommitSha = refData.object.sha;
 
-    // 2. Get the current commit to find its tree
-    const commitRes = await fetch(`${apiBase}/git/commits/${currentCommitSha}`, { headers });
-    const commitData = await commitRes.json();
-    const baseTreeSha = commitData.tree.sha;
-
-    // 3. Create blobs and tree entries for all standards
-    const treeEntries: { path: string; mode: string; type: string; content: string }[] = [];
-
-    for (const std of standards) {
+    const markdownEntries = standards.map((std) => {
       const id = std.id as string;
       const title = std.title as string;
       const acronym = std.acronym as string | null;
@@ -180,19 +209,20 @@ async function exportToGitHub(
       const md = generateMarkdown(std, summary);
       const filename = `${id}_${sanitizeFilename(title, acronym)}.md`;
 
-      treeEntries.push({
+      return {
         path: `data/standards/${filename}`,
         mode: "100644",
         type: "blob",
         content: md,
-      });
-    }
+      };
+    });
 
-    // 4. Create tree (using base_tree to preserve other files in repo)
     const treeRes = await fetch(`${apiBase}/git/trees`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
+      body: JSON.stringify({
+        tree: [...preservedEntries, ...markdownEntries],
+      }),
     });
     if (!treeRes.ok) {
       const text = await treeRes.text();
@@ -200,7 +230,6 @@ async function exportToGitHub(
     }
     const treeData = await treeRes.json();
 
-    // 5. Create commit
     const commitMsg = `Daily standards export - ${new Date().toISOString().split("T")[0]}`;
     const newCommitRes = await fetch(`${apiBase}/git/commits`, {
       method: "POST",
@@ -208,7 +237,7 @@ async function exportToGitHub(
       body: JSON.stringify({
         message: commitMsg,
         tree: treeData.sha,
-        parents: [currentCommitSha],
+        ...(currentCommitSha ? { parents: [currentCommitSha] } : {}),
       }),
     });
     if (!newCommitRes.ok) {
@@ -217,18 +246,27 @@ async function exportToGitHub(
     }
     const newCommitData = await newCommitRes.json();
 
-    // 6. Update ref
-    const updateRefRes = await fetch(`${apiBase}/git/refs/heads/${branch}`, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ sha: newCommitData.sha }),
-    });
-    if (!updateRefRes.ok) {
-      const text = await updateRefRes.text();
-      return { success: false, error: `Failed to update ref: ${updateRefRes.status} ${text}` };
+    const refUpdateRes = currentCommitSha
+      ? await fetch(`${apiBase}/git/refs/heads/${branch}`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ sha: newCommitData.sha, force: true }),
+        })
+      : await fetch(`${apiBase}/git/refs`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            ref: `refs/heads/${branch}`,
+            sha: newCommitData.sha,
+          }),
+        });
+
+    if (!refUpdateRes.ok) {
+      const text = await refUpdateRes.text();
+      return { success: false, error: `Failed to update branch ref: ${refUpdateRes.status} ${text}` };
     }
 
-    return { success: true, files_exported: treeEntries.length };
+    return { success: true, files_exported: markdownEntries.length };
   } catch (err) {
     return { success: false, error: String(err) };
   }
