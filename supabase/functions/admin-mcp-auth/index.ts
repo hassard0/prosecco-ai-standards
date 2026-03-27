@@ -310,16 +310,33 @@ async function issueToken(req: Request) {
 
   const { data: client, error: dbError } = await sb
     .from("api_clients")
-    .select("client_id, client_secret_hash, name, created_by, revoked_at")
+    .select("client_id, client_secret_hash, name, created_by, revoked_at, is_dynamic")
     .eq("client_id", clientId)
     .maybeSingle();
 
   if (dbError || !client) return json({ error: "invalid_client", error_description: "Client not found" }, 401);
   if (client.revoked_at) return json({ error: "invalid_client", error_description: "Client has been revoked" }, 401);
 
+  // SECURITY: Dynamic clients MUST NOT use client_credentials grant.
+  // They must go through the authorization_code flow with explicit user approval.
+  if (client.is_dynamic) {
+    return json({ error: "unauthorized_client", error_description: "Dynamic clients must use authorization_code grant with user approval" }, 400);
+  }
+
   const secretHash = await hashSecret(clientSecret);
   if (secretHash !== client.client_secret_hash) {
     return json({ error: "invalid_client", error_description: "Invalid client secret" }, 401);
+  }
+
+  // Verify the client creator actually has admin/contributor role
+  const { data: creatorRoles } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", client.created_by);
+
+  const creatorAllowed = (creatorRoles || []).some((r) => r.role === "admin" || r.role === "contributor");
+  if (!creatorAllowed) {
+    return json({ error: "invalid_client", error_description: "Client owner no longer has access" }, 403);
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -328,6 +345,7 @@ async function issueToken(req: Request) {
     sub: client.client_id,
     client_name: client.name,
     created_by: client.created_by,
+    authorized_user_id: client.created_by,
     scope: "mcp",
     iat: now,
     exp: now + expiresIn,
