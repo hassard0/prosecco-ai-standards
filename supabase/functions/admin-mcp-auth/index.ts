@@ -406,6 +406,11 @@ Deno.serve(async (req) => {
 
   try {
     const oauthPath = req.headers.get("x-oauth-path") || "/token";
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+    if (!checkRateLimit(clientIp, oauthPath)) {
+      return json(req, { error: "too_many_requests", error_description: "Rate limit exceeded. Try again later." }, 429);
+    }
 
     if (oauthPath === "/register" || oauthPath === "/register/") {
       return await registerDynamicClient(req);
