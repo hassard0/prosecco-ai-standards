@@ -165,6 +165,7 @@ async function exportToGitHub(
     const branch = (repoData.default_branch as string | undefined) || "main";
 
     let currentCommitSha: string | null = null;
+    let baseTreeSha: string | null = null;
     let preservedEntries: { path: string; mode: string; type: string; sha: string }[] = [];
 
     const refRes = await fetch(`${apiBase}/git/ref/heads/${branch}`, { headers });
@@ -179,7 +180,7 @@ async function exportToGitHub(
       }
 
       const commitData = await commitRes.json();
-      const baseTreeSha = commitData.tree.sha as string;
+      baseTreeSha = commitData.tree.sha as string;
       const baseTreeRes = await fetch(`${apiBase}/git/trees/${baseTreeSha}?recursive=1`, { headers });
       if (!baseTreeRes.ok) {
         const text = await baseTreeRes.text();
