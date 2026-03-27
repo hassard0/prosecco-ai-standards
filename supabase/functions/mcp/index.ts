@@ -511,10 +511,10 @@ mcpServer.tool("suggest_standard", {
     const { data, error } = await supabase
       .from("standards")
       .insert({
-        title: params.name,
-        link: params.url,
-        description: params.description || `Community-submitted standard. See: ${params.url}`,
-        organization: params.organization || null,
+        title: name,
+        link: url,
+        description: description || `Community-submitted standard. See: ${url}`,
+        organization: organization || null,
         status: "Backlog",
         tags: ["community-submission"],
       })
