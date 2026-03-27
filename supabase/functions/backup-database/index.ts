@@ -142,7 +142,7 @@ async function exportToGitHub(
   githubToken: string,
   githubRepo: string
 ): Promise<{ success: boolean; error?: string; files_exported?: number }> {
-  const headers = {
+  const headers: Record<string, string> = {
     Authorization: `token ${githubToken}`,
     Accept: "application/vnd.github.v3+json",
     "X-GitHub-Api-Version": "2022-11-28",
@@ -152,123 +152,103 @@ async function exportToGitHub(
   const apiBase = `https://api.github.com/repos/${githubRepo}`;
 
   try {
+    // Verify repo access
     const repoRes = await fetch(apiBase, { headers });
     if (!repoRes.ok) {
       const text = await repoRes.text();
-      return {
-        success: false,
-        error: `Failed to access repo metadata: ${repoRes.status} ${text}`,
-      };
+      return { success: false, error: `Failed to access repo: ${repoRes.status} ${text}` };
+    }
+    await repoRes.json(); // consume body
+
+    // Get existing files in data/standards/ to find their SHAs (needed for updates)
+    const existingShas = new Map<string, string>();
+    const listRes = await fetch(`${apiBase}/contents/data/standards`, { headers });
+    if (listRes.ok) {
+      const files = await listRes.json();
+      if (Array.isArray(files)) {
+        for (const f of files) {
+          existingShas.set(f.name, f.sha);
+        }
+      }
+    } else {
+      await listRes.text(); // consume body
     }
 
-    const repoData = await repoRes.json();
-    const branch = (repoData.default_branch as string | undefined) || "main";
+    // Upload each standard via Contents API
+    let exported = 0;
+    const errors: string[] = [];
 
-    let currentCommitSha: string | null = null;
-    let preservedEntries: { path: string; mode: string; type: string; sha: string }[] = [];
-
-    const refRes = await fetch(`${apiBase}/git/ref/heads/${branch}`, { headers });
-    if (refRes.ok) {
-      const refData = await refRes.json();
-      currentCommitSha = refData.object.sha;
-
-      const commitRes = await fetch(`${apiBase}/git/commits/${currentCommitSha}`, { headers });
-      if (!commitRes.ok) {
-        const text = await commitRes.text();
-        return { success: false, error: `Failed to get commit: ${commitRes.status} ${text}` };
-      }
-
-      const commitData = await commitRes.json();
-      const baseTreeSha = commitData.tree.sha as string;
-      const baseTreeRes = await fetch(`${apiBase}/git/trees/${baseTreeSha}?recursive=1`, { headers });
-      if (!baseTreeRes.ok) {
-        const text = await baseTreeRes.text();
-        return { success: false, error: `Failed to read repo tree: ${baseTreeRes.status} ${text}` };
-      }
-
-      const baseTreeData = await baseTreeRes.json();
-      preservedEntries = ((baseTreeData.tree as Array<Record<string, unknown>>) || [])
-        .filter((entry) => {
-          const path = String(entry.path || "");
-          return entry.type === "blob" && !path.startsWith("data/standards/");
-        })
-        .map((entry) => ({
-          path: String(entry.path),
-          mode: String(entry.mode || "100644"),
-          type: "blob",
-          sha: String(entry.sha),
-        }));
-    } else if (refRes.status !== 404) {
-      const text = await refRes.text();
-      return { success: false, error: `Failed to get branch ref: ${refRes.status} ${text}` };
-    }
-
-    const markdownEntries = standards.map((std) => {
+    for (const std of standards) {
       const id = std.id as string;
       const title = std.title as string;
       const acronym = std.acronym as string | null;
       const summary = summariesByStandard.get(id) || null;
       const md = generateMarkdown(std, summary);
       const filename = `${id}_${sanitizeFilename(title, acronym)}.md`;
+      const filePath = `data/standards/${filename}`;
 
-      return {
-        path: `data/standards/${filename}`,
-        mode: "100644",
-        type: "blob",
-        content: md,
+      // Base64 encode content
+      const content = btoa(unescape(encodeURIComponent(md)));
+
+      const body: Record<string, string> = {
+        message: `Update ${filename}`,
+        content,
       };
-    });
 
-    const treeRes = await fetch(`${apiBase}/git/trees`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        tree: [...preservedEntries, ...markdownEntries],
-      }),
-    });
-    if (!treeRes.ok) {
-      const text = await treeRes.text();
-      return { success: false, error: `Failed to create tree: ${treeRes.status} ${text}` };
+      // If file already exists, include its SHA
+      const existingSha = existingShas.get(filename);
+      if (existingSha) {
+        body.sha = existingSha;
+      }
+
+      const putRes = await fetch(`${apiBase}/contents/${filePath}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (putRes.ok) {
+        exported++;
+        await putRes.json(); // consume body
+      } else {
+        const text = await putRes.text();
+        errors.push(`${filename}: ${putRes.status} ${text}`);
+        // Stop on auth errors
+        if (putRes.status === 401 || putRes.status === 403) {
+          return { success: false, error: `Auth failed on file upload: ${putRes.status} ${text}` };
+        }
+      }
     }
-    const treeData = await treeRes.json();
 
-    const commitMsg = `Daily standards export - ${new Date().toISOString().split("T")[0]}`;
-    const newCommitRes = await fetch(`${apiBase}/git/commits`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        message: commitMsg,
-        tree: treeData.sha,
-        ...(currentCommitSha ? { parents: [currentCommitSha] } : {}),
-      }),
-    });
-    if (!newCommitRes.ok) {
-      const text = await newCommitRes.text();
-      return { success: false, error: `Failed to create commit: ${newCommitRes.status} ${text}` };
-    }
-    const newCommitData = await newCommitRes.json();
+    // Clean up files in data/standards/ that no longer correspond to a standard
+    const currentFilenames = new Set(
+      standards.map((std) => {
+        const id = std.id as string;
+        const title = std.title as string;
+        const acronym = std.acronym as string | null;
+        return `${id}_${sanitizeFilename(title, acronym)}.md`;
+      })
+    );
 
-    const refUpdateRes = currentCommitSha
-      ? await fetch(`${apiBase}/git/refs/heads/${branch}`, {
-          method: "PATCH",
-          headers,
-          body: JSON.stringify({ sha: newCommitData.sha, force: true }),
-        })
-      : await fetch(`${apiBase}/git/refs`, {
-          method: "POST",
+    for (const [name, sha] of existingShas) {
+      if (!currentFilenames.has(name)) {
+        const delRes = await fetch(`${apiBase}/contents/data/standards/${name}`, {
+          method: "DELETE",
           headers,
           body: JSON.stringify({
-            ref: `refs/heads/${branch}`,
-            sha: newCommitData.sha,
+            message: `Remove ${name}`,
+            sha,
           }),
         });
-
-    if (!refUpdateRes.ok) {
-      const text = await refUpdateRes.text();
-      return { success: false, error: `Failed to update branch ref: ${refUpdateRes.status} ${text}` };
+        await delRes.text(); // consume body
+      }
     }
 
-    return { success: true, files_exported: markdownEntries.length };
+    if (errors.length > 0 && exported === 0) {
+      return { success: false, error: errors.join("; ") };
+    }
+
+    return { success: true, files_exported: exported, error: errors.length > 0 ? `${errors.length} files failed` : undefined };
   } catch (err) {
     return { success: false, error: String(err) };
   }
