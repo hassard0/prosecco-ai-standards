@@ -451,6 +451,27 @@ mcpServer.tool("suggest_standard", {
     required: ["name", "url"],
   },
   handler: async (params: { name: string; url: string; description?: string; organization?: string }) => {
+    // Rate limit write operations
+    if (!checkWriteRateLimit(_currentRequestIp)) {
+      return {
+        content: [{ type: "text" as const, text: "Rate limit exceeded. Please wait a moment before submitting again." }],
+        isError: true,
+      };
+    }
+
+    // Validate and sanitize inputs
+    const name = sanitizeText(params.name, 200);
+    const url = params.url?.trim() || "";
+    const description = params.description ? sanitizeText(params.description, 2000) : undefined;
+    const organization = params.organization ? sanitizeText(params.organization, 200) : undefined;
+
+    if (!name || name.length < 2) {
+      return { content: [{ type: "text" as const, text: "Name must be at least 2 characters after sanitization." }], isError: true };
+    }
+    if (!isValidUrl(url)) {
+      return { content: [{ type: "text" as const, text: "A valid HTTP(S) URL is required." }], isError: true };
+    }
+
     const supabase = getServiceSupabase();
 
     // Check community submission cap
