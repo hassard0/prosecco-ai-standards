@@ -608,7 +608,7 @@ mcpServer.tool("report_issue", {
         }],
       };
     }
-    if (!params.standard_id && !params.standard_name) {
+    if (!params.standard_id && !standardName) {
       return {
         content: [{ type: "text" as const, text: "Please provide either standard_id or standard_name to identify the standard." }],
         isError: true,
