@@ -6,6 +6,56 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// ── Input Sanitization ────────────────────────────────────────
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, "").trim();
+}
+
+function sanitizeText(input: string, maxLength: number): string {
+  const stripped = stripHtml(input);
+  return stripped.slice(0, maxLength);
+}
+
+function isValidUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function isValidUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+// ── Rate Limiting for Write Tools ─────────────────────────────
+const writeRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const WRITE_RATE_WINDOW = 60_000; // 1 minute
+const WRITE_RATE_LIMIT = 5; // max 5 write operations per IP per minute
+
+function checkWriteRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = writeRateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    writeRateLimitMap.set(ip, { count: 1, resetAt: now + WRITE_RATE_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= WRITE_RATE_LIMIT;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of writeRateLimitMap) {
+    if (now > entry.resetAt) writeRateLimitMap.delete(key);
+  }
+}, 5 * 60_000);
+
+// Track client IP from latest request for use in tool handlers
+let _currentRequestIp = "unknown";
+
 function getSupabase() {
   return createClient(supabaseUrl, supabaseKey);
 }
@@ -401,6 +451,27 @@ mcpServer.tool("suggest_standard", {
     required: ["name", "url"],
   },
   handler: async (params: { name: string; url: string; description?: string; organization?: string }) => {
+    // Rate limit write operations
+    if (!checkWriteRateLimit(_currentRequestIp)) {
+      return {
+        content: [{ type: "text" as const, text: "Rate limit exceeded. Please wait a moment before submitting again." }],
+        isError: true,
+      };
+    }
+
+    // Validate and sanitize inputs
+    const name = sanitizeText(params.name, 200);
+    const url = params.url?.trim() || "";
+    const description = params.description ? sanitizeText(params.description, 2000) : undefined;
+    const organization = params.organization ? sanitizeText(params.organization, 200) : undefined;
+
+    if (!name || name.length < 2) {
+      return { content: [{ type: "text" as const, text: "Name must be at least 2 characters after sanitization." }], isError: true };
+    }
+    if (!isValidUrl(url)) {
+      return { content: [{ type: "text" as const, text: "A valid HTTP(S) URL is required." }], isError: true };
+    }
+
     const supabase = getServiceSupabase();
 
     // Check community submission cap
@@ -440,10 +511,10 @@ mcpServer.tool("suggest_standard", {
     const { data, error } = await supabase
       .from("standards")
       .insert({
-        title: params.name,
-        link: params.url,
-        description: params.description || `Community-submitted standard. See: ${params.url}`,
-        organization: params.organization || null,
+        title: name,
+        link: url,
+        description: description || `Community-submitted standard. See: ${url}`,
+        organization: organization || null,
         status: "Backlog",
         tags: ["community-submission"],
       })
@@ -498,6 +569,27 @@ mcpServer.tool("report_issue", {
     is_duplicate?: boolean;
     duplicate_of_id?: string;
   }) => {
+    // Rate limit write operations
+    if (!checkWriteRateLimit(_currentRequestIp)) {
+      return {
+        content: [{ type: "text" as const, text: "Rate limit exceeded. Please wait a moment before submitting again." }],
+        isError: true,
+      };
+    }
+
+    // Validate and sanitize inputs
+    const issue = sanitizeText(params.issue, 2000);
+    if (!issue || issue.length < 5) {
+      return { content: [{ type: "text" as const, text: "Issue description must be at least 5 characters." }], isError: true };
+    }
+    if (params.standard_id && !isValidUuid(params.standard_id)) {
+      return { content: [{ type: "text" as const, text: "Invalid standard_id format. Must be a valid UUID." }], isError: true };
+    }
+    if (params.duplicate_of_id && !isValidUuid(params.duplicate_of_id)) {
+      return { content: [{ type: "text" as const, text: "Invalid duplicate_of_id format. Must be a valid UUID." }], isError: true };
+    }
+    const standardName = params.standard_name ? sanitizeText(params.standard_name, 200) : undefined;
+
     const supabase = getSupabase();
 
     // Check feedback queue cap
@@ -516,7 +608,7 @@ mcpServer.tool("report_issue", {
         }],
       };
     }
-    if (!params.standard_id && !params.standard_name) {
+    if (!params.standard_id && !standardName) {
       return {
         content: [{ type: "text" as const, text: "Please provide either standard_id or standard_name to identify the standard." }],
         isError: true,
@@ -544,11 +636,11 @@ mcpServer.tool("report_issue", {
       const { data, error } = await supabase
         .from("standards")
         .select("id, title")
-        .ilike("title", `%${params.standard_name}%`)
+        .ilike("title", `%${standardName}%`)
         .limit(1);
       if (error || !data || data.length === 0) {
         return {
-          content: [{ type: "text" as const, text: `No standard found matching name: "${params.standard_name}"` }],
+          content: [{ type: "text" as const, text: `No standard found matching name: "${standardName}"` }],
           isError: true,
         };
       }
@@ -557,7 +649,7 @@ mcpServer.tool("report_issue", {
     }
 
     // Build feedback text
-    let feedback = params.issue;
+    let feedback = issue;
     if (params.is_duplicate && params.duplicate_of_id) {
       // Verify the duplicate target exists
       const { data: dupTarget } = await supabase
@@ -567,9 +659,9 @@ mcpServer.tool("report_issue", {
         .single();
 
       if (dupTarget) {
-        feedback = `[DUPLICATE REPORT] This standard appears to be a duplicate of "${dupTarget.title}" (${dupTarget.id}).\n\n${params.issue}`;
+      feedback = `[DUPLICATE REPORT] This standard appears to be a duplicate of "${dupTarget.title}" (${dupTarget.id}).\n\n${issue}`;
       } else {
-        feedback = `[DUPLICATE REPORT] Reported as duplicate of id: ${params.duplicate_of_id} (not found in directory).\n\n${params.issue}`;
+        feedback = `[DUPLICATE REPORT] Reported as duplicate of id: ${params.duplicate_of_id} (not found in directory).\n\n${issue}`;
       }
     } else if (params.is_duplicate) {
       return {
@@ -601,6 +693,8 @@ const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcpServer);
 
 app.all("/*", async (c) => {
+  // Capture client IP for rate limiting in tool handlers
+  _currentRequestIp = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   return await httpHandler(c.req.raw);
 });
 

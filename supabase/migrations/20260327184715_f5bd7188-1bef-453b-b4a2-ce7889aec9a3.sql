@@ -1,0 +1,1 @@
+DELETE FROM standards WHERE id = '56174bde-d14a-461f-9345-9bfeae6c4b8b';
