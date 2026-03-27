@@ -640,7 +640,7 @@ mcpServer.tool("report_issue", {
         .limit(1);
       if (error || !data || data.length === 0) {
         return {
-          content: [{ type: "text" as const, text: `No standard found matching name: "${params.standard_name}"` }],
+          content: [{ type: "text" as const, text: `No standard found matching name: "${standardName}"` }],
           isError: true,
         };
       }
