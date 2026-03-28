@@ -296,40 +296,45 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // SECURITY: Require admin authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ success: false, error: "Invalid session" }), {
-        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    // Auth: accept either a valid admin session OR the service role key (for cron jobs)
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "") || "";
+    const isServiceRole = token === serviceKey;
+
+    if (!isServiceRole) {
+      // Require admin user auth
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
+
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid session" }), {
+          status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
+      const userId = claimsData.claims.sub as string;
+
+      const adminCheck = createClient(supabaseUrl, serviceKey);
+      const { data: roles } = await adminCheck.from("user_roles").select("role").eq("user_id", userId);
+      const isAdmin = (roles || []).some((r) => r.role === "admin");
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ success: false, error: "Admin access required" }), {
+          status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
     }
-    const userId = claimsData.claims.sub as string;
 
     const supabase = createClient(supabaseUrl, serviceKey);
-
-    // Verify admin role
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    const isAdmin = (roles || []).some((r) => r.role === "admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ success: false, error: "Admin access required" }), {
-        status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
 
     const tables = [
       "standards",
