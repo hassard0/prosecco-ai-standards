@@ -300,12 +300,14 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Auth: accept either a valid admin session OR the service role key (for cron jobs)
+    // Auth: accept admin session, service role key, OR cron secret
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "") || "";
+    const cronSecret = Deno.env.get("CRON_SECRET");
     const isServiceRole = token === serviceKey;
+    const isCron = cronSecret && token === cronSecret;
 
-    if (!isServiceRole) {
+    if (!isServiceRole && !isCron) {
       // Require admin user auth
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
