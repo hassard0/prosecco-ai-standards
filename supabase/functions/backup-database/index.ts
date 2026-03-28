@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     const isServiceRole = token === serviceKey;
     const isCron = cronSecret && token === cronSecret;
 
-    if (!isServiceRole) {
+    if (!isServiceRole && !isCron) {
       // Require admin user auth
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
