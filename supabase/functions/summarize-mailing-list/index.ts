@@ -39,6 +39,8 @@ serve(async (req) => {
     const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
     const isCron = cronSecret && token === cronSecret;
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     if (!isServiceRole && !isCron) {
       const authClient = createClient(SUPABASE_URL, ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
@@ -51,7 +53,6 @@ serve(async (req) => {
       }
       const userId = claimsData.claims.sub as string;
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
       const hasAccess = (roles || []).some((r) => r.role === "admin" || r.role === "contributor");
       if (!hasAccess) {
