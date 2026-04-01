@@ -3,7 +3,7 @@ import { useStandards } from "@/hooks/useStandards";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ExternalLink, Mail, Github, BookOpen, Video, FileText, Link2, MessageCircle, Hash, Users, RefreshCw, AlertTriangle, Share2, Check } from "lucide-react";
 import { FlagStandardButton } from "@/components/FlagStandardButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAuthorSankey } from "@/components/MiniAuthorSankey";
@@ -61,7 +61,16 @@ export default function StandardDetail() {
   const { data: summaries, refetch: refetchSummaries } = useSummaries(id);
   const { isAdmin } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleCopyShareLink = () => {
+    const shareUrl = `https://share.prosecco.dev/standard/${id}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success("Share link copied! This link shows rich previews in Slack, Twitter, etc.");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
@@ -137,6 +146,15 @@ export default function StandardDetail() {
                     </a>
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyShareLink}
+                  className="active:scale-[0.97] transition-all"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
+                  {copied ? "Copied!" : "Share"}
+                </Button>
                 <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
               </div>
             </div>
