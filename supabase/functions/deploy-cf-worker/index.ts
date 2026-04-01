@@ -245,29 +245,30 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent") || "";
+    const path = url.pathname;
 
-    // Only intercept /standard/:id for bots
-    const match = url.pathname.match(/^\\/standard\\/([a-f0-9-]+)$/i);
-    if (match && BOT_UA_PATTERN.test(ua)) {
+    const isBot = BOT_UA_PATTERN.test(ua);
+    const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
+    
+    if (match && isBot) {
       const standardId = match[1];
+      const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
+      const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
       try {
-        const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
         const ogResp = await fetch(ogUrl, {
-          headers: { "apikey": "${Deno.env.get("SUPABASE_ANON_KEY")}" },
+          headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
         });
         if (ogResp.ok) {
           const h = new Headers(ogResp.headers);
           addSecurityHeaders(h);
-          // Override CSP to allow the meta refresh redirect
           h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
           return new Response(ogResp.body, { status: 200, headers: h });
         }
       } catch (e) {
-        // Fall through to origin on error
+        // Fall through to origin
       }
     }
 
-    // Pass through to origin for everything else
     return fetch(request);
   },
 };
@@ -280,7 +281,8 @@ async function deployWorker(
   cfZone: string,
   workerName: string,
   script: string,
-  domain: string
+  domain: string,
+  routePattern?: string
 ) {
   const metadata = JSON.stringify({ main_module: "worker.js", compatibility_date: "2024-01-01" });
   const formData = new FormData();
@@ -294,27 +296,61 @@ async function deployWorker(
   const uploadData = await uploadRes.json();
   if (!uploadRes.ok) throw new Error(`Failed to upload ${workerName}: ${JSON.stringify(uploadData)}`);
 
-  const listRes = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
-    { headers: { Authorization: `Bearer ${cfToken}` } }
-  );
-  const listData = await listRes.json();
-  const existing = listData.result?.find((d: { hostname: string }) => d.hostname === domain);
-
-  if (!existing) {
-    const domainRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ hostname: domain, zone_id: cfZone, service: workerName, environment: "production" }),
-      }
+  if (routePattern) {
+    // Use Worker Routes for domains that already have DNS records
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes`,
+      { headers: { Authorization: `Bearer ${cfToken}` } }
     );
-    const domainData = await domainRes.json();
-    if (!domainRes.ok) throw new Error(`Failed to set domain ${domain}: ${JSON.stringify(domainData)}`);
-  }
+    const listData = await listRes.json();
+    const existing = listData.result?.find((r: { pattern: string }) => r.pattern === routePattern);
 
-  return { worker: workerName, domain, url: `https://${domain}` };
+    if (existing) {
+      // Update existing route
+      await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes/${existing.id}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pattern: routePattern, script: workerName }),
+        }
+      );
+    } else {
+      const routeRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pattern: routePattern, script: workerName }),
+        }
+      );
+      const routeData = await routeRes.json();
+      if (!routeRes.ok) throw new Error(`Failed to set route ${routePattern}: ${JSON.stringify(routeData)}`);
+    }
+    return { worker: workerName, route: routePattern, url: `https://${domain}` };
+  } else {
+    // Use Worker Domains for subdomains
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
+      { headers: { Authorization: `Bearer ${cfToken}` } }
+    );
+    const listData = await listRes.json();
+    const existing = listData.result?.find((d: { hostname: string }) => d.hostname === domain);
+
+    if (!existing) {
+      const domainRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ hostname: domain, zone_id: cfZone, service: workerName, environment: "production" }),
+        }
+      );
+      const domainData = await domainRes.json();
+      if (!domainRes.ok) throw new Error(`Failed to set domain ${domain}: ${JSON.stringify(domainData)}`);
+    }
+    return { worker: workerName, domain, url: `https://${domain}` };
+  }
 }
 
 serve(async (req) => {
@@ -329,10 +365,25 @@ serve(async (req) => {
 
     if (!CF_TOKEN || !CF_ACCOUNT || !CF_ZONE) throw new Error("Missing Cloudflare credentials");
 
+    // Support action=list-routes for debugging
+    let body: any = {};
+    try { body = await req.json(); } catch {}
+    
+    if (body.action === "list-routes") {
+      const routesRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes`,
+        { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
+      );
+      const routesData = await routesRes.json();
+      return new Response(JSON.stringify(routesData, null, 2), {
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
-    results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-og-meta", MAIN_SITE_WORKER_SCRIPT, "prosecco.dev"));
+    results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-og-meta", MAIN_SITE_WORKER_SCRIPT, "prosecco.dev", "*prosecco.dev/standard/*"));
 
     return new Response(JSON.stringify({ success: true, workers: results }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
