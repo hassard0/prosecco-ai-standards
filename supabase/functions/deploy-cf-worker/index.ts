@@ -241,10 +241,13 @@ const OG_META_URL = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/og-me
 const SITE_URL = "https://prosecco.dev";
 const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
 
+const BOT_UA = /Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|Discordbot|WhatsApp|TelegramBot|Googlebot|bingbot|Applebot|ia_archiver|Embedly|Quora Link Preview|Showyoubot|outbrain|pinterest|vkShare|redditbot|Baiduspider|Sogou/i;
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const ua = request.headers.get("User-Agent") || "";
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: addSecurityHeaders(new Headers({
@@ -256,13 +259,19 @@ export default {
     // Match /standard/:id
     const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
     if (!match) {
-      // Redirect anything else to main site
       return Response.redirect(SITE_URL + path, 302);
     }
 
     const standardId = match[1];
-    const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
+    const targetUrl = SITE_URL + "/standard/" + standardId;
 
+    // Only serve OG metadata to bots/crawlers — real users get redirected
+    if (!BOT_UA.test(ua)) {
+      return Response.redirect(targetUrl, 302);
+    }
+
+    // Bot detected — serve rich metadata
+    const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
     try {
       const ogResp = await fetch(ogUrl, {
         headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
@@ -277,8 +286,7 @@ export default {
       // Fall through to redirect
     }
 
-    // Fallback: redirect to main site
-    return Response.redirect(SITE_URL + "/standard/" + standardId, 302);
+    return Response.redirect(targetUrl, 302);
   },
 };
 `;
