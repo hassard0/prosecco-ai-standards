@@ -61,7 +61,16 @@ export default function StandardDetail() {
   const { data: summaries, refetch: refetchSummaries } = useSummaries(id);
   const { isAdmin } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleCopyShareLink = () => {
+    const shareUrl = `https://share.prosecco.dev/standard/${id}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success("Share link copied! This link shows rich previews in Slack, Twitter, etc.");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const standard = standards?.find((s) => s.id === id);
   const style = standard ? STATUS_STYLES[standard.status] || STATUS_STYLES.Emerging : STATUS_STYLES.Emerging;
