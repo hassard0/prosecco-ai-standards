@@ -280,7 +280,8 @@ async function deployWorker(
   cfZone: string,
   workerName: string,
   script: string,
-  domain: string
+  domain: string,
+  routePattern?: string
 ) {
   const metadata = JSON.stringify({ main_module: "worker.js", compatibility_date: "2024-01-01" });
   const formData = new FormData();
@@ -294,27 +295,61 @@ async function deployWorker(
   const uploadData = await uploadRes.json();
   if (!uploadRes.ok) throw new Error(`Failed to upload ${workerName}: ${JSON.stringify(uploadData)}`);
 
-  const listRes = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
-    { headers: { Authorization: `Bearer ${cfToken}` } }
-  );
-  const listData = await listRes.json();
-  const existing = listData.result?.find((d: { hostname: string }) => d.hostname === domain);
-
-  if (!existing) {
-    const domainRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ hostname: domain, zone_id: cfZone, service: workerName, environment: "production" }),
-      }
+  if (routePattern) {
+    // Use Worker Routes for domains that already have DNS records
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes`,
+      { headers: { Authorization: `Bearer ${cfToken}` } }
     );
-    const domainData = await domainRes.json();
-    if (!domainRes.ok) throw new Error(`Failed to set domain ${domain}: ${JSON.stringify(domainData)}`);
-  }
+    const listData = await listRes.json();
+    const existing = listData.result?.find((r: { pattern: string }) => r.pattern === routePattern);
 
-  return { worker: workerName, domain, url: `https://${domain}` };
+    if (existing) {
+      // Update existing route
+      await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes/${existing.id}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pattern: routePattern, script: workerName }),
+        }
+      );
+    } else {
+      const routeRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${cfZone}/workers/routes`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pattern: routePattern, script: workerName }),
+        }
+      );
+      const routeData = await routeRes.json();
+      if (!routeRes.ok) throw new Error(`Failed to set route ${routePattern}: ${JSON.stringify(routeData)}`);
+    }
+    return { worker: workerName, route: routePattern, url: `https://${domain}` };
+  } else {
+    // Use Worker Domains for subdomains
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
+      { headers: { Authorization: `Bearer ${cfToken}` } }
+    );
+    const listData = await listRes.json();
+    const existing = listData.result?.find((d: { hostname: string }) => d.hostname === domain);
+
+    if (!existing) {
+      const domainRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/workers/domains`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${cfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ hostname: domain, zone_id: cfZone, service: workerName, environment: "production" }),
+        }
+      );
+      const domainData = await domainRes.json();
+      if (!domainRes.ok) throw new Error(`Failed to set domain ${domain}: ${JSON.stringify(domainData)}`);
+    }
+    return { worker: workerName, domain, url: `https://${domain}` };
+  }
 }
 
 serve(async (req) => {
