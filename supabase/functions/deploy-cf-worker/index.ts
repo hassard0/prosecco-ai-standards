@@ -245,10 +245,13 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent") || "";
+    const path = url.pathname;
 
-    // Only intercept /standard/:id for bots
-    const match = url.pathname.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
-    if (match && BOT_UA_PATTERN.test(ua)) {
+    // Debug: return info about the request for any /standard/ path
+    const isBot = BOT_UA_PATTERN.test(ua);
+    const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
+    
+    if (match && isBot) {
       const standardId = match[1];
       const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
       const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
@@ -262,15 +265,14 @@ export default {
           h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
           return new Response(ogResp.body, { status: 200, headers: h });
         }
-        // Return error info for debugging
         const body = await ogResp.text();
-        return new Response("OG fetch failed: " + ogResp.status + " " + body, { status: 502 });
+        return new Response("OG fetch failed: " + ogResp.status + " " + body.substring(0, 500), { status: 502 });
       } catch (e) {
         return new Response("OG fetch error: " + e.message, { status: 502 });
       }
     }
 
-    // Pass through to origin for everything else
+    // For non-bots or non-matching paths, pass through
     return fetch(request);
   },
 };
