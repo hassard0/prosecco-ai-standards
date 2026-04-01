@@ -234,6 +234,46 @@ export default {
 };
 `;
 
+const MAIN_SITE_WORKER_SCRIPT = `
+${SECURITY_HEADERS_SNIPPET}
+
+const BOT_UA_PATTERN = /Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|WhatsApp|Googlebot|bingbot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|Embedly|Quora Link Preview|Showyoubot|outbrain|vkShare|W3C_Validator|Iframely|ia_archiver/i;
+
+const OG_META_URL = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/og-meta";
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const ua = request.headers.get("user-agent") || "";
+
+    // Only intercept /standard/:id for bots
+    const match = url.pathname.match(/^\\/standard\\/([a-f0-9-]+)$/i);
+    if (match && BOT_UA_PATTERN.test(ua)) {
+      const standardId = match[1];
+      try {
+        const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
+        const ogResp = await fetch(ogUrl, {
+          headers: { "apikey": "${Deno.env.get("SUPABASE_ANON_KEY")}" },
+        });
+        if (ogResp.ok) {
+          const h = new Headers(ogResp.headers);
+          addSecurityHeaders(h);
+          // Override CSP to allow the meta refresh redirect
+          h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
+          return new Response(ogResp.body, { status: 200, headers: h });
+        }
+      } catch (e) {
+        // Fall through to origin on error
+      }
+    }
+
+    // Pass through to origin for everything else
+    return fetch(request);
+  },
+};
+`;
+
+
 async function deployWorker(
   cfToken: string,
   cfAccount: string,
@@ -292,6 +332,7 @@ serve(async (req) => {
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
+    results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-og-meta", MAIN_SITE_WORKER_SCRIPT, "prosecco.dev"));
 
     return new Response(JSON.stringify({ success: true, workers: results }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
