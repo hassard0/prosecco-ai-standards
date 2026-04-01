@@ -146,6 +146,15 @@ export default function StandardDetail() {
                     </a>
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyShareLink}
+                  className="active:scale-[0.97] transition-all"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
+                  {copied ? "Copied!" : "Share"}
+                </Button>
                 <FlagStandardButton standardId={standard.id} standardTitle={standard.title} />
               </div>
             </div>
