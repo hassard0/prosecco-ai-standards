@@ -235,41 +235,14 @@ export default {
 `;
 
 const MAIN_SITE_WORKER_SCRIPT = `
-${SECURITY_HEADERS_SNIPPET}
-
-const BOT_UA_PATTERN = new RegExp("Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|WhatsApp|Googlebot|bingbot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|Embedly|Quora Link Preview|Showyoubot|outbrain|vkShare|W3C_Validator|Iframely|ia_archiver", "i");
-
-const OG_META_URL = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/og-meta";
-
 export default {
   async fetch(request) {
+    const ua = request.headers.get("user-agent") || "none";
     const url = new URL(request.url);
-    const ua = request.headers.get("user-agent") || "";
-    const path = url.pathname;
-
-    const isBot = BOT_UA_PATTERN.test(ua);
-    const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
-    
-    if (match && isBot) {
-      const standardId = match[1];
-      const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
-      const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
-      try {
-        const ogResp = await fetch(ogUrl, {
-          headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
-        });
-        if (ogResp.ok) {
-          const h = new Headers(ogResp.headers);
-          addSecurityHeaders(h);
-          h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
-          return new Response(ogResp.body, { status: 200, headers: h });
-        }
-      } catch (e) {
-        // Fall through to origin
-      }
-    }
-
-    return fetch(request);
+    return new Response("WORKER HIT - path: " + url.pathname + " ua: " + ua, {
+      status: 200,
+      headers: { "Content-Type": "text/plain", "X-OG-Worker": "active" },
+    });
   },
 };
 `;
