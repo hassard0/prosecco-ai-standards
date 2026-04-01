@@ -262,23 +262,14 @@ export default {
           const h = new Headers(ogResp.headers);
           addSecurityHeaders(h);
           h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
-          h.set("X-OG-Meta", "true");
           return new Response(ogResp.body, { status: 200, headers: h });
         }
-        return new Response("OG fetch failed: " + ogResp.status, { status: 502, headers: { "X-OG-Worker": "error" } });
       } catch (e) {
-        return new Response("OG error: " + e.message, { status: 502, headers: { "X-OG-Worker": "exception" } });
+        // Fall through to origin
       }
     }
 
-    // Pass through but add marker header
-    const resp = await fetch(request);
-    const h = new Headers(resp.headers);
-    h.set("X-OG-Worker", "passthrough");
-    h.set("X-OG-IsBot", String(isBot));
-    h.set("X-OG-Match", String(!!match));
-    h.set("X-OG-Path", path);
-    return new Response(resp.body, { status: resp.status, headers: h });
+    return fetch(request);
   },
 };
 `;
