@@ -247,7 +247,6 @@ export default {
     const ua = request.headers.get("user-agent") || "";
     const path = url.pathname;
 
-    // Debug: return info about the request for any /standard/ path
     const isBot = BOT_UA_PATTERN.test(ua);
     const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
     
@@ -263,17 +262,23 @@ export default {
           const h = new Headers(ogResp.headers);
           addSecurityHeaders(h);
           h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
+          h.set("X-OG-Meta", "true");
           return new Response(ogResp.body, { status: 200, headers: h });
         }
-        const body = await ogResp.text();
-        return new Response("OG fetch failed: " + ogResp.status + " " + body.substring(0, 500), { status: 502 });
+        return new Response("OG fetch failed: " + ogResp.status, { status: 502, headers: { "X-OG-Worker": "error" } });
       } catch (e) {
-        return new Response("OG fetch error: " + e.message, { status: 502 });
+        return new Response("OG error: " + e.message, { status: 502, headers: { "X-OG-Worker": "exception" } });
       }
     }
 
-    // For non-bots or non-matching paths, pass through
-    return fetch(request);
+    // Pass through but add marker header
+    const resp = await fetch(request);
+    const h = new Headers(resp.headers);
+    h.set("X-OG-Worker", "passthrough");
+    h.set("X-OG-IsBot", String(isBot));
+    h.set("X-OG-Match", String(!!match));
+    h.set("X-OG-Path", path);
+    return new Response(resp.body, { status: resp.status, headers: h });
   },
 };
 `;
