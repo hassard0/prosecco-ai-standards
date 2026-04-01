@@ -247,13 +247,13 @@ export default {
     const ua = request.headers.get("user-agent") || "";
 
     // Only intercept /standard/:id for bots
-    const match = url.pathname.match(/^\\/standard\\/([a-f0-9-]+)$/i);
+    const match = url.pathname.match(/^\/standard\/([a-f0-9-]+)$/i);
     if (match && BOT_UA_PATTERN.test(ua)) {
       const standardId = match[1];
       try {
         const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
         const ogResp = await fetch(ogUrl, {
-          headers: { "apikey": "${Deno.env.get("SUPABASE_ANON_KEY")}" },
+          headers: { "apikey": "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}" },
         });
         if (ogResp.ok) {
           const h = new Headers(ogResp.headers);
