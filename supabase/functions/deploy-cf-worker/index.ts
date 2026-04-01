@@ -250,21 +250,23 @@ export default {
     const match = url.pathname.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
     if (match && BOT_UA_PATTERN.test(ua)) {
       const standardId = match[1];
+      const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
+      const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
       try {
-        const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
-        const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
         const ogResp = await fetch(ogUrl, {
           headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
         });
         if (ogResp.ok) {
           const h = new Headers(ogResp.headers);
           addSecurityHeaders(h);
-          // Override CSP to allow the meta refresh redirect
           h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
           return new Response(ogResp.body, { status: 200, headers: h });
         }
+        // Return error info for debugging
+        const body = await ogResp.text();
+        return new Response("OG fetch failed: " + ogResp.status + " " + body, { status: 502 });
       } catch (e) {
-        // Fall through to origin on error
+        return new Response("OG fetch error: " + e.message, { status: 502 });
       }
     }
 
