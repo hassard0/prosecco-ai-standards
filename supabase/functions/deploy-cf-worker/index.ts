@@ -251,9 +251,10 @@ export default {
     if (match && BOT_UA_PATTERN.test(ua)) {
       const standardId = match[1];
       try {
+        const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
         const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
         const ogResp = await fetch(ogUrl, {
-          headers: { "apikey": "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}" },
+          headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
         });
         if (ogResp.ok) {
           const h = new Headers(ogResp.headers);
