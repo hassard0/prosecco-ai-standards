@@ -351,24 +351,29 @@ serve(async (req) => {
       });
     }
 
-    if (body.action === "zone-info") {
-      const zoneRes = await fetch(
-        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}`,
-        { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
-      );
-      const zoneData = await zoneRes.json();
-      
+    if (body.action === "enable-proxy") {
+      // Enable Cloudflare proxy on the prosecco.dev A record
       const dnsRes = await fetch(
         `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records?name=prosecco.dev&type=A`,
         { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
       );
       const dnsData = await dnsRes.json();
-      
-      return new Response(JSON.stringify({ zone: zoneData.result, dns: dnsData.result }, null, 2), {
+      const record = dnsData.result?.[0];
+      if (!record) return new Response(JSON.stringify({ error: "A record not found" }), { status: 404 });
+
+      const updateRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${record.id}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${CF_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ proxied: true }),
+        }
+      );
+      const updateData = await updateRes.json();
+      return new Response(JSON.stringify(updateData, null, 2), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
-
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
