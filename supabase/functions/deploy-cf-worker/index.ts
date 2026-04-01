@@ -234,15 +234,51 @@ export default {
 };
 `;
 
-const MAIN_SITE_WORKER_SCRIPT = `
+const SHARE_WORKER_SCRIPT = `
+${SECURITY_HEADERS_SNIPPET}
+
+const OG_META_URL = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/og-meta";
+const SITE_URL = "https://prosecco.dev";
+const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
+
 export default {
   async fetch(request) {
-    const ua = request.headers.get("user-agent") || "none";
     const url = new URL(request.url);
-    return new Response("WORKER HIT - path: " + url.pathname + " ua: " + ua, {
-      status: 200,
-      headers: { "Content-Type": "text/plain", "X-OG-Worker": "active" },
-    });
+    const path = url.pathname;
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: addSecurityHeaders(new Headers({
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+      })) });
+    }
+
+    // Match /standard/:id
+    const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
+    if (!match) {
+      // Redirect anything else to main site
+      return Response.redirect(SITE_URL + path, 302);
+    }
+
+    const standardId = match[1];
+    const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
+
+    try {
+      const ogResp = await fetch(ogUrl, {
+        headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
+      });
+      if (ogResp.ok) {
+        const h = new Headers(ogResp.headers);
+        addSecurityHeaders(h);
+        h.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        return new Response(ogResp.body, { status: 200, headers: h });
+      }
+    } catch (e) {
+      // Fall through to redirect
+    }
+
+    // Fallback: redirect to main site
+    return Response.redirect(SITE_URL + "/standard/" + standardId, 302);
   },
 };
 `;
