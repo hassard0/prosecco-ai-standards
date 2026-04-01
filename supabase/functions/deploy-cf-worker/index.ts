@@ -235,41 +235,12 @@ export default {
 `;
 
 const MAIN_SITE_WORKER_SCRIPT = `
-${SECURITY_HEADERS_SNIPPET}
-
-const BOT_UA_PATTERN = /Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|WhatsApp|Googlebot|bingbot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|Embedly|Quora Link Preview|Showyoubot|outbrain|vkShare|W3C_Validator|Iframely|ia_archiver/i;
-
-const OG_META_URL = "https://accdhfumccsrxmzdmpfi.supabase.co/functions/v1/og-meta";
-
 export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const ua = request.headers.get("user-agent") || "";
-    const path = url.pathname;
-
-    const isBot = BOT_UA_PATTERN.test(ua);
-    const match = path.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
-    
-    if (match && isBot) {
-      const standardId = match[1];
-      const ANON_KEY = "${Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjY2RoZnVtY2NzcnhtemRtcGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDIwMjAsImV4cCI6MjA4OTc3ODAyMH0.8jnNNpjSC6OfriUduScLnTAnNmyC2LdIetjXzF_5fHQ"}";
-      const ogUrl = OG_META_URL + "?id=" + encodeURIComponent(standardId);
-      try {
-        const ogResp = await fetch(ogUrl, {
-          headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
-        });
-        if (ogResp.ok) {
-          const h = new Headers(ogResp.headers);
-          addSecurityHeaders(h);
-          h.set("Content-Security-Policy", "default-src 'self' https://prosecco.dev; frame-ancestors 'none'");
-          return new Response(ogResp.body, { status: 200, headers: h });
-        }
-      } catch (e) {
-        // Fall through to origin
-      }
-    }
-
-    return fetch(request);
+  async fetch(request) {
+    return new Response("OG worker active", {
+      status: 200,
+      headers: { "Content-Type": "text/plain", "X-OG-Worker": "active" },
+    });
   },
 };
 `;
@@ -380,6 +351,29 @@ serve(async (req) => {
       });
     }
 
+    if (body.action === "enable-proxy") {
+      // Enable Cloudflare proxy on the prosecco.dev A record
+      const dnsRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records?name=prosecco.dev&type=A`,
+        { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
+      );
+      const dnsData = await dnsRes.json();
+      const record = dnsData.result?.[0];
+      if (!record) return new Response(JSON.stringify({ error: "A record not found" }), { status: 404 });
+
+      const updateRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${record.id}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${CF_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ proxied: true }),
+        }
+      );
+      const updateData = await updateRes.json();
+      return new Response(JSON.stringify(updateData, null, 2), {
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
