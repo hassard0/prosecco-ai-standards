@@ -237,7 +237,9 @@ export default {
 const MAIN_SITE_WORKER_SCRIPT = `
 export default {
   async fetch(request) {
-    return new Response("OG worker active", {
+    const ua = request.headers.get("user-agent") || "none";
+    const url = new URL(request.url);
+    return new Response("WORKER HIT - path: " + url.pathname + " ua: " + ua, {
       status: 200,
       headers: { "Content-Type": "text/plain", "X-OG-Worker": "active" },
     });
