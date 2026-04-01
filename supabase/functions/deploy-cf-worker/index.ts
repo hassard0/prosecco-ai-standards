@@ -412,6 +412,20 @@ serve(async (req) => {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
+
+    if (body.action === "delete-route") {
+      const routeId = body.route_id;
+      if (!routeId) return new Response(JSON.stringify({ error: "route_id required" }), { status: 400 });
+      const delRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes/${routeId}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${CF_TOKEN}` } }
+      );
+      const delData = await delRes.json();
+      return new Response(JSON.stringify(delData, null, 2), {
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
