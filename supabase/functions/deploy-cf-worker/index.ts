@@ -367,7 +367,7 @@ serve(async (req) => {
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
-    results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-og-meta", MAIN_SITE_WORKER_SCRIPT, "prosecco.dev"));
+    results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-og-meta", MAIN_SITE_WORKER_SCRIPT, "prosecco.dev", "prosecco.dev/standard/*"));
 
     return new Response(JSON.stringify({ success: true, workers: results }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
