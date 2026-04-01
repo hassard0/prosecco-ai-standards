@@ -247,7 +247,7 @@ export default {
     const ua = request.headers.get("user-agent") || "";
 
     // Only intercept /standard/:id for bots
-    const match = url.pathname.match(/^\/standard\/([a-f0-9-]+)$/i);
+    const match = url.pathname.match(new RegExp("^/standard/([a-f0-9-]+)$", "i"));
     if (match && BOT_UA_PATTERN.test(ua)) {
       const standardId = match[1];
       try {
