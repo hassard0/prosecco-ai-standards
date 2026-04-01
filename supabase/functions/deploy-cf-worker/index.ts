@@ -367,6 +367,21 @@ serve(async (req) => {
 
     if (!CF_TOKEN || !CF_ACCOUNT || !CF_ZONE) throw new Error("Missing Cloudflare credentials");
 
+    // Support action=list-routes for debugging
+    let body: any = {};
+    try { body = await req.json(); } catch {}
+    
+    if (body.action === "list-routes") {
+      const routesRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/workers/routes`,
+        { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
+      );
+      const routesData = await routesRes.json();
+      return new Response(JSON.stringify(routesData, null, 2), {
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     const results = [];
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-mcp-proxy", PUBLIC_WORKER_SCRIPT, "mcp.prosecco.dev"));
     results.push(await deployWorker(CF_TOKEN, CF_ACCOUNT, CF_ZONE, "prosecco-admin-mcp-proxy", ADMIN_WORKER_SCRIPT, "admin.prosecco.dev"));
