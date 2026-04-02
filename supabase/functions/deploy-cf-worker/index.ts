@@ -397,8 +397,8 @@ serve(async (req) => {
       });
     }
 
-    if (body.action === "enable-proxy") {
-      // Enable Cloudflare proxy on the prosecco.dev A record
+    if (body.action === "enable-proxy" || body.action === "disable-proxy") {
+      const proxied = body.action === "enable-proxy";
       const dnsRes = await fetch(
         `https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records?name=prosecco.dev&type=A`,
         { headers: { Authorization: `Bearer ${CF_TOKEN}` } }
@@ -412,7 +412,7 @@ serve(async (req) => {
         {
           method: "PATCH",
           headers: { Authorization: `Bearer ${CF_TOKEN}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ proxied: true }),
+          body: JSON.stringify({ proxied }),
         }
       );
       const updateData = await updateRes.json();
