@@ -45,6 +45,9 @@ export default function AdminEdit() {
   const [enriching, setEnriching] = useState(false);
   const [enrichData, setEnrichData] = useState<any>(null);
   const [enrichReviewOpen, setEnrichReviewOpen] = useState(false);
+  const [qaRunning, setQaRunning] = useState(false);
+  const [qaResults, setQaResults] = useState<QaResults | null>(null);
+  const [qaReviewOpen, setQaReviewOpen] = useState(false);
 
   useEffect(() => {
     if (isNew || !standards) return;
