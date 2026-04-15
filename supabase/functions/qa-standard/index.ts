@@ -396,6 +396,7 @@ IMPORTANT for the link field: If the research reveals a more authoritative or ca
             authors: currentAuthors,
             timeline_events: existingTimeline,
             description: standard.description,
+            link: standard.link || "",
           },
         },
       }),
