@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EnrichmentReviewDialog } from "@/components/EnrichmentReviewDialog";
+import { QaReviewDialog, type QaResults } from "@/components/QaReviewDialog";
 import { Navigate } from "react-router-dom";
 import { TagInput } from "@/components/TagInput";
 import { ResourceLinksEditor, type ResourceLink } from "@/components/ResourceLinksEditor";
@@ -44,6 +45,9 @@ export default function AdminEdit() {
   const [enriching, setEnriching] = useState(false);
   const [enrichData, setEnrichData] = useState<any>(null);
   const [enrichReviewOpen, setEnrichReviewOpen] = useState(false);
+  const [qaRunning, setQaRunning] = useState(false);
+  const [qaResults, setQaResults] = useState<QaResults | null>(null);
+  const [qaReviewOpen, setQaReviewOpen] = useState(false);
 
   useEffect(() => {
     if (isNew || !standards) return;
@@ -136,6 +140,61 @@ export default function AdminEdit() {
     setEnrichReviewOpen(false);
     setEnrichData(null);
     toast({ title: "Enrichment applied", description: "Selected fields have been updated." });
+  };
+
+  const handleRunQa = async () => {
+    if (isNew) return;
+    setQaRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("qa-standard", {
+        body: { standard_id: id },
+      });
+      if (error || !data?.success) {
+        toast({ title: "QA failed", description: error?.message ?? data?.error ?? "Unknown error", variant: "destructive" });
+      } else {
+        setQaResults(data.data);
+        setQaReviewOpen(true);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to run QA", variant: "destructive" });
+    }
+    setQaRunning(false);
+  };
+
+  const handleApplyQa = async (accepted: Record<string, boolean>) => {
+    if (!qaResults) return;
+    const updates: any = {};
+    if (accepted.organization && qaResults.organization?.suggested) {
+      setOrganization(qaResults.organization.suggested);
+      updates.organization = qaResults.organization.suggested;
+    }
+    if (accepted.description && qaResults.description?.suggested) {
+      setDescription(qaResults.description.suggested);
+      updates.description = qaResults.description.suggested;
+    }
+    if (accepted.authors && qaResults.authors?.suggested?.length) {
+      setAuthors(qaResults.authors.suggested);
+      updates.authors = qaResults.authors.suggested;
+    }
+    if (accepted.timeline_events && qaResults.timeline_events?.suggested?.length) {
+      // Timeline events go to standard_summaries, save them separately
+      const serviceClient = supabase;
+      const { data: existing } = await serviceClient
+        .from("standard_summaries")
+        .select("id")
+        .eq("standard_id", id!)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        await serviceClient
+          .from("standard_summaries")
+          .update({ timeline_events: qaResults.timeline_events.suggested as any })
+          .eq("id", existing[0].id);
+      }
+    }
+    setQaReviewOpen(false);
+    setQaResults(null);
+    toast({ title: "QA corrections applied", description: "Selected fields have been updated. Save to persist changes." });
   };
 
   return (
@@ -242,6 +301,23 @@ export default function AdminEdit() {
               </p>
             </section>
 
+            {/* QA Check */}
+            {!isNew && (
+              <section className="rounded-lg border bg-card p-5 space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">QA Fact-Check</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Uses web search + AI analysis to verify organization, authors, and timeline against public sources.
+                </p>
+                <Button variant="secondary" size="sm" onClick={handleRunQa} disabled={qaRunning} className="h-9">
+                  {qaRunning ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Running QA…</>
+                  ) : (
+                    <><ShieldCheck className="h-4 w-4 mr-1" /> Run QA Check</>
+                  )}
+                </Button>
+              </section>
+            )}
+
             {/* Authors */}
             <AuthorsEditor authors={authors} onChange={setAuthors} />
 
@@ -258,6 +334,15 @@ export default function AdminEdit() {
           current={{ title, acronym, description, organization, status, tags, link, resources, authors }}
           proposed={enrichData}
           onAccept={handleAcceptEnrichment}
+        />
+      )}
+
+      {qaResults && (
+        <QaReviewDialog
+          open={qaReviewOpen}
+          onOpenChange={setQaReviewOpen}
+          results={qaResults}
+          onApply={handleApplyQa}
         />
       )}
     </div>
