@@ -301,6 +301,23 @@ export default function AdminEdit() {
               </p>
             </section>
 
+            {/* QA Check */}
+            {!isNew && (
+              <section className="rounded-lg border bg-card p-5 space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">QA Fact-Check</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Uses web search + AI analysis to verify organization, authors, and timeline against public sources.
+                </p>
+                <Button variant="secondary" size="sm" onClick={handleRunQa} disabled={qaRunning} className="h-9">
+                  {qaRunning ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Running QA…</>
+                  ) : (
+                    <><ShieldCheck className="h-4 w-4 mr-1" /> Run QA Check</>
+                  )}
+                </Button>
+              </section>
+            )}
+
             {/* Authors */}
             <AuthorsEditor authors={authors} onChange={setAuthors} />
 
@@ -317,6 +334,15 @@ export default function AdminEdit() {
           current={{ title, acronym, description, organization, status, tags, link, resources, authors }}
           proposed={enrichData}
           onAccept={handleAcceptEnrichment}
+        />
+      )}
+
+      {qaResults && (
+        <QaReviewDialog
+          open={qaReviewOpen}
+          onOpenChange={setQaReviewOpen}
+          results={qaResults}
+          onApply={handleApplyQa}
         />
       )}
     </div>
