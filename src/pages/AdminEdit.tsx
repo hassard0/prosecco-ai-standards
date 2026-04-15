@@ -176,17 +176,24 @@ export default function AdminEdit() {
       setAuthors(qaResults.authors.suggested);
       updates.authors = qaResults.authors.suggested;
     }
+    if (accepted.link && qaResults.link?.suggested) {
+      // Move the current link to resources before replacing it
+      const oldLink = link;
+      if (oldLink) {
+        const label = qaResults.link.suggested_label || "Previous Primary Link";
+        setResources((prev) => [...prev, { url: oldLink, label, type: "other" }]);
+      }
+      setLink(qaResults.link.suggested);
+    }
     if (accepted.timeline_events && qaResults.timeline_events?.suggested?.length) {
-      // Timeline events go to standard_summaries, save them separately
-      const serviceClient = supabase;
-      const { data: existing } = await serviceClient
+      const { data: existing } = await supabase
         .from("standard_summaries")
         .select("id")
         .eq("standard_id", id!)
         .limit(1);
 
       if (existing && existing.length > 0) {
-        await serviceClient
+        await supabase
           .from("standard_summaries")
           .update({ timeline_events: qaResults.timeline_events.suggested as any })
           .eq("id", existing[0].id);

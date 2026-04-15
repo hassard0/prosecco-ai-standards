@@ -26,6 +26,7 @@ export interface QaResults {
     authors: Author[];
     timeline_events: TimelineEvent[];
     description: string;
+    link: string;
   };
   organization?: {
     current: string;
@@ -44,15 +45,21 @@ export interface QaResults {
     suggested: string;
     reason: string;
   };
+  link?: {
+    suggested: string;
+    suggested_label?: string;
+    reason: string;
+  };
 }
 
-type QaField = "organization" | "authors" | "timeline_events" | "description";
+type QaField = "organization" | "authors" | "timeline_events" | "description" | "link";
 
 const FIELD_LABELS: Record<QaField, string> = {
   organization: "Organization",
   authors: "Authors & Affiliations",
   timeline_events: "Timeline Events",
   description: "Description",
+  link: "Primary Specification Link",
 };
 
 interface Props {
@@ -68,6 +75,7 @@ export function QaReviewDialog({ open, onOpenChange, results, onApply }: Props) 
   if (results.authors?.suggested?.length) fields.push("authors");
   if (results.timeline_events?.suggested?.length) fields.push("timeline_events");
   if (results.description?.suggested) fields.push("description");
+  if (results.link?.suggested) fields.push("link");
 
   const [accepted, setAccepted] = useState<Record<string, boolean>>(
     Object.fromEntries(fields.map((f) => [f, true]))
@@ -177,6 +185,8 @@ function FieldDiff({
       ? results.authors?.reason
       : field === "timeline_events"
       ? results.timeline_events?.reason
+      : field === "link"
+      ? results.link?.reason
       : results.description?.reason;
 
   return (
@@ -217,6 +227,18 @@ function FieldDiff({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <DiffBlock label="Current" value={results.current.description} variant="old" />
               <DiffBlock label="Suggested" value={results.description.suggested} variant="new" />
+            </div>
+          )}
+
+          {field === "link" && results.link && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <DiffBlock label="Current Primary Link" value={results.current.link || "—"} variant="old" />
+                <DiffBlock label="Suggested Primary Link" value={results.link.suggested} variant="new" />
+              </div>
+              <p className="text-[11px] text-muted-foreground italic">
+                The current link will be moved to resources{results.link.suggested_label ? ` as "${results.link.suggested_label}"` : ""}.
+              </p>
             </div>
           )}
 
