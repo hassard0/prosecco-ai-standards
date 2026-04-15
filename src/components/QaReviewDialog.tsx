@@ -230,6 +230,18 @@ function FieldDiff({
             </div>
           )}
 
+          {field === "link" && results.link && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <DiffBlock label="Current Primary Link" value={results.current.link || "—"} variant="old" />
+                <DiffBlock label="Suggested Primary Link" value={results.link.suggested} variant="new" />
+              </div>
+              <p className="text-[11px] text-muted-foreground italic">
+                The current link will be moved to resources{results.link.suggested_label ? ` as "${results.link.suggested_label}"` : ""}.
+              </p>
+            </div>
+          )}
+
           {field === "authors" && results.authors && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
