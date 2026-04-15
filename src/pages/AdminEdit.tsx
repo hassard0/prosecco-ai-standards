@@ -196,6 +196,8 @@ export default function AdminEdit() {
     setQaResults(null);
     toast({ title: "QA corrections applied", description: "Selected fields have been updated. Save to persist changes." });
   };
+
+  return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
