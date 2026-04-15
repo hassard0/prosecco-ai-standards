@@ -142,7 +142,60 @@ export default function AdminEdit() {
     toast({ title: "Enrichment applied", description: "Selected fields have been updated." });
   };
 
-  return (
+  const handleRunQa = async () => {
+    if (isNew) return;
+    setQaRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("qa-standard", {
+        body: { standard_id: id },
+      });
+      if (error || !data?.success) {
+        toast({ title: "QA failed", description: error?.message ?? data?.error ?? "Unknown error", variant: "destructive" });
+      } else {
+        setQaResults(data.data);
+        setQaReviewOpen(true);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to run QA", variant: "destructive" });
+    }
+    setQaRunning(false);
+  };
+
+  const handleApplyQa = async (accepted: Record<string, boolean>) => {
+    if (!qaResults) return;
+    const updates: any = {};
+    if (accepted.organization && qaResults.organization?.suggested) {
+      setOrganization(qaResults.organization.suggested);
+      updates.organization = qaResults.organization.suggested;
+    }
+    if (accepted.description && qaResults.description?.suggested) {
+      setDescription(qaResults.description.suggested);
+      updates.description = qaResults.description.suggested;
+    }
+    if (accepted.authors && qaResults.authors?.suggested?.length) {
+      setAuthors(qaResults.authors.suggested);
+      updates.authors = qaResults.authors.suggested;
+    }
+    if (accepted.timeline_events && qaResults.timeline_events?.suggested?.length) {
+      // Timeline events go to standard_summaries, save them separately
+      const serviceClient = supabase;
+      const { data: existing } = await serviceClient
+        .from("standard_summaries")
+        .select("id")
+        .eq("standard_id", id!)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        await serviceClient
+          .from("standard_summaries")
+          .update({ timeline_events: qaResults.timeline_events.suggested as any })
+          .eq("id", existing[0].id);
+      }
+    }
+    setQaReviewOpen(false);
+    setQaResults(null);
+    toast({ title: "QA corrections applied", description: "Selected fields have been updated. Save to persist changes." });
+  };
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
