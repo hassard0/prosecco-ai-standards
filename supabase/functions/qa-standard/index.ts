@@ -205,6 +205,10 @@ Acronym: ${standard.acronym || "(none)"}
 Organization: ${currentOrg || "(none)"}
 Description: ${standard.description}
 Status: ${standard.status}
+Primary Link: ${standard.link || "(none)"}
+
+Current Resources:
+${JSON.stringify(standard.resources || [], null, 2)}
 
 Current Authors:
 ${currentAuthors.length > 0 ? JSON.stringify(currentAuthors, null, 2) : "(none)"}
@@ -218,7 +222,9 @@ ${researchContent}
 
 ## Instructions
 
-Compare the research against the current record. Use the extract_qa_results tool to return structured corrections. Only include fields where you have HIGH CONFIDENCE that a correction is needed. For authors, include ALL authors you can identify from the research (both existing correct ones and new ones). For timeline, include ALL events with specific dates.`,
+Compare the research against the current record. Use the extract_qa_results tool to return structured corrections. Only include fields where you have HIGH CONFIDENCE that a correction is needed. For authors, include ALL authors you can identify from the research (both existing correct ones and new ones). For timeline, include ALL events with specific dates.
+
+IMPORTANT for the link field: If the research reveals a more authoritative or canonical URL for this standard's primary specification (e.g. an official spec page, RFC document, or IETF datatracker link that is better than the current primary link), suggest it via the "link" field. The current primary link would then become an additional resource entry.`,
             },
           ],
           tools: [
@@ -286,6 +292,16 @@ Compare the research against the current record. Use the extract_qa_results tool
                       type: "object",
                       properties: {
                         suggested: { type: "string" },
+                        reason: { type: "string" },
+                      },
+                      required: ["suggested", "reason"],
+                    },
+                    link: {
+                      type: "object",
+                      description: "Suggest a better primary specification URL if found. The current link will be demoted to a resource.",
+                      properties: {
+                        suggested: { type: "string", description: "The better canonical URL" },
+                        suggested_label: { type: "string", description: "Label for the old link when moved to resources, e.g. 'Original Link'" },
                         reason: { type: "string" },
                       },
                       required: ["suggested", "reason"],
